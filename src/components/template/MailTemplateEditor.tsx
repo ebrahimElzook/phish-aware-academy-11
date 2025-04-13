@@ -7,8 +7,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Mail, Type, Image, Link as LinkIcon, Bold, Italic, Underline, List, ListOrdered, AlignLeft, AlignCenter, AlignRight, Save, Send } from 'lucide-react';
+import { Mail, Type, Image as ImageIcon, Link as LinkIcon, Bold, Italic, Underline, List, ListOrdered, AlignLeft, AlignCenter, AlignRight, Save, Send, Text } from 'lucide-react';
 import { toast } from "@/hooks/use-toast";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Form, FormControl, FormField, FormItem, FormLabel } from "@/components/ui/form";
+import { useForm } from "react-hook-form";
 
 // Template presets for different types of phishing emails
 const templatePresets = [
@@ -88,15 +91,31 @@ const templatePresets = [
   }
 ];
 
+// Sample poster images for the email templates
+const posterOptions = [
+  { id: 'security-alert', name: 'Security Alert', src: 'https://images.unsplash.com/photo-1649972904349-6e44c42644a7?w=600&h=400&fit=crop' },
+  { id: 'invoice', name: 'Invoice Payment', src: 'https://images.unsplash.com/photo-1488590528505-98d2b5aba04b?w=600&h=400&fit=crop' },
+  { id: 'document', name: 'Document Share', src: 'https://images.unsplash.com/photo-1518770660439-4636190af475?w=600&h=400&fit=crop' },
+  { id: 'tech-support', name: 'Tech Support', src: 'https://images.unsplash.com/photo-1461749280684-dccba630e2f6?w=600&h=400&fit=crop' },
+  { id: 'account-update', name: 'Account Update', src: 'https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?w=600&h=400&fit=crop' },
+];
+
 const MailTemplateEditor = () => {
   const [currentTemplate, setCurrentTemplate] = useState({
     subject: 'Important: Your Account Security Requires Attention',
     from: 'security@company.org',
     fromName: 'IT Security Department',
-    content: templatePresets[0].content
+    content: templatePresets[0].content,
+    contentType: 'text', // 'text' or 'image'
+    selectedPoster: posterOptions[0],
   });
   
   const [activeTab, setActiveTab] = useState("visual");
+  const form = useForm({
+    defaultValues: {
+      contentType: "text"
+    }
+  });
   
   const handleTemplateChange = (templateId) => {
     const template = templatePresets.find(t => t.id === templateId);
@@ -107,6 +126,24 @@ const MailTemplateEditor = () => {
         content: template.content
       });
     }
+  };
+
+  const handlePosterChange = (posterId) => {
+    const poster = posterOptions.find(p => p.id === posterId);
+    if (poster) {
+      setCurrentTemplate({
+        ...currentTemplate,
+        selectedPoster: poster,
+        contentType: 'image'
+      });
+    }
+  };
+  
+  const handleContentTypeChange = (value) => {
+    setCurrentTemplate({
+      ...currentTemplate,
+      contentType: value
+    });
   };
   
   const handleSaveTemplate = () => {
@@ -121,6 +158,31 @@ const MailTemplateEditor = () => {
       title: "Test Email Sent",
       description: "A test email has been sent to your address.",
     });
+  };
+
+  // Generate the content based on the content type
+  const getEmailContent = () => {
+    if (currentTemplate.contentType === 'image') {
+      return `<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+        <div style="text-align: center; padding: 20px 0;">
+          <img src="https://via.placeholder.com/200x50" alt="Company Logo" style="max-width: 200px;">
+        </div>
+        <div style="background-color: #f8f8f8; border-left: 4px solid #d63031; padding: 15px; margin-bottom: 20px;">
+          <p style="margin: 0; font-weight: bold; color: #d63031;">IMPORTANT MESSAGE</p>
+        </div>
+        <p>Dear \${"{recipient.name}"},</p>
+        <div style="text-align: center; margin: 20px 0;">
+          <img src="${currentTemplate.selectedPoster.src}" alt="${currentTemplate.selectedPoster.name}" style="max-width: 100%; border-radius: 4px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+        </div>
+        <p>Please click the button below to view important information:</p>
+        <div style="text-align: center; margin: 30px 0;">
+          <a href="#" style="background-color: #3498db; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px; font-weight: bold;">View Details</a>
+        </div>
+        <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;">
+        <p style="font-size: 12px; color: #777;">This is an automated message, please do not reply directly to this email.</p>
+      </div>`;
+    }
+    return currentTemplate.content;
   };
   
   return (
@@ -183,6 +245,72 @@ const MailTemplateEditor = () => {
               />
             </div>
           </div>
+
+          {/* Content Type Selection */}
+          <div className="border border-border rounded-md p-4">
+            <Form {...form}>
+              <FormField
+                control={form.control}
+                name="contentType"
+                render={({ field }) => (
+                  <FormItem className="space-y-3">
+                    <FormLabel>Email Content Type</FormLabel>
+                    <FormControl>
+                      <RadioGroup
+                        onValueChange={(value) => {
+                          field.onChange(value);
+                          handleContentTypeChange(value);
+                        }}
+                        defaultValue={currentTemplate.contentType}
+                        className="flex flex-col space-y-1"
+                      >
+                        <div className="flex items-center space-x-2">
+                          <RadioGroupItem value="text" id="text" />
+                          <Label htmlFor="text" className="flex items-center gap-2">
+                            <Text className="h-4 w-4" />
+                            <span>Rich Text Email</span>
+                          </Label>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <RadioGroupItem value="image" id="image" />
+                          <Label htmlFor="image" className="flex items-center gap-2">
+                            <ImageIcon className="h-4 w-4" />
+                            <span>Email with Featured Image</span>
+                          </Label>
+                        </div>
+                      </RadioGroup>
+                    </FormControl>
+                  </FormItem>
+                )}
+              />
+            </Form>
+
+            {currentTemplate.contentType === 'image' && (
+              <div className="mt-4">
+                <Label htmlFor="poster" className="mb-2 block">Select Featured Image</Label>
+                <Select onValueChange={handlePosterChange}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select image" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {posterOptions.map((poster) => (
+                      <SelectItem key={poster.id} value={poster.id} className="flex items-center">
+                        {poster.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <div className="mt-4 border rounded-md p-2">
+                  <p className="text-xs text-gray-500 mb-2">Preview:</p>
+                  <img 
+                    src={currentTemplate.selectedPoster.src} 
+                    alt={currentTemplate.selectedPoster.name}
+                    className="w-full h-auto max-h-40 object-cover rounded-md"
+                  />
+                </div>
+              </div>
+            )}
+          </div>
           
           <div>
             <Tabs defaultValue="visual" value={activeTab} onValueChange={setActiveTab} className="w-full">
@@ -221,7 +349,7 @@ const MailTemplateEditor = () => {
                       <span className="sr-only">Link</span>
                     </Button>
                     <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                      <Image className="h-4 w-4" />
+                      <ImageIcon className="h-4 w-4" />
                       <span className="sr-only">Image</span>
                     </Button>
                     <span className="w-px h-8 bg-gray-200 mx-1"></span>
@@ -248,7 +376,7 @@ const MailTemplateEditor = () => {
                     </Button>
                   </div>
                   <div className="p-4">
-                    <div dangerouslySetInnerHTML={{ __html: currentTemplate.content }} />
+                    <div dangerouslySetInnerHTML={{ __html: getEmailContent() }} />
                   </div>
                 </div>
               </TabsContent>
@@ -256,9 +384,26 @@ const MailTemplateEditor = () => {
               <TabsContent value="html">
                 <Textarea
                   className="min-h-[400px] font-mono text-sm"
-                  value={currentTemplate.content}
-                  onChange={(e) => setCurrentTemplate({...currentTemplate, content: e.target.value})}
+                  value={getEmailContent()}
+                  onChange={(e) => {
+                    if (currentTemplate.contentType === 'text') {
+                      setCurrentTemplate({...currentTemplate, content: e.target.value});
+                    }
+                  }}
+                  readOnly={currentTemplate.contentType === 'image'}
                 />
+                {currentTemplate.contentType === 'image' && (
+                  <p className="text-sm text-amber-600 mt-2">
+                    <span className="inline-flex items-center">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-1">
+                        <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+                        <line x1="12" y1="9" x2="12" y2="13"></line>
+                        <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                      </svg>
+                      HTML editing is disabled for image-based templates. Switch to "Rich Text Email" to edit HTML directly.
+                    </span>
+                  </p>
+                )}
               </TabsContent>
             </Tabs>
           </div>
