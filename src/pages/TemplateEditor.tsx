@@ -14,12 +14,13 @@ import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
 import { Mail, User, Briefcase, Calendar, Globe, Edit, Eye, Save, FileText, Copy, ArrowLeft, Send } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
+import MailTemplateEditor from '@/components/template/MailTemplateEditor';
 
 const TemplateEditor = () => {
   const isMobile = useIsMobile();
   const navigate = useNavigate();
   const { toast } = useToast();
-  const [activeTab, setActiveTab] = useState("edit");
+  const [activeTab, setActiveTab] = useState("content");
   const [template, setTemplate] = useState({
     subject: "Important: Your Account Security Requires Attention",
     sender: "security@orgname.com",
@@ -175,139 +176,194 @@ const TemplateEditor = () => {
           </div>
 
           {/* Editor */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* Left Column - Email Settings & Editor */}
-            <div className="lg:col-span-2">
-              <Card className="border-gray-100">
-                <CardHeader className="border-b border-gray-100">
-                  <div className="flex justify-between items-center">
-                    <CardTitle>Email Template</CardTitle>
-                    <div className="flex gap-2">
-                      <Button variant="outline" className="gap-2" onClick={handleSaveTemplate}>
-                        <Save className="h-4 w-4" />
-                        <span>Save</span>
-                      </Button>
-                      <PreviewDialog />
-                    </div>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <Tabs defaultValue="edit" value={activeTab} onValueChange={setActiveTab} className="w-full">
-                    <TabsList className="grid w-full grid-cols-2 mb-6">
-                      <TabsTrigger value="edit" className="gap-1">
-                        <Edit className="h-4 w-4" />
-                        <span>Edit</span>
-                      </TabsTrigger>
-                      <TabsTrigger value="code" className="gap-1">
-                        <FileText className="h-4 w-4" />
-                        <span>HTML</span>
-                      </TabsTrigger>
-                    </TabsList>
-                    
-                    <TabsContent value="edit" className="space-y-4 mt-2">
-                      <div className="grid gap-4">
-                        <div className="grid gap-2">
-                          <Label htmlFor="subject">Email Subject</Label>
-                          <Input 
-                            id="subject" 
-                            placeholder="Enter subject line" 
-                            value={template.subject}
-                            onChange={(e) => setTemplate({...template, subject: e.target.value})}
-                          />
+          <Tabs defaultValue="content" value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+            <TabsList className="bg-white border border-gray-100 w-full">
+              <TabsTrigger value="content" className="flex-1">Content</TabsTrigger>
+              <TabsTrigger value="design" className="flex-1">Design Email</TabsTrigger>
+              <TabsTrigger value="settings" className="flex-1">Settings</TabsTrigger>
+            </TabsList>
+            
+            <TabsContent value="content">
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                {/* Left Column - Email Settings & Editor */}
+                <div className="lg:col-span-2">
+                  <Card className="border-gray-100">
+                    <CardHeader className="border-b border-gray-100">
+                      <div className="flex justify-between items-center">
+                        <CardTitle>Email Template</CardTitle>
+                        <div className="flex gap-2">
+                          <Button variant="outline" className="gap-2" onClick={handleSaveTemplate}>
+                            <Save className="h-4 w-4" />
+                            <span>Save</span>
+                          </Button>
+                          <PreviewDialog />
                         </div>
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      <Tabs defaultValue="edit" value={activeTab === "content" ? "edit" : "code"} className="w-full">
+                        <TabsList className="grid w-full grid-cols-2 mb-6">
+                          <TabsTrigger value="edit" className="gap-1">
+                            <Edit className="h-4 w-4" />
+                            <span>Edit</span>
+                          </TabsTrigger>
+                          <TabsTrigger value="code" className="gap-1">
+                            <FileText className="h-4 w-4" />
+                            <span>HTML</span>
+                          </TabsTrigger>
+                        </TabsList>
                         
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          <div className="grid gap-2">
-                            <Label htmlFor="sender">Sender Email</Label>
-                            <Input 
-                              id="sender" 
-                              placeholder="sender@example.com" 
-                              value={template.sender}
-                              onChange={(e) => setTemplate({...template, sender: e.target.value})}
-                            />
+                        <TabsContent value="edit" className="space-y-4 mt-2">
+                          <div className="grid gap-4">
+                            <div className="grid gap-2">
+                              <Label htmlFor="subject">Email Subject</Label>
+                              <Input 
+                                id="subject" 
+                                placeholder="Enter subject line" 
+                                value={template.subject}
+                                onChange={(e) => setTemplate({...template, subject: e.target.value})}
+                              />
+                            </div>
+                            
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                              <div className="grid gap-2">
+                                <Label htmlFor="sender">Sender Email</Label>
+                                <Input 
+                                  id="sender" 
+                                  placeholder="sender@example.com" 
+                                  value={template.sender}
+                                  onChange={(e) => setTemplate({...template, sender: e.target.value})}
+                                />
+                              </div>
+                              <div className="grid gap-2">
+                                <Label htmlFor="senderName">Sender Name</Label>
+                                <Input 
+                                  id="senderName" 
+                                  placeholder="Company Name" 
+                                  value={template.senderName}
+                                  onChange={(e) => setTemplate({...template, senderName: e.target.value})}
+                                />
+                              </div>
+                            </div>
+                            
+                            <div className="grid gap-2">
+                              <Label htmlFor="emailBody">Email Content</Label>
+                              <Textarea 
+                                id="emailBody" 
+                                placeholder="Enter your email body text"
+                                className="min-h-[300px] font-mono text-sm"
+                                value={template.body}
+                                onChange={(e) => setTemplate({...template, body: e.target.value})}
+                              />
+                            </div>
                           </div>
-                          <div className="grid gap-2">
-                            <Label htmlFor="senderName">Sender Name</Label>
-                            <Input 
-                              id="senderName" 
-                              placeholder="Company Name" 
-                              value={template.senderName}
-                              onChange={(e) => setTemplate({...template, senderName: e.target.value})}
-                            />
-                          </div>
-                        </div>
+                        </TabsContent>
                         
-                        <div className="grid gap-2">
-                          <Label htmlFor="emailBody">Email Content</Label>
+                        <TabsContent value="code">
                           <Textarea 
-                            id="emailBody" 
-                            placeholder="Enter your email body text"
-                            className="min-h-[300px] font-mono text-sm"
+                            id="htmlCode" 
+                            placeholder="Enter HTML code"
+                            className="min-h-[400px] font-mono text-sm"
                             value={template.body}
                             onChange={(e) => setTemplate({...template, body: e.target.value})}
                           />
+                        </TabsContent>
+                      </Tabs>
+                      
+                    </CardContent>
+                  </Card>
+                </div>
+                
+                {/* Right Column - Preview & Variables */}
+                <div className="space-y-6">
+                  {/* Preview */}
+                  {activeTab === "edit" && !isMobile && <PreviewPane />}
+                  
+                  {/* Variables */}
+                  <Card className="border-gray-100">
+                    <CardHeader className="border-b border-gray-100">
+                      <CardTitle>Template Variables</CardTitle>
+                    </CardHeader>
+                    <CardContent className="p-0">
+                      <div className="p-4">
+                        <p className="text-gray-600 text-sm mb-4">
+                          Use these variables in your template to personalize the email for each recipient.
+                        </p>
+                        <div className="space-y-3">
+                          <VariableItem icon={<User className="h-4 w-4" />} name="recipient.name" desc="Recipient's full name" />
+                          <VariableItem icon={<Mail className="h-4 w-4" />} name="recipient.email" desc="Recipient's email address" />
+                          <VariableItem icon={<Briefcase className="h-4 w-4" />} name="recipient.department" desc="Recipient's department" />
+                          <VariableItem icon={<Globe className="h-4 w-4" />} name="company.name" desc="Company name" />
+                          <VariableItem icon={<Calendar className="h-4 w-4" />} name="date.current" desc="Current date" />
                         </div>
                       </div>
-                    </TabsContent>
-                    
-                    <TabsContent value="code">
-                      <Textarea 
-                        id="htmlCode" 
-                        placeholder="Enter HTML code"
-                        className="min-h-[400px] font-mono text-sm"
-                        value={template.body}
-                        onChange={(e) => setTemplate({...template, body: e.target.value})}
-                      />
-                    </TabsContent>
-                  </Tabs>
+                    </CardContent>
+                  </Card>
                   
-                </CardContent>
-              </Card>
-            </div>
+                  {/* Tips */}
+                  <Card className="border-gray-100">
+                    <CardHeader className="border-b border-gray-100">
+                      <CardTitle>Template Design Tips</CardTitle>
+                    </CardHeader>
+                    <CardContent className="p-4">
+                      <ul className="space-y-2 text-sm text-gray-600">
+                        <li>• Use a professional tone to mimic legitimate emails</li>
+                        <li>• Create a sense of urgency to encourage clicks</li>
+                        <li>• Include company branding elements</li>
+                        <li>• Keep formatting simple and clean</li>
+                        <li>• Include a clear call-to-action</li>
+                      </ul>
+                    </CardContent>
+                  </Card>
+                </div>
+              </div>
+            </TabsContent>
             
-            {/* Right Column - Preview & Variables */}
-            <div className="space-y-6">
-              {/* Preview */}
-              {activeTab === "edit" && !isMobile && <PreviewPane />}
-              
-              {/* Variables */}
+            <TabsContent value="design">
+              <MailTemplateEditor />
+            </TabsContent>
+            
+            <TabsContent value="settings">
               <Card className="border-gray-100">
-                <CardHeader className="border-b border-gray-100">
-                  <CardTitle>Template Variables</CardTitle>
+                <CardHeader>
+                  <CardTitle>Template Settings</CardTitle>
                 </CardHeader>
-                <CardContent className="p-0">
-                  <div className="p-4">
-                    <p className="text-gray-600 text-sm mb-4">
-                      Use these variables in your template to personalize the email for each recipient.
-                    </p>
-                    <div className="space-y-3">
-                      <VariableItem icon={<User className="h-4 w-4" />} name="recipient.name" desc="Recipient's full name" />
-                      <VariableItem icon={<Mail className="h-4 w-4" />} name="recipient.email" desc="Recipient's email address" />
-                      <VariableItem icon={<Briefcase className="h-4 w-4" />} name="recipient.department" desc="Recipient's department" />
-                      <VariableItem icon={<Globe className="h-4 w-4" />} name="company.name" desc="Company name" />
-                      <VariableItem icon={<Calendar className="h-4 w-4" />} name="date.current" desc="Current date" />
+                <CardContent>
+                  <div className="grid gap-6">
+                    <div className="grid gap-2">
+                      <Label htmlFor="templateName">Template Name</Label>
+                      <Input id="templateName" placeholder="Enter a name for this template" />
+                    </div>
+                    
+                    <div className="grid gap-2">
+                      <Label htmlFor="description">Description</Label>
+                      <Textarea id="description" placeholder="Enter a description for this template" />
+                    </div>
+                    
+                    <div className="grid gap-2">
+                      <Label htmlFor="category">Category</Label>
+                      <select id="category" className="w-full rounded-md border border-gray-300 p-2">
+                        <option value="account-security">Account Security</option>
+                        <option value="financial">Financial</option>
+                        <option value="document-share">Document Sharing</option>
+                        <option value="promotional">Promotional</option>
+                        <option value="business">Business</option>
+                      </select>
+                    </div>
+                    
+                    <div className="grid gap-2">
+                      <Label htmlFor="difficulty">Difficulty Level</Label>
+                      <select id="difficulty" className="w-full rounded-md border border-gray-300 p-2">
+                        <option value="easy">Easy</option>
+                        <option value="medium">Medium</option>
+                        <option value="hard">Hard</option>
+                      </select>
                     </div>
                   </div>
                 </CardContent>
               </Card>
-              
-              {/* Tips */}
-              <Card className="border-gray-100">
-                <CardHeader className="border-b border-gray-100">
-                  <CardTitle>Template Design Tips</CardTitle>
-                </CardHeader>
-                <CardContent className="p-4">
-                  <ul className="space-y-2 text-sm text-gray-600">
-                    <li>• Use a professional tone to mimic legitimate emails</li>
-                    <li>• Create a sense of urgency to encourage clicks</li>
-                    <li>• Include company branding elements</li>
-                    <li>• Keep formatting simple and clean</li>
-                    <li>• Include a clear call-to-action</li>
-                  </ul>
-                </CardContent>
-              </Card>
-            </div>
-          </div>
+            </TabsContent>
+          </Tabs>
         </div>
       </div>
       
