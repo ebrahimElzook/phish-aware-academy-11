@@ -7,6 +7,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Index from "./pages/Index";
 import Dashboard from "./pages/Dashboard";
 import Templates from "./pages/Templates";
+import TemplateEditor from "./pages/TemplateEditor";
 import Analytics from "./pages/Analytics";
 import AISupport from "./pages/AISupport";
 import NotFound from "./pages/NotFound";
@@ -23,6 +24,7 @@ const App = () => (
           <Route path="/" element={<Index />} />
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/templates" element={<Templates />} />
+          <Route path="/template-editor/:id?" element={<TemplateEditor />} />
           <Route path="/analytics" element={<Analytics />} />
           <Route path="/ai-support" element={<AISupport />} />
           <Route path="*" element={<NotFound />} />

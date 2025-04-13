@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
@@ -6,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Search, PlusCircle, Mail, CreditCard, Gift, AlertTriangle, FileText, ShieldAlert, Share2, Briefcase } from 'lucide-react';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
+import { useNavigate } from 'react-router-dom';
 
 // Mock template data
 const templates = [
@@ -97,6 +97,7 @@ const Templates = () => {
   const [searchQuery, setSearchQuery] = React.useState('');
   const [selectedCategory, setSelectedCategory] = React.useState('All');
   const [selectedDifficulty, setSelectedDifficulty] = React.useState('All');
+  const navigate = useNavigate();
   
   // Filter templates based on search and filters
   const filteredTemplates = templates.filter(template => {
@@ -107,6 +108,14 @@ const Templates = () => {
     
     return matchesSearch && matchesCategory && matchesDifficulty;
   });
+  
+  const handleCreateTemplate = () => {
+    navigate('/template-editor');
+  };
+
+  const handleUseTemplate = (templateId) => {
+    navigate(`/template-editor/${templateId}`);
+  };
   
   return (
     <div className="min-h-screen flex flex-col">
@@ -121,7 +130,7 @@ const Templates = () => {
               <p className="text-gray-600">Browse and customize templates for your phishing simulations</p>
             </div>
             <div className="mt-4 md:mt-0">
-              <Button className="bg-phish-600 hover:bg-phish-700">
+              <Button className="bg-phish-600 hover:bg-phish-700" onClick={handleCreateTemplate}>
                 <PlusCircle className="h-4 w-4 mr-2" /> Create Custom Template
               </Button>
             </div>
@@ -207,7 +216,11 @@ const Templates = () => {
                     </div>
                   </CardContent>
                   <CardFooter className="p-3 bg-gray-50 flex justify-center border-t border-gray-100">
-                    <Button variant="outline" className="w-full text-phish-600 border-phish-200 hover:bg-phish-50">
+                    <Button 
+                      variant="outline" 
+                      className="w-full text-phish-600 border-phish-200 hover:bg-phish-50"
+                      onClick={() => handleUseTemplate(template.id)}
+                    >
                       Use Template
                     </Button>
                   </CardFooter>
