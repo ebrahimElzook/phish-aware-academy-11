@@ -19,11 +19,21 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Video, Plus } from 'lucide-react';
+import { Video, Plus, Calendar } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { Calendar as CalendarComponent } from '@/components/ui/calendar';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
+import { format } from 'date-fns';
+import { cn } from '@/lib/utils';
 
 export const CampaignCreator = () => {
   const { toast } = useToast();
+  const [startDate, setStartDate] = React.useState<Date>();
+  const [endDate, setEndDate] = React.useState<Date>();
   
   // Mock data for demonstration - in real app this would come from your backend
   const availableVideos = [
@@ -33,6 +43,24 @@ export const CampaignCreator = () => {
   ];
 
   const handleCreateCampaign = () => {
+    if (!startDate || !endDate) {
+      toast({
+        title: "Missing Dates",
+        description: "Please select both start and end dates for the campaign.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (endDate < startDate) {
+      toast({
+        title: "Invalid Dates",
+        description: "End date must be after start date.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     toast({
       title: "Campaign Created",
       description: "Your new training campaign has been created successfully.",
@@ -64,6 +92,59 @@ export const CampaignCreator = () => {
             <Input id="audience" placeholder="e.g., IT Department, All Employees" />
           </div>
           <div className="grid gap-2">
+            <Label>Start Date</Label>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  className={cn(
+                    "w-full justify-start text-left font-normal",
+                    !startDate && "text-muted-foreground"
+                  )}
+                >
+                  <Calendar className="mr-2 h-4 w-4" />
+                  {startDate ? format(startDate, "PPP") : <span>Pick a date</span>}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <CalendarComponent
+                  mode="single"
+                  selected={startDate}
+                  onSelect={setStartDate}
+                  initialFocus
+                  className={cn("p-3 pointer-events-auto")}
+                />
+              </PopoverContent>
+            </Popover>
+          </div>
+          <div className="grid gap-2">
+            <Label>End Date</Label>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  className={cn(
+                    "w-full justify-start text-left font-normal",
+                    !endDate && "text-muted-foreground"
+                  )}
+                >
+                  <Calendar className="mr-2 h-4 w-4" />
+                  {endDate ? format(endDate, "PPP") : <span>Pick a date</span>}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <CalendarComponent
+                  mode="single"
+                  selected={endDate}
+                  onSelect={setEndDate}
+                  fromDate={startDate}
+                  initialFocus
+                  className={cn("p-3 pointer-events-auto")}
+                />
+              </PopoverContent>
+            </Popover>
+          </div>
+          <div className="grid gap-2">
             <Label htmlFor="videos">Select Videos</Label>
             <Select>
               <SelectTrigger>
@@ -89,3 +170,4 @@ export const CampaignCreator = () => {
     </Dialog>
   );
 };
+
