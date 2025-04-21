@@ -5,9 +5,10 @@ import Footer from '@/components/Footer';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Bot, FileText, BrainCircuit } from 'lucide-react';
+import { Bot, FileText, BrainCircuit, FileImage } from 'lucide-react';
 import PhishingTopicSuggester from '@/components/ai/PhishingTopicSuggester';
 import ReportInsightsAnalyzer from '@/components/ai/ReportInsightsAnalyzer';
+import PhishingIdeaGenerator from '@/components/ai/PhishingIdeaGenerator';
 
 const AISupport = () => {
   return (
@@ -29,10 +30,14 @@ const AISupport = () => {
           
           {/* AI Tools */}
           <Tabs defaultValue="suggestions" className="w-full">
-            <TabsList className="grid w-full max-w-md mx-auto mb-6 grid-cols-2">
+            <TabsList className="grid w-full max-w-md mx-auto mb-6 grid-cols-3">
               <TabsTrigger value="suggestions" className="flex items-center gap-1">
                 <FileText className="h-4 w-4" />
                 <span>Campaign Suggestions</span>
+              </TabsTrigger>
+              <TabsTrigger value="generator" className="flex items-center gap-1">
+                <FileImage className="h-4 w-4" />
+                <span>Idea Generator</span>
               </TabsTrigger>
               <TabsTrigger value="insights" className="flex items-center gap-1">
                 <BrainCircuit className="h-4 w-4" />
@@ -71,6 +76,44 @@ const AISupport = () => {
                     <div className="mt-6">
                       <Button asChild className="bg-phish-600 hover:bg-phish-700">
                         <a href="/templates">Create Campaign from Suggestion</a>
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            </TabsContent>
+            
+            <TabsContent value="generator">
+              <div className="grid grid-cols-1 gap-6">
+                <PhishingIdeaGenerator />
+                
+                <Card className="border-gray-100">
+                  <CardHeader>
+                    <CardTitle>How to use AI idea generator</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <ol className="space-y-4 text-gray-600">
+                      <li className="flex gap-2">
+                        <span className="font-medium text-phish-600">1.</span>
+                        <p>Select your target audience from the available options</p>
+                      </li>
+                      <li className="flex gap-2">
+                        <span className="font-medium text-phish-600">2.</span>
+                        <p>Add any specific context or requirements for your campaign</p>
+                      </li>
+                      <li className="flex gap-2">
+                        <span className="font-medium text-phish-600">3.</span>
+                        <p>Generate a tailored phishing scenario and matching poster</p>
+                      </li>
+                      <li className="flex gap-2">
+                        <span className="font-medium text-phish-600">4.</span>
+                        <p>Use the generated content in your email template design</p>
+                      </li>
+                    </ol>
+                    
+                    <div className="mt-6">
+                      <Button asChild className="bg-phish-600 hover:bg-phish-700">
+                        <a href="/templates">Create Campaign from Generated Idea</a>
                       </Button>
                     </div>
                   </CardContent>
