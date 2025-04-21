@@ -11,6 +11,7 @@ import TemplateEditor from "./pages/TemplateEditor";
 import Analytics from "./pages/Analytics";
 import AISupport from "./pages/AISupport";
 import NotFound from "./pages/NotFound";
+import LMSCampaigns from "./pages/LMSCampaigns";
 
 const queryClient = new QueryClient();
 
@@ -27,6 +28,7 @@ const App = () => (
           <Route path="/template-editor/:id?" element={<TemplateEditor />} />
           <Route path="/analytics" element={<Analytics />} />
           <Route path="/ai-support" element={<AISupport />} />
+          <Route path="/lms-campaigns" element={<LMSCampaigns />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>

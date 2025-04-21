@@ -1,8 +1,7 @@
-
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
-import { Shield, Menu, Bot } from 'lucide-react';
+import { Shield, Menu, Bot, BookOpen } from 'lucide-react';
 
 const Navbar = () => {
   const [isMenuOpen, setIsMenuOpen] = React.useState(false);
@@ -22,6 +21,12 @@ const Navbar = () => {
           <Link to="/dashboard" className={`transition-colors ${location.pathname === "/dashboard" ? "text-phish-600" : "text-gray-700 hover:text-phish-600"}`}>Dashboard</Link>
           <Link to="/templates" className={`transition-colors ${location.pathname === "/templates" ? "text-phish-600" : "text-gray-700 hover:text-phish-600"}`}>Templates</Link>
           <Link to="/analytics" className={`transition-colors ${location.pathname === "/analytics" ? "text-phish-600" : "text-gray-700 hover:text-phish-600"}`}>Analytics</Link>
+          <Link to="/lms-campaigns" className={`transition-colors ${location.pathname === "/lms-campaigns" ? "text-phish-600" : "text-gray-700 hover:text-phish-600"}`}>
+            <div className="flex items-center gap-1">
+              <BookOpen className="h-4 w-4" />
+              <span>LMS</span>
+            </div>
+          </Link>
           <Link to="/ai-support" className={`transition-colors ${location.pathname === "/ai-support" ? "text-phish-600" : "text-gray-700 hover:text-phish-600"}`}>
             <div className="flex items-center gap-1">
               <Bot className="h-4 w-4" />
@@ -51,6 +56,12 @@ const Navbar = () => {
             <Link to="/dashboard" className={`transition-colors py-2 ${location.pathname === "/dashboard" ? "text-phish-600" : "text-gray-700 hover:text-phish-600"}`}>Dashboard</Link>
             <Link to="/templates" className={`transition-colors py-2 ${location.pathname === "/templates" ? "text-phish-600" : "text-gray-700 hover:text-phish-600"}`}>Templates</Link>
             <Link to="/analytics" className={`transition-colors py-2 ${location.pathname === "/analytics" ? "text-phish-600" : "text-gray-700 hover:text-phish-600"}`}>Analytics</Link>
+            <Link to="/lms-campaigns" className={`transition-colors py-2 ${location.pathname === "/lms-campaigns" ? "text-phish-600" : "text-gray-700 hover:text-phish-600"}`}>
+              <div className="flex items-center gap-1">
+                <BookOpen className="h-4 w-4" />
+                <span>LMS</span>
+              </div>
+            </Link>
             <Link to="/ai-support" className={`transition-colors py-2 ${location.pathname === "/ai-support" ? "text-phish-600" : "text-gray-700 hover:text-phish-600"}`}>
               <div className="flex items-center gap-1">
                 <Bot className="h-4 w-4" />
