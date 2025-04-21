@@ -6,6 +6,8 @@ import { Search, PlusCircle, Mail, CreditCard, Gift, AlertTriangle, FileText, Sh
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import { useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
+import Video from '@/components/Video';
 
 // Mock template data
 const templates = [
@@ -129,7 +131,13 @@ const Templates = () => {
               <h1 className="text-2xl font-bold mb-1">Phishing Templates</h1>
               <p className="text-gray-600">Browse and customize templates for your phishing simulations</p>
             </div>
-            <div className="mt-4 md:mt-0">
+            <div className="mt-4 md:mt-0 flex gap-4">
+              <Button asChild variant="outline" className="border-phish-200 hover:bg-phish-50">
+                <Link to="/lms-campaigns">
+                  <Video className="h-4 w-4 mr-2" />
+                  Training Videos
+                </Link>
+              </Button>
               <Button className="bg-phish-600 hover:bg-phish-700" onClick={handleCreateTemplate}>
                 <PlusCircle className="h-4 w-4 mr-2" /> Create Custom Template
               </Button>

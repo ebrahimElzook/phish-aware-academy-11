@@ -84,7 +84,13 @@ const Dashboard = () => {
               <h1 className="text-2xl font-bold mb-1">Dashboard</h1>
               <p className="text-gray-600">Manage and monitor your phishing campaigns</p>
             </div>
-            <div className="mt-4 md:mt-0">
+            <div className="mt-4 md:mt-0 flex gap-4">
+              <Button asChild className="bg-phish-600 hover:bg-phish-700">
+                <Link to="/lms-campaigns">
+                  <Video className="h-4 w-4 mr-2" />
+                  Training Videos
+                </Link>
+              </Button>
               <Button className="bg-phish-600 hover:bg-phish-700">
                 <PlusCircle className="h-4 w-4 mr-2" /> New Campaign
               </Button>
