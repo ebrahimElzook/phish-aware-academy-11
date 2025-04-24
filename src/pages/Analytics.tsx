@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
@@ -29,7 +29,6 @@ import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import LMSAnalytics from '@/components/analytics/LMSAnalytics';
 
-// Mock data for charts
 const monthlyData = [
   { name: 'Jan', clickRate: 38, reportRate: 14 },
   { name: 'Feb', clickRate: 35, reportRate: 18 },
@@ -77,11 +76,10 @@ const Analytics = () => {
       
       <div className="flex-grow bg-gray-50 py-8 px-6">
         <div className="max-w-7xl mx-auto">
-          {/* Header */}
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8">
             <div>
               <h1 className="text-2xl font-bold mb-1">Analytics & Reports</h1>
-              <p className="text-gray-600">Gain insights into your organization's phishing awareness</p>
+              <p className="text-gray-600">Gain insights into your organization's security awareness</p>
             </div>
             <div className="mt-4 md:mt-0 flex items-center space-x-3">
               <div className="flex items-center space-x-1 bg-white rounded-md border border-gray-200 px-3 py-1">
@@ -115,8 +113,7 @@ const Analytics = () => {
               </TabsTrigger>
             </TabsList>
 
-            <TabsContent value="phishing" className="space-y-8">
-              {/* Summary Cards */}
+            <TabsContent value="phishing">
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
                 <Card className="border-gray-100">
                   <CardContent className="p-6">
@@ -193,9 +190,7 @@ const Analytics = () => {
                 </Card>
               </div>
               
-              {/* Chart Sections */}
               <div className="space-y-8">
-                {/* Trend Analysis */}
                 <Card className="border-gray-100">
                   <CardHeader>
                     <CardTitle>Phishing Awareness Trend</CardTitle>
@@ -231,7 +226,6 @@ const Analytics = () => {
                   </CardContent>
                 </Card>
                 
-                {/* Department Analysis */}
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                   <Card className="border-gray-100">
                     <CardHeader>
@@ -294,7 +288,6 @@ const Analytics = () => {
                   </Card>
                 </div>
                 
-                {/* Response Time Analysis */}
                 <Card className="border-gray-100">
                   <CardHeader>
                     <CardTitle>User Response Time Analysis</CardTitle>
@@ -353,7 +346,6 @@ const Analytics = () => {
                   </CardContent>
                 </Card>
                 
-                {/* Recommendations */}
                 <Card className="border-gray-100">
                   <CardHeader>
                     <CardTitle>Security Recommendations</CardTitle>
