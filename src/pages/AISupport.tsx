@@ -1,14 +1,14 @@
-
 import React from 'react';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Bot, FileText, BrainCircuit, FileImage } from 'lucide-react';
+import { Bot, FileText, BrainCircuit, FileImage, BookOpen } from 'lucide-react';
 import PhishingTopicSuggester from '@/components/ai/PhishingTopicSuggester';
 import ReportInsightsAnalyzer from '@/components/ai/ReportInsightsAnalyzer';
 import PhishingIdeaGenerator from '@/components/ai/PhishingIdeaGenerator';
+import VideoTopicSuggester from '@/components/ai/VideoTopicSuggester';
 
 const AISupport = () => {
   return (
@@ -30,133 +30,68 @@ const AISupport = () => {
           
           {/* AI Tools */}
           <Tabs defaultValue="suggestions" className="w-full">
-            <TabsList className="grid w-full max-w-md mx-auto mb-6 grid-cols-3">
+            <TabsList className="grid w-full max-w-md mx-auto mb-6 grid-cols-4">
               <TabsTrigger value="suggestions" className="flex items-center gap-1">
                 <FileText className="h-4 w-4" />
-                <span>Campaign Suggestions</span>
+                <span>Phishing</span>
               </TabsTrigger>
               <TabsTrigger value="generator" className="flex items-center gap-1">
                 <FileImage className="h-4 w-4" />
-                <span>Idea Generator</span>
+                <span>Templates</span>
               </TabsTrigger>
               <TabsTrigger value="insights" className="flex items-center gap-1">
                 <BrainCircuit className="h-4 w-4" />
-                <span>Report Insights</span>
+                <span>Reports</span>
+              </TabsTrigger>
+              <TabsTrigger value="videos" className="flex items-center gap-1">
+                <BookOpen className="h-4 w-4" />
+                <span>Videos</span>
               </TabsTrigger>
             </TabsList>
             
             <TabsContent value="suggestions">
-              <div className="grid grid-cols-1 gap-6">
-                <PhishingTopicSuggester />
-                
-                <Card className="border-gray-100">
-                  <CardHeader>
-                    <CardTitle>How to use AI campaign suggestions</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <ol className="space-y-4 text-gray-600">
-                      <li className="flex gap-2">
-                        <span className="font-medium text-phish-600">1.</span>
-                        <p>Browse pre-defined templates by department or create a custom scenario</p>
-                      </li>
-                      <li className="flex gap-2">
-                        <span className="font-medium text-phish-600">2.</span>
-                        <p>Select a phishing scenario that best matches your training goals</p>
-                      </li>
-                      <li className="flex gap-2">
-                        <span className="font-medium text-phish-600">3.</span>
-                        <p>Copy the scenario details and use them as a starting point for your campaign</p>
-                      </li>
-                      <li className="flex gap-2">
-                        <span className="font-medium text-phish-600">4.</span>
-                        <p>Navigate to the Templates section to create your email based on the suggestion</p>
-                      </li>
-                    </ol>
-                    
-                    <div className="mt-6">
-                      <Button asChild className="bg-phish-600 hover:bg-phish-700">
-                        <a href="/templates">Create Campaign from Suggestion</a>
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
+              <PhishingTopicSuggester />
             </TabsContent>
             
             <TabsContent value="generator">
+              <PhishingIdeaGenerator />
+            </TabsContent>
+            
+            <TabsContent value="insights">
+              <ReportInsightsAnalyzer />
+            </TabsContent>
+
+            <TabsContent value="videos">
               <div className="grid grid-cols-1 gap-6">
-                <PhishingIdeaGenerator />
+                <VideoTopicSuggester />
                 
                 <Card className="border-gray-100">
                   <CardHeader>
-                    <CardTitle>How to use AI idea generator</CardTitle>
+                    <CardTitle>How to use Video AI Support</CardTitle>
                   </CardHeader>
                   <CardContent>
                     <ol className="space-y-4 text-gray-600">
                       <li className="flex gap-2">
-                        <span className="font-medium text-phish-600">1.</span>
-                        <p>Select your target audience from the available options</p>
+                        <span className="font-medium text-purple-600">1.</span>
+                        <p>Describe your training needs and target audience</p>
                       </li>
                       <li className="flex gap-2">
-                        <span className="font-medium text-phish-600">2.</span>
-                        <p>Add any specific context or requirements for your campaign</p>
+                        <span className="font-medium text-purple-600">2.</span>
+                        <p>Get AI-generated topic suggestions with recommended durations</p>
                       </li>
                       <li className="flex gap-2">
-                        <span className="font-medium text-phish-600">3.</span>
-                        <p>Generate a tailored phishing scenario and matching poster</p>
+                        <span className="font-medium text-purple-600">3.</span>
+                        <p>Review and select the most relevant topics for your training</p>
                       </li>
                       <li className="flex gap-2">
-                        <span className="font-medium text-phish-600">4.</span>
-                        <p>Use the generated content in your email template design</p>
+                        <span className="font-medium text-purple-600">4.</span>
+                        <p>Create your training video based on the AI recommendations</p>
                       </li>
                     </ol>
                     
                     <div className="mt-6">
-                      <Button asChild className="bg-phish-600 hover:bg-phish-700">
-                        <a href="/templates">Create Campaign from Generated Idea</a>
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
-            </TabsContent>
-            
-            <TabsContent value="insights">
-              <div className="grid grid-cols-1 gap-6">
-                <ReportInsightsAnalyzer />
-                
-                <Card className="border-gray-100">
-                  <CardHeader>
-                    <CardTitle>Understanding AI insights</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-gray-600 mb-4">
-                      Our AI analyzes your campaign results to identify patterns, vulnerabilities, and improvement opportunities.
-                      The insights are based on:
-                    </p>
-                    
-                    <ul className="space-y-2 text-gray-600">
-                      <li className="flex items-start gap-2">
-                        <div className="h-5 w-5 bg-blue-100 rounded-full flex items-center justify-center text-blue-700 font-medium text-xs mt-0.5">1</div>
-                        <p><span className="font-medium">Click rates by department</span> - Identifies which teams need additional training</p>
-                      </li>
-                      <li className="flex items-start gap-2">
-                        <div className="h-5 w-5 bg-blue-100 rounded-full flex items-center justify-center text-blue-700 font-medium text-xs mt-0.5">2</div>
-                        <p><span className="font-medium">Campaign effectiveness</span> - Determines which phishing scenarios are most likely to deceive users</p>
-                      </li>
-                      <li className="flex items-start gap-2">
-                        <div className="h-5 w-5 bg-blue-100 rounded-full flex items-center justify-center text-blue-700 font-medium text-xs mt-0.5">3</div>
-                        <p><span className="font-medium">Reporting behavior</span> - Analyzes how quickly and frequently users report suspicious emails</p>
-                      </li>
-                      <li className="flex items-start gap-2">
-                        <div className="h-5 w-5 bg-blue-100 rounded-full flex items-center justify-center text-blue-700 font-medium text-xs mt-0.5">4</div>
-                        <p><span className="font-medium">Historical trends</span> - Compares current performance against past campaigns to measure improvement</p>
-                      </li>
-                    </ul>
-                    
-                    <div className="mt-6">
-                      <Button asChild className="bg-phish-600 hover:bg-phish-700">
-                        <a href="/analytics">View Full Analytics</a>
+                      <Button asChild className="bg-purple-600 hover:bg-purple-700">
+                        <Link to="/lms-campaigns">Create Training Video</Link>
                       </Button>
                     </div>
                   </CardContent>
