@@ -1,12 +1,13 @@
-import React from 'react';
+import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Search, PlusCircle, Mail, CreditCard, Gift, AlertTriangle, FileText, ShieldAlert, Share2, Briefcase } from 'lucide-react';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import { useNavigate } from 'react-router-dom';
-import { Link } from 'react-router-dom';
 import Video from '@/components/Video';
 
 // Mock template data
@@ -96,9 +97,9 @@ const difficultyLevels = [
 ];
 
 const Templates = () => {
-  const [searchQuery, setSearchQuery] = React.useState('');
-  const [selectedCategory, setSelectedCategory] = React.useState('All');
-  const [selectedDifficulty, setSelectedDifficulty] = React.useState('All');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState('All');
+  const [selectedDifficulty, setSelectedDifficulty] = useState('All');
   const navigate = useNavigate();
   
   // Filter templates based on search and filters
@@ -125,121 +126,154 @@ const Templates = () => {
       
       <div className="flex-grow bg-gray-50 py-8 px-6">
         <div className="max-w-7xl mx-auto">
-          {/* Header */}
-          <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8">
-            <div>
-              <h1 className="text-2xl font-bold mb-1">Phishing Templates</h1>
-              <p className="text-gray-600">Browse and customize templates for your phishing simulations</p>
-            </div>
-            <div className="mt-4 md:mt-0 flex gap-4">
-              <Button asChild variant="outline" className="border-phish-200 hover:bg-phish-50">
-                <Link to="/lms-campaigns">
-                  <Video className="h-4 w-4 mr-2" />
-                  Training Videos
-                </Link>
-              </Button>
-              <Button className="bg-phish-600 hover:bg-phish-700" onClick={handleCreateTemplate}>
-                <PlusCircle className="h-4 w-4 mr-2" /> Create Custom Template
-              </Button>
-            </div>
-          </div>
-          
-          {/* Search and Filters */}
-          <div className="bg-white rounded-lg border border-gray-100 p-6 mb-8">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="relative">
-                <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                <Input
-                  placeholder="Search templates..."
-                  className="pl-9"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                />
+          <Tabs defaultValue="phishing" className="space-y-4">
+            <TabsList>
+              <TabsTrigger value="phishing">Phishing Templates</TabsTrigger>
+              <TabsTrigger value="lms">Training Videos</TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="phishing">
+              {/* Header */}
+              <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8">
+                <div>
+                  <h1 className="text-2xl font-bold mb-1">Phishing Templates</h1>
+                  <p className="text-gray-600">Browse and customize templates for your phishing simulations</p>
+                </div>
+                <div className="mt-4 md:mt-0">
+                  <Button className="bg-phish-600 hover:bg-phish-700" onClick={handleCreateTemplate}>
+                    <PlusCircle className="h-4 w-4 mr-2" /> Create Custom Template
+                  </Button>
+                </div>
               </div>
-              
-              <div>
-                <label htmlFor="category" className="block text-sm font-medium text-gray-700 mb-1">
-                  Category
-                </label>
-                <select
-                  id="category"
-                  className="w-full rounded-md border border-gray-300 p-2"
-                  value={selectedCategory}
-                  onChange={(e) => setSelectedCategory(e.target.value)}
-                >
-                  {categories.map((category) => (
-                    <option key={category} value={category}>
-                      {category}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              
-              <div>
-                <label htmlFor="difficulty" className="block text-sm font-medium text-gray-700 mb-1">
-                  Difficulty
-                </label>
-                <select
-                  id="difficulty"
-                  className="w-full rounded-md border border-gray-300 p-2"
-                  value={selectedDifficulty}
-                  onChange={(e) => setSelectedDifficulty(e.target.value)}
-                >
-                  {difficultyLevels.map((level) => (
-                    <option key={level} value={level}>
-                      {level}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
-          </div>
-          
-          {/* Templates Grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {filteredTemplates.length > 0 ? (
-              filteredTemplates.map((template) => (
-                <Card key={template.id} className="border-gray-100 overflow-hidden hover:shadow-md transition-shadow">
-                  <CardContent className="p-6">
-                    <div className="flex flex-col items-center text-center">
-                      <div className="bg-phish-50 p-4 rounded-full mb-4">
-                        {template.icon}
-                      </div>
-                      <h3 className="font-semibold text-lg mb-1">{template.name}</h3>
-                      <div className="flex items-center mb-2">
-                        <span className="text-xs font-medium text-gray-500 bg-gray-100 px-2 py-1 rounded">
-                          {template.category}
-                        </span>
-                        <span className={`ml-2 text-xs font-medium px-2 py-1 rounded ${
-                          template.difficulty === 'Easy' 
-                            ? 'bg-green-100 text-green-800' 
-                            : template.difficulty === 'Medium'
-                            ? 'bg-yellow-100 text-yellow-800'
-                            : 'bg-red-100 text-red-800'
-                        }`}>
-                          {template.difficulty}
-                        </span>
-                      </div>
-                      <p className="text-gray-600 text-sm">{template.description}</p>
-                    </div>
-                  </CardContent>
-                  <CardFooter className="p-3 bg-gray-50 flex justify-center border-t border-gray-100">
-                    <Button 
-                      variant="outline" 
-                      className="w-full text-phish-600 border-phish-200 hover:bg-phish-50"
-                      onClick={() => handleUseTemplate(template.id)}
+
+              {/* Search and filters */}
+              <div className="bg-white rounded-lg border border-gray-100 p-6 mb-8">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="relative">
+                    <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                    <Input
+                      placeholder="Search templates..."
+                      className="pl-9"
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                    />
+                  </div>
+                  
+                  <div>
+                    <label htmlFor="category" className="block text-sm font-medium text-gray-700 mb-1">
+                      Category
+                    </label>
+                    <select
+                      id="category"
+                      className="w-full rounded-md border border-gray-300 p-2"
+                      value={selectedCategory}
+                      onChange={(e) => setSelectedCategory(e.target.value)}
                     >
-                      Use Template
-                    </Button>
-                  </CardFooter>
-                </Card>
-              ))
-            ) : (
-              <div className="col-span-full py-12 text-center">
-                <p className="text-lg text-gray-600">No templates found matching your criteria.</p>
+                      {categories.map((category) => (
+                        <option key={category} value={category}>
+                          {category}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  
+                  <div>
+                    <label htmlFor="difficulty" className="block text-sm font-medium text-gray-700 mb-1">
+                      Difficulty
+                    </label>
+                    <select
+                      id="difficulty"
+                      className="w-full rounded-md border border-gray-300 p-2"
+                      value={selectedDifficulty}
+                      onChange={(e) => setSelectedDifficulty(e.target.value)}
+                    >
+                      {difficultyLevels.map((level) => (
+                        <option key={level} value={level}>
+                          {level}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
               </div>
-            )}
-          </div>
+
+              {/* Templates grid */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                {filteredTemplates.length > 0 ? (
+                  filteredTemplates.map((template) => (
+                    <Card key={template.id} className="border-gray-100 overflow-hidden hover:shadow-md transition-shadow">
+                      <CardContent className="p-6">
+                        <div className="flex flex-col items-center text-center">
+                          <div className="bg-phish-50 p-4 rounded-full mb-4">
+                            {template.icon}
+                          </div>
+                          <h3 className="font-semibold text-lg mb-1">{template.name}</h3>
+                          <div className="flex items-center mb-2">
+                            <span className="text-xs font-medium text-gray-500 bg-gray-100 px-2 py-1 rounded">
+                              {template.category}
+                            </span>
+                            <span className={`ml-2 text-xs font-medium px-2 py-1 rounded ${
+                              template.difficulty === 'Easy' 
+                                ? 'bg-green-100 text-green-800' 
+                                : template.difficulty === 'Medium'
+                                ? 'bg-yellow-100 text-yellow-800'
+                                : 'bg-red-100 text-red-800'
+                            }`}>
+                              {template.difficulty}
+                            </span>
+                          </div>
+                          <p className="text-gray-600 text-sm">{template.description}</p>
+                        </div>
+                      </CardContent>
+                      <CardFooter className="p-3 bg-gray-50 flex justify-center border-t border-gray-100">
+                        <Button 
+                          variant="outline" 
+                          className="w-full text-phish-600 border-phish-200 hover:bg-phish-50"
+                          onClick={() => handleUseTemplate(template.id)}
+                        >
+                          Use Template
+                        </Button>
+                      </CardFooter>
+                    </Card>
+                  ))
+                ) : (
+                  <div className="col-span-full py-12 text-center">
+                    <p className="text-lg text-gray-600">No templates found matching your criteria.</p>
+                  </div>
+                )}
+              </div>
+            </TabsContent>
+
+            <TabsContent value="lms">
+              <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8">
+                <div>
+                  <h1 className="text-2xl font-bold mb-1">Training Videos</h1>
+                  <p className="text-gray-600">Manage and create video-based security awareness training</p>
+                </div>
+                <div className="mt-4 md:mt-0">
+                  <Button asChild variant="default" className="bg-phish-600 hover:bg-phish-700">
+                    <Link to="/lms-campaigns">
+                      <Video className="h-4 w-4 mr-2" />
+                      View All Videos
+                    </Link>
+                  </Button>
+                </div>
+              </div>
+
+              <Card className="text-center p-12">
+                <CardContent>
+                  <Video className="h-12 w-12 mx-auto mb-4 text-gray-400" />
+                  <h3 className="text-lg font-medium mb-2">Training Video Management</h3>
+                  <p className="text-gray-600 mb-6">
+                    Create and manage your video-based security awareness training materials
+                  </p>
+                  <Button asChild variant="default" className="bg-phish-600 hover:bg-phish-700">
+                    <Link to="/lms-campaigns">Go to Video Management</Link>
+                  </Button>
+                </CardContent>
+              </Card>
+            </TabsContent>
+          </Tabs>
         </div>
       </div>
       

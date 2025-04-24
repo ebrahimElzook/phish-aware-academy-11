@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import {
   BarChart,
   LineChart,
@@ -70,7 +71,7 @@ const campaigns = [
 ];
 
 const Dashboard = () => {
-  const [activeTab, setActiveTab] = useState('overview');
+  const [activeTab, setActiveTab] = useState('phishing');
   
   return (
     <div className="min-h-screen flex flex-col">
@@ -82,145 +83,92 @@ const Dashboard = () => {
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8">
             <div>
               <h1 className="text-2xl font-bold mb-1">Dashboard</h1>
-              <p className="text-gray-600">Manage and monitor your phishing campaigns</p>
-            </div>
-            <div className="mt-4 md:mt-0 flex gap-4">
-              <Button asChild className="bg-phish-600 hover:bg-phish-700">
-                <Link to="/lms-campaigns">
-                  <Video className="h-4 w-4 mr-2" />
-                  Training Videos
-                </Link>
-              </Button>
-              <Button className="bg-phish-600 hover:bg-phish-700">
-                <PlusCircle className="h-4 w-4 mr-2" /> New Campaign
-              </Button>
+              <p className="text-gray-600">Manage your security awareness training</p>
             </div>
           </div>
-          
-          {/* Stats Overview */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-            <Card className="border-gray-100">
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-gray-500">Active Campaigns</p>
-                    <p className="text-3xl font-bold">3</p>
-                  </div>
-                  <div className="bg-phish-50 p-3 rounded-lg">
-                    <Mail className="h-5 w-5 text-phish-600" />
-                  </div>
-                </div>
-                <div className="mt-2 flex items-center text-xs text-green-600">
-                  <TrendingUp className="h-3 w-3 mr-1" />
-                  <span>Up 10% from last month</span>
-                </div>
-              </CardContent>
-            </Card>
-            
-            <Card className="border-gray-100">
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-gray-500">Click Rate</p>
-                    <p className="text-3xl font-bold">24.8%</p>
-                  </div>
-                  <div className="bg-red-50 p-3 rounded-lg">
-                    <AlertCircle className="h-5 w-5 text-red-500" />
-                  </div>
-                </div>
-                <div className="mt-2 flex items-center text-xs text-red-600">
-                  <TrendingUp className="h-3 w-3 mr-1" />
-                  <span>Up 3% from last month</span>
-                </div>
-              </CardContent>
-            </Card>
-            
-            <Card className="border-gray-100">
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-gray-500">Report Rate</p>
-                    <p className="text-3xl font-bold">36.5%</p>
-                  </div>
-                  <div className="bg-green-50 p-3 rounded-lg">
-                    <CheckCircle className="h-5 w-5 text-green-500" />
-                  </div>
-                </div>
-                <div className="mt-2 flex items-center text-xs text-green-600">
-                  <TrendingUp className="h-3 w-3 mr-1" />
-                  <span>Up 12% from last month</span>
-                </div>
-              </CardContent>
-            </Card>
-            
-            <Card className="border-gray-100">
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-gray-500">Total Targets</p>
-                    <p className="text-3xl font-bold">205</p>
-                  </div>
-                  <div className="bg-blue-50 p-3 rounded-lg">
-                    <Users className="h-5 w-5 text-blue-500" />
-                  </div>
-                </div>
-                <div className="mt-2 flex items-center text-xs text-blue-600">
-                  <TrendingUp className="h-3 w-3 mr-1" />
-                  <span>Added 15 new this month</span>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-          
-          {/* Tabs */}
-          <div className="border-b border-gray-200 mb-8">
-            <div className="flex space-x-8">
-              <button
-                onClick={() => setActiveTab('overview')}
-                className={`pb-4 px-1 ${
-                  activeTab === 'overview'
-                    ? 'border-b-2 border-phish-600 text-phish-600'
-                    : 'text-gray-500 hover:text-gray-700'
-                } font-medium`}
-              >
-                Overview
-              </button>
-              <button
-                onClick={() => setActiveTab('campaigns')}
-                className={`pb-4 px-1 ${
-                  activeTab === 'campaigns'
-                    ? 'border-b-2 border-phish-600 text-phish-600'
-                    : 'text-gray-500 hover:text-gray-700'
-                } font-medium`}
-              >
-                Campaigns
-              </button>
-              <button
-                onClick={() => setActiveTab('templates')}
-                className={`pb-4 px-1 ${
-                  activeTab === 'templates'
-                    ? 'border-b-2 border-phish-600 text-phish-600'
-                    : 'text-gray-500 hover:text-gray-700'
-                } font-medium`}
-              >
-                Templates
-              </button>
-              <button
-                onClick={() => setActiveTab('audience')}
-                className={`pb-4 px-1 ${
-                  activeTab === 'audience'
-                    ? 'border-b-2 border-phish-600 text-phish-600'
-                    : 'text-gray-500 hover:text-gray-700'
-                } font-medium`}
-              >
-                Audience
-              </button>
-            </div>
-          </div>
-          
-          {/* Content based on active tab */}
-          {activeTab === 'overview' && (
-            <div className="space-y-8">
+
+          <Tabs defaultValue="phishing" className="space-y-4">
+            <TabsList>
+              <TabsTrigger value="phishing">Phishing Campaigns</TabsTrigger>
+              <TabsTrigger value="lms">Training Videos</TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="phishing" className="space-y-4">
+              {/* Stats Overview */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                <Card className="border-gray-100">
+                  <CardContent className="p-6">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm font-medium text-gray-500">Active Campaigns</p>
+                        <p className="text-3xl font-bold">3</p>
+                      </div>
+                      <div className="bg-phish-50 p-3 rounded-lg">
+                        <Mail className="h-5 w-5 text-phish-600" />
+                      </div>
+                    </div>
+                    <div className="mt-2 flex items-center text-xs text-green-600">
+                      <TrendingUp className="h-3 w-3 mr-1" />
+                      <span>Up 10% from last month</span>
+                    </div>
+                  </CardContent>
+                </Card>
+                
+                <Card className="border-gray-100">
+                  <CardContent className="p-6">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm font-medium text-gray-500">Click Rate</p>
+                        <p className="text-3xl font-bold">24.8%</p>
+                      </div>
+                      <div className="bg-red-50 p-3 rounded-lg">
+                        <AlertCircle className="h-5 w-5 text-red-500" />
+                      </div>
+                    </div>
+                    <div className="mt-2 flex items-center text-xs text-red-600">
+                      <TrendingUp className="h-3 w-3 mr-1" />
+                      <span>Up 3% from last month</span>
+                    </div>
+                  </CardContent>
+                </Card>
+                
+                <Card className="border-gray-100">
+                  <CardContent className="p-6">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm font-medium text-gray-500">Report Rate</p>
+                        <p className="text-3xl font-bold">36.5%</p>
+                      </div>
+                      <div className="bg-green-50 p-3 rounded-lg">
+                        <CheckCircle className="h-5 w-5 text-green-500" />
+                      </div>
+                    </div>
+                    <div className="mt-2 flex items-center text-xs text-green-600">
+                      <TrendingUp className="h-3 w-3 mr-1" />
+                      <span>Up 12% from last month</span>
+                    </div>
+                  </CardContent>
+                </Card>
+                
+                <Card className="border-gray-100">
+                  <CardContent className="p-6">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm font-medium text-gray-500">Total Targets</p>
+                        <p className="text-3xl font-bold">205</p>
+                      </div>
+                      <div className="bg-blue-50 p-3 rounded-lg">
+                        <Users className="h-5 w-5 text-blue-500" />
+                      </div>
+                    </div>
+                    <div className="mt-2 flex items-center text-xs text-blue-600">
+                      <TrendingUp className="h-3 w-3 mr-1" />
+                      <span>Added 15 new this month</span>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+              
               {/* Charts */}
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                 <Card className="border-gray-100">
@@ -342,39 +290,61 @@ const Dashboard = () => {
                   </div>
                 </CardContent>
               </Card>
-            </div>
-          )}
-          
-          {/* Simplified placeholder content for other tabs */}
-          {activeTab === 'campaigns' && (
-            <div className="bg-white rounded-lg border border-gray-100 p-8 text-center">
-              <h3 className="text-xl font-semibold mb-2">Campaign Management</h3>
-              <p className="text-gray-600 mb-6">Create and manage your phishing simulation campaigns</p>
-              <Button className="bg-phish-600 hover:bg-phish-700">
-                <PlusCircle className="h-4 w-4 mr-2" /> Create New Campaign
-              </Button>
-            </div>
-          )}
-          
-          {activeTab === 'templates' && (
-            <div className="bg-white rounded-lg border border-gray-100 p-8 text-center">
-              <h3 className="text-xl font-semibold mb-2">Phishing Templates</h3>
-              <p className="text-gray-600 mb-6">Browse and customize phishing email templates</p>
-              <Button className="bg-phish-600 hover:bg-phish-700">
-                <PlusCircle className="h-4 w-4 mr-2" /> Create New Template
-              </Button>
-            </div>
-          )}
-          
-          {activeTab === 'audience' && (
-            <div className="bg-white rounded-lg border border-gray-100 p-8 text-center">
-              <h3 className="text-xl font-semibold mb-2">Target Audience</h3>
-              <p className="text-gray-600 mb-6">Manage your target groups and individual recipients</p>
-              <Button className="bg-phish-600 hover:bg-phish-700">
-                <PlusCircle className="h-4 w-4 mr-2" /> Add New Audience
-              </Button>
-            </div>
-          )}
+            </TabsContent>
+
+            <TabsContent value="lms" className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                <Card className="border-gray-100">
+                  <CardContent className="p-6">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm font-medium text-gray-500">Active Courses</p>
+                        <p className="text-3xl font-bold">5</p>
+                      </div>
+                      <div className="bg-blue-50 p-3 rounded-lg">
+                        <Video className="h-5 w-5 text-blue-500" />
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card className="border-gray-100">
+                  <CardContent className="p-6">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm font-medium text-gray-500">Enrolled Users</p>
+                        <p className="text-3xl font-bold">156</p>
+                      </div>
+                      <div className="bg-green-50 p-3 rounded-lg">
+                        <Users className="h-5 w-5 text-green-500" />
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card className="border-gray-100">
+                  <CardContent className="p-6">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm font-medium text-gray-500">Completion Rate</p>
+                        <p className="text-3xl font-bold">72%</p>
+                      </div>
+                      <div className="bg-yellow-50 p-3 rounded-lg">
+                        <TrendingUp className="h-5 w-5 text-yellow-500" />
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Button asChild className="h-full bg-phish-50 hover:bg-phish-100 text-phish-600">
+                  <Link to="/lms-campaigns" className="flex flex-col items-center justify-center gap-2">
+                    <Video className="h-6 w-6" />
+                    <span>View All Videos</span>
+                  </Link>
+                </Button>
+              </div>
+            </TabsContent>
+          </Tabs>
         </div>
       </div>
       
