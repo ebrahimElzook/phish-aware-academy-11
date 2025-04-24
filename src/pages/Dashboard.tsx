@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
@@ -18,6 +17,7 @@ import {
 import { PlusCircle, Mail, AlertCircle, CheckCircle, TrendingUp, Users } from 'lucide-react';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
+import Video from '@/components/Video';
 
 // Mock data for charts
 const campaignData = [
