@@ -7,7 +7,7 @@ import { CampaignCreator } from '@/components/lms/CampaignCreator';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, Video, FileText, Settings } from 'lucide-react';
+import { ArrowLeft, Video, FileText, Settings, ShieldAlert, Info } from 'lucide-react';
 
 const LMSCampaigns = () => {
   return (
@@ -28,8 +28,12 @@ const LMSCampaigns = () => {
         </Button>
       </div>
 
-      <Tabs defaultValue="videos" className="w-full">
-        <TabsList className="grid w-full max-w-md mx-auto mb-6 grid-cols-3">
+      <Tabs defaultValue="phishaware" className="w-full">
+        <TabsList className="grid w-full max-w-md mx-auto mb-6 grid-cols-4">
+          <TabsTrigger value="phishaware" className="flex items-center gap-1">
+            <ShieldAlert className="h-4 w-4" />
+            <span>Phishaware</span>
+          </TabsTrigger>
           <TabsTrigger value="videos" className="flex items-center gap-1">
             <Video className="h-4 w-4" />
             <span>Videos</span>
@@ -43,6 +47,41 @@ const LMSCampaigns = () => {
             <span>Settings</span>
           </TabsTrigger>
         </TabsList>
+
+        <TabsContent value="phishaware">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <Card className="p-6">
+              <div className="flex items-center gap-2 mb-4">
+                <ShieldAlert className="h-5 w-5 text-purple-600" />
+                <h2 className="text-xl font-semibold">Phishing Protection</h2>
+              </div>
+              <p className="text-gray-600 mb-4">Monitor and manage your organization's phishing awareness campaigns and training progress.</p>
+              <div className="space-y-4">
+                <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                  <div className="flex items-center gap-3">
+                    <Info className="h-5 w-5 text-blue-500" />
+                    <div>
+                      <p className="font-medium">Active Campaigns</p>
+                      <p className="text-sm text-gray-600">3 campaigns running</p>
+                    </div>
+                  </div>
+                  <Button variant="outline" size="sm">View Details</Button>
+                </div>
+                <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                  <div className="flex items-center gap-3">
+                    <ShieldAlert className="h-5 w-5 text-yellow-500" />
+                    <div>
+                      <p className="font-medium">Risk Assessment</p>
+                      <p className="text-sm text-gray-600">Medium risk level</p>
+                    </div>
+                  </div>
+                  <Button variant="outline" size="sm">Check Report</Button>
+                </div>
+              </div>
+            </Card>
+            <CampaignList />
+          </div>
+        </TabsContent>
 
         <TabsContent value="videos">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
