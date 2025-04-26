@@ -6,6 +6,7 @@ import { CampaignList } from '@/components/lms/CampaignList';
 import { CampaignCreator } from '@/components/lms/CampaignCreator';
 import { Card } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useToast } from "@/hooks/use-toast";
 import { 
   SidebarProvider,
   Sidebar,
@@ -16,11 +17,23 @@ import {
   SidebarMenuItem,
   SidebarMenuButton
 } from "@/components/ui/sidebar";
-import { Shield, Home, LayoutDashboard, FileText, LineChart, Bot, BookOpen, Video, Settings } from 'lucide-react';
+import { 
+  Shield, 
+  Home, 
+  LayoutDashboard, 
+  FileText, 
+  LineChart, 
+  Bot, 
+  BookOpen, 
+  Video, 
+  Settings 
+} from 'lucide-react';
 
 const LMSCampaigns = () => {
+  const { toast } = useToast();
+
   return (
-    <SidebarProvider>
+    <SidebarProvider defaultOpen={true}>
       <div className="min-h-screen flex w-full">
         <Sidebar>
           <SidebarContent>
@@ -113,7 +126,10 @@ const LMSCampaigns = () => {
               <TabsContent value="videos">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <VideoUploader />
-                  <CampaignList />
+                  <Card className="p-6">
+                    <h2 className="text-xl font-semibold mb-4">Video Library</h2>
+                    <p className="text-gray-600">Your uploaded videos will appear here.</p>
+                  </Card>
                 </div>
               </TabsContent>
 
