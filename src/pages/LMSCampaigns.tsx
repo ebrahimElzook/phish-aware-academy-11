@@ -18,7 +18,6 @@ import {
   SidebarMenuButton
 } from "@/components/ui/sidebar";
 import { 
-  Shield, 
   Home, 
   LayoutDashboard, 
   FileText, 
@@ -38,9 +37,12 @@ const LMSCampaigns = () => {
         <Sidebar>
           <SidebarContent>
             <div className="mb-8 px-4">
-              <Link to="/" className="flex items-center gap-2">
-                <Shield className="h-8 w-8 text-[#907527]" />
-                <span className="text-2xl font-bold text-[#907527]">CSWORD Academy</span>
+              <Link to="/" className="flex items-center">
+                <img 
+                  src="/lovable-uploads/876a553e-d478-4016-a8f0-1580f492ca19.png" 
+                  alt="CSWORD Logo" 
+                  className="h-10" 
+                />
               </Link>
             </div>
             <SidebarGroup>

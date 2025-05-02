@@ -2,7 +2,7 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
-import { Shield, Menu, Bot, BookOpen } from 'lucide-react';
+import { Menu, Bot, BookOpen } from 'lucide-react';
 
 const Navbar = () => {
   const [isMenuOpen, setIsMenuOpen] = React.useState(false);
@@ -12,8 +12,11 @@ const Navbar = () => {
     <nav className="bg-white border-b border-gray-100 py-4 px-6 w-full">
       <div className="max-w-7xl mx-auto flex justify-between items-center">
         <Link to="/" className="flex items-center gap-2">
-          <Shield className="h-8 w-8 text-[#907527]" />
-          <span className="text-2xl font-bold text-[#907527]">CSWORD Academy</span>
+          <img 
+            src="/lovable-uploads/876a553e-d478-4016-a8f0-1580f492ca19.png" 
+            alt="CSWORD Logo" 
+            className="h-10" 
+          />
         </Link>
 
         {/* Desktop menu */}

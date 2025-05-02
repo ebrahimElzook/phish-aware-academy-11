@@ -1,5 +1,4 @@
 
-import { Shield } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 const Footer = () => {
@@ -9,8 +8,11 @@ const Footer = () => {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
           <div>
             <div className="flex items-center gap-2 mb-4">
-              <Shield className="h-6 w-6 text-[#907527]" />
-              <span className="text-xl font-bold text-[#907527]">CSWORD Academy</span>
+              <img 
+                src="/lovable-uploads/876a553e-d478-4016-a8f0-1580f492ca19.png" 
+                alt="CSWORD Logo" 
+                className="h-8" 
+              />
             </div>
             <p className="text-gray-600 mb-4">
               Strengthen your organization's security posture with realistic phishing simulations.
@@ -47,7 +49,7 @@ const Footer = () => {
         
         <div className="border-t border-gray-200 pt-8 flex flex-col md:flex-row justify-between items-center">
           <p className="text-gray-500 text-sm">
-            &copy; {new Date().getFullYear()} CSWORD Academy. All rights reserved.
+            &copy; {new Date().getFullYear()} CSWORD. All rights reserved.
           </p>
           <div className="flex gap-6 mt-4 md:mt-0">
             <Link to="/privacy" className="text-gray-500 text-sm hover:text-[#907527]">Privacy Policy</Link>
