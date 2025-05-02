@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
@@ -11,29 +12,29 @@ const Navbar = () => {
     <nav className="bg-white border-b border-gray-100 py-4 px-6 w-full">
       <div className="max-w-7xl mx-auto flex justify-between items-center">
         <Link to="/" className="flex items-center gap-2">
-          <Shield className="h-8 w-8 text-phish-600" />
-          <span className="text-2xl font-bold gradient-text">PhishAware</span>
+          <Shield className="h-8 w-8 text-[#907527]" />
+          <span className="text-2xl font-bold text-[#907527]">CSWORD Academy</span>
         </Link>
 
         {/* Desktop menu */}
         <div className="hidden md:flex items-center gap-6">
-          <Link to="/" className={`transition-colors ${location.pathname === "/" ? "text-phish-600" : "text-gray-700 hover:text-phish-600"}`}>Home</Link>
-          <Link to="/dashboard" className={`transition-colors ${location.pathname === "/dashboard" ? "text-phish-600" : "text-gray-700 hover:text-phish-600"}`}>Dashboard</Link>
-          <Link to="/templates" className={`transition-colors ${location.pathname === "/templates" ? "text-phish-600" : "text-gray-700 hover:text-phish-600"}`}>Templates</Link>
-          <Link to="/analytics" className={`transition-colors ${location.pathname === "/analytics" ? "text-phish-600" : "text-gray-700 hover:text-phish-600"}`}>Analytics</Link>
-          <Link to="/lms-campaigns" className={`transition-colors ${location.pathname === "/lms-campaigns" ? "text-phish-600" : "text-gray-700 hover:text-phish-600"}`}>
+          <Link to="/" className={`transition-colors ${location.pathname === "/" ? "text-[#907527]" : "text-gray-700 hover:text-[#907527]"}`}>Home</Link>
+          <Link to="/dashboard" className={`transition-colors ${location.pathname === "/dashboard" ? "text-[#907527]" : "text-gray-700 hover:text-[#907527]"}`}>Dashboard</Link>
+          <Link to="/templates" className={`transition-colors ${location.pathname === "/templates" ? "text-[#907527]" : "text-gray-700 hover:text-[#907527]"}`}>Templates</Link>
+          <Link to="/analytics" className={`transition-colors ${location.pathname === "/analytics" ? "text-[#907527]" : "text-gray-700 hover:text-[#907527]"}`}>Analytics</Link>
+          <Link to="/lms-campaigns" className={`transition-colors ${location.pathname === "/lms-campaigns" ? "text-[#907527]" : "text-gray-700 hover:text-[#907527]"}`}>
             <div className="flex items-center gap-1">
               <BookOpen className="h-4 w-4" />
               <span>LMS</span>
             </div>
           </Link>
-          <Link to="/ai-support" className={`transition-colors ${location.pathname === "/ai-support" ? "text-phish-600" : "text-gray-700 hover:text-phish-600"}`}>
+          <Link to="/ai-support" className={`transition-colors ${location.pathname === "/ai-support" ? "text-[#907527]" : "text-gray-700 hover:text-[#907527]"}`}>
             <div className="flex items-center gap-1">
               <Bot className="h-4 w-4" />
               <span>AI Support</span>
             </div>
           </Link>
-          <Button variant="default" className="bg-phish-600 hover:bg-phish-700">Get Started</Button>
+          <Button variant="default" className="bg-[#907527] hover:bg-[#705b1e]">Get Started</Button>
         </div>
 
         {/* Mobile menu button */}
@@ -52,23 +53,23 @@ const Navbar = () => {
       {isMenuOpen && (
         <div className="md:hidden mt-2 py-2 px-4 animate-in">
           <div className="flex flex-col gap-4">
-            <Link to="/" className={`transition-colors py-2 ${location.pathname === "/" ? "text-phish-600" : "text-gray-700 hover:text-phish-600"}`}>Home</Link>
-            <Link to="/dashboard" className={`transition-colors py-2 ${location.pathname === "/dashboard" ? "text-phish-600" : "text-gray-700 hover:text-phish-600"}`}>Dashboard</Link>
-            <Link to="/templates" className={`transition-colors py-2 ${location.pathname === "/templates" ? "text-phish-600" : "text-gray-700 hover:text-phish-600"}`}>Templates</Link>
-            <Link to="/analytics" className={`transition-colors py-2 ${location.pathname === "/analytics" ? "text-phish-600" : "text-gray-700 hover:text-phish-600"}`}>Analytics</Link>
-            <Link to="/lms-campaigns" className={`transition-colors py-2 ${location.pathname === "/lms-campaigns" ? "text-phish-600" : "text-gray-700 hover:text-phish-600"}`}>
+            <Link to="/" className={`transition-colors py-2 ${location.pathname === "/" ? "text-[#907527]" : "text-gray-700 hover:text-[#907527]"}`}>Home</Link>
+            <Link to="/dashboard" className={`transition-colors py-2 ${location.pathname === "/dashboard" ? "text-[#907527]" : "text-gray-700 hover:text-[#907527]"}`}>Dashboard</Link>
+            <Link to="/templates" className={`transition-colors py-2 ${location.pathname === "/templates" ? "text-[#907527]" : "text-gray-700 hover:text-[#907527]"}`}>Templates</Link>
+            <Link to="/analytics" className={`transition-colors py-2 ${location.pathname === "/analytics" ? "text-[#907527]" : "text-gray-700 hover:text-[#907527]"}`}>Analytics</Link>
+            <Link to="/lms-campaigns" className={`transition-colors py-2 ${location.pathname === "/lms-campaigns" ? "text-[#907527]" : "text-gray-700 hover:text-[#907527]"}`}>
               <div className="flex items-center gap-1">
                 <BookOpen className="h-4 w-4" />
                 <span>LMS</span>
               </div>
             </Link>
-            <Link to="/ai-support" className={`transition-colors py-2 ${location.pathname === "/ai-support" ? "text-phish-600" : "text-gray-700 hover:text-phish-600"}`}>
+            <Link to="/ai-support" className={`transition-colors py-2 ${location.pathname === "/ai-support" ? "text-[#907527]" : "text-gray-700 hover:text-[#907527]"}`}>
               <div className="flex items-center gap-1">
                 <Bot className="h-4 w-4" />
                 <span>AI Support</span>
               </div>
             </Link>
-            <Button variant="default" className="bg-phish-600 hover:bg-phish-700 w-full">Get Started</Button>
+            <Button variant="default" className="bg-[#907527] hover:bg-[#705b1e] w-full">Get Started</Button>
           </div>
         </div>
       )}
