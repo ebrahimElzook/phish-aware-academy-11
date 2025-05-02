@@ -39,8 +39,8 @@ const LMSCampaigns = () => {
           <SidebarContent>
             <div className="mb-8 px-4">
               <Link to="/" className="flex items-center gap-2">
-                <Shield className="h-8 w-8 text-phish-600" />
-                <span className="text-2xl font-bold text-phish-600">PhishAware</span>
+                <Shield className="h-8 w-8 text-[#907527]" />
+                <span className="text-2xl font-bold text-[#907527]">CSWORD Academy</span>
               </Link>
             </div>
             <SidebarGroup>
@@ -80,7 +80,7 @@ const LMSCampaigns = () => {
                   </SidebarMenuItem>
                   <SidebarMenuItem>
                     <SidebarMenuButton asChild>
-                      <Link to="/lms-campaigns" className="flex items-center gap-3 py-2 text-phish-600 font-medium">
+                      <Link to="/lms-campaigns" className="flex items-center gap-3 py-2 text-[#907527] font-medium">
                         <BookOpen className="h-5 w-5" />
                         <span>LMS</span>
                       </Link>
@@ -103,7 +103,7 @@ const LMSCampaigns = () => {
         <div className="flex-1 p-6">
           <div className="max-w-7xl mx-auto space-y-6">
             <div className="flex items-center gap-2 mb-6">
-              <Video className="h-6 w-6 text-purple-600" />
+              <Video className="h-6 w-6 text-[#907527]" />
               <h1 className="text-2xl font-bold">LMS Management</h1>
             </div>
 
