@@ -52,7 +52,7 @@ export const CampaignList = () => {
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          <BookOpen className="h-5 w-5" />
+          <BookOpen className="h-5 w-5 text-[#907527]" />
           Training Campaigns
         </CardTitle>
       </CardHeader>
@@ -78,7 +78,7 @@ export const CampaignList = () => {
                 </div>
               </div>
               <div className="flex gap-2">
-                <Button variant="outline" onClick={() => setSelectedCampaign(campaign)}>
+                <Button variant="outline" onClick={() => setSelectedCampaign(campaign)} className="border-[#907527] text-[#907527] hover:bg-[#907527]/10">
                   <ChartBarBig className="h-4 w-4 mr-2" />
                   View Report
                 </Button>
@@ -106,7 +106,7 @@ export const CampaignList = () => {
                 </Card>
                 <Card className="p-4">
                   <p className="text-sm text-gray-500">In Progress</p>
-                  <p className="text-2xl font-bold text-blue-600">{selectedCampaign.stats.inProgress}</p>
+                  <p className="text-2xl font-bold text-[#907527]">{selectedCampaign.stats.inProgress}</p>
                 </Card>
                 <Card className="p-4">
                   <p className="text-sm text-gray-500">Not Started</p>
@@ -147,4 +147,3 @@ export const CampaignList = () => {
     </Card>
   );
 };
-

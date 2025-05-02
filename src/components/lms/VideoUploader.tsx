@@ -40,7 +40,7 @@ export const VideoUploader = () => {
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          <FileVideo className="h-5 w-5" />
+          <FileVideo className="h-5 w-5 text-[#907527]" />
           Upload Training Video
         </CardTitle>
       </CardHeader>
@@ -89,7 +89,7 @@ export const VideoUploader = () => {
 
         <Button
           onClick={handleUpload}
-          className="w-full bg-phish-600 hover:bg-phish-700"
+          className="w-full bg-[#907527] hover:bg-[#705b1e] text-white"
         >
           <Upload className="mr-2 h-4 w-4" />
           Upload Video
