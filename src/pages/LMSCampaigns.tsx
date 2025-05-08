@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom';
 import { VideoUploader } from '@/components/lms/VideoUploader';
 import { CampaignList } from '@/components/lms/CampaignList';
 import { CampaignCreator } from '@/components/lms/CampaignCreator';
+import { UserIntegrations } from '@/components/integrations/UserIntegrations';
 import { Card } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
@@ -25,7 +26,8 @@ import {
   Bot, 
   BookOpen, 
   Video, 
-  Settings 
+  Settings,
+  Users
 } from 'lucide-react';
 
 const LMSCampaigns = () => {
@@ -110,7 +112,7 @@ const LMSCampaigns = () => {
             </div>
 
             <Tabs defaultValue="videos" className="w-full">
-              <TabsList className="grid w-full max-w-md mx-auto mb-6 grid-cols-3">
+              <TabsList className="grid w-full max-w-md mx-auto mb-6 grid-cols-4">
                 <TabsTrigger value="videos" className="flex items-center gap-1">
                   <Video className="h-4 w-4" />
                   <span>Videos</span>
@@ -118,6 +120,10 @@ const LMSCampaigns = () => {
                 <TabsTrigger value="campaigns" className="flex items-center gap-1">
                   <FileText className="h-4 w-4" />
                   <span>Campaigns</span>
+                </TabsTrigger>
+                <TabsTrigger value="users" className="flex items-center gap-1">
+                  <Users className="h-4 w-4" />
+                  <span>Users</span>
                 </TabsTrigger>
                 <TabsTrigger value="settings" className="flex items-center gap-1">
                   <Settings className="h-4 w-4" />
@@ -139,6 +145,12 @@ const LMSCampaigns = () => {
                 <div className="grid grid-cols-1 gap-6">
                   <CampaignCreator />
                   <CampaignList />
+                </div>
+              </TabsContent>
+
+              <TabsContent value="users">
+                <div className="grid grid-cols-1 gap-6">
+                  <UserIntegrations />
                 </div>
               </TabsContent>
 

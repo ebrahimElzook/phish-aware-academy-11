@@ -4,7 +4,17 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Search, PlusCircle, Mail, CreditCard, Gift, AlertTriangle, FileText, ShieldAlert, Share2, Briefcase } from 'lucide-react';
+import { Search, PlusCircle, Mail, CreditCard, Gift, AlertTriangle, FileText, ShieldAlert, Share2, Briefcase, Calendar } from 'lucide-react';
+import { format } from 'date-fns';
+import { cn } from '@/lib/utils';
+import { Calendar as CalendarComponent } from '@/components/ui/calendar';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
+import { Label } from '@/components/ui/label';
+import { useToast } from '@/hooks/use-toast';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import { useNavigate } from 'react-router-dom';
@@ -100,7 +110,10 @@ const Templates = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [selectedDifficulty, setSelectedDifficulty] = useState('All');
+  const [templateStartDate, setTemplateStartDate] = useState<Date>();
+  const [templateEndDate, setTemplateEndDate] = useState<Date>();
   const navigate = useNavigate();
+  const { toast } = useToast();
   
   // Filter templates based on search and filters
   const filteredTemplates = templates.filter(template => {
@@ -117,6 +130,28 @@ const Templates = () => {
   };
 
   const handleUseTemplate = (templateId) => {
+    if (!templateStartDate || !templateEndDate) {
+      toast({
+        title: "Campaign Dates Required",
+        description: "Please set start and end dates for your campaign before using a template.",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    if (templateEndDate < templateStartDate) {
+      toast({
+        title: "Invalid Date Range",
+        description: "End date must be after start date.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    // Store dates in session storage to use them in the template editor
+    sessionStorage.setItem('campaignStartDate', templateStartDate.toISOString());
+    sessionStorage.setItem('campaignEndDate', templateEndDate.toISOString());
+    
     navigate(`/template-editor/${templateId}`);
   };
   
@@ -148,7 +183,7 @@ const Templates = () => {
 
               {/* Search and filters */}
               <div className="bg-white rounded-lg border border-gray-100 p-6 mb-8">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
                   <div className="relative">
                     <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
                     <Input
@@ -193,6 +228,69 @@ const Templates = () => {
                         </option>
                       ))}
                     </select>
+                  </div>
+                </div>
+
+                {/* Campaign date selection */}
+                <div className="border-t border-gray-200 pt-4 mt-4">
+                  <h3 className="font-medium text-gray-900 mb-3">Campaign Schedule</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="startDate">Start Date</Label>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button
+                            id="startDate"
+                            variant="outline"
+                            className={cn(
+                              "w-full justify-start text-left font-normal mt-1",
+                              !templateStartDate && "text-muted-foreground"
+                            )}
+                          >
+                            <Calendar className="mr-2 h-4 w-4" />
+                            {templateStartDate ? format(templateStartDate, "PPP") : <span>Pick a start date</span>}
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                          <CalendarComponent
+                            mode="single"
+                            selected={templateStartDate}
+                            onSelect={setTemplateStartDate}
+                            initialFocus
+                            className={cn("p-3 pointer-events-auto")}
+                          />
+                        </PopoverContent>
+                      </Popover>
+                    </div>
+                    
+                    <div>
+                      <Label htmlFor="endDate">End Date</Label>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button
+                            id="endDate"
+                            variant="outline"
+                            className={cn(
+                              "w-full justify-start text-left font-normal mt-1",
+                              !templateEndDate && "text-muted-foreground"
+                            )}
+                          >
+                            <Calendar className="mr-2 h-4 w-4" />
+                            {templateEndDate ? format(templateEndDate, "PPP") : <span>Pick an end date</span>}
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                          <CalendarComponent
+                            mode="single"
+                            selected={templateEndDate}
+                            onSelect={setTemplateEndDate}
+                            fromDate={templateStartDate}
+                            initialFocus
+                            className={cn("p-3 pointer-events-auto")}
+                          />
+                        </PopoverContent>
+                      </Popover>
+                    </div>
                   </div>
                 </div>
               </div>
