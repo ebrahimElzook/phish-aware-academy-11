@@ -19,7 +19,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Video, Plus, Calendar } from 'lucide-react';
+import { Video, Plus, Calendar, Users } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Calendar as CalendarComponent } from '@/components/ui/calendar';
 import {
@@ -29,17 +29,29 @@ import {
 } from '@/components/ui/popover';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
+import { Checkbox } from '@/components/ui/checkbox';
 
 export const CampaignCreator = () => {
   const { toast } = useToast();
   const [startDate, setStartDate] = React.useState<Date>();
   const [endDate, setEndDate] = React.useState<Date>();
+  const [selectedTargetType, setSelectedTargetType] = React.useState<string>("all");
+  const [selectedDepartments, setSelectedDepartments] = React.useState<string[]>([]);
   
   // Mock data for demonstration - in real app this would come from your backend
   const availableVideos = [
     { id: '1', title: 'Password Security Basics' },
     { id: '2', title: 'Social Engineering Awareness' },
     { id: '3', title: 'Data Protection 101' },
+  ];
+
+  // Mock departments data
+  const departments = [
+    { id: 'd1', name: 'IT' },
+    { id: 'd2', name: 'HR' },
+    { id: 'd3', name: 'Finance' },
+    { id: 'd4', name: 'Marketing' },
+    { id: 'd5', name: 'Operations' },
   ];
 
   const handleCreateCampaign = () => {
@@ -67,6 +79,21 @@ export const CampaignCreator = () => {
     });
   };
 
+  const handleTargetTypeChange = (value: string) => {
+    setSelectedTargetType(value);
+    if (value === "all") {
+      setSelectedDepartments([]);
+    }
+  };
+
+  const toggleDepartment = (deptId: string) => {
+    setSelectedDepartments(prev => 
+      prev.includes(deptId)
+        ? prev.filter(id => id !== deptId)
+        : [...prev, deptId]
+    );
+  };
+
   return (
     <Dialog>
       <DialogTrigger asChild>
@@ -88,9 +115,55 @@ export const CampaignCreator = () => {
             <Input id="name" placeholder="Enter campaign name" />
           </div>
           <div className="grid gap-2">
-            <Label htmlFor="audience">Target Audience</Label>
-            <Input id="audience" placeholder="e.g., IT Department, All Employees" />
+            <Label>Target Audience</Label>
+            <Select 
+              value={selectedTargetType} 
+              onValueChange={handleTargetTypeChange}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select audience" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Users</SelectItem>
+                <SelectItem value="departments">Specific Departments</SelectItem>
+                <SelectItem value="custom">Custom User Selection</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
+          
+          {selectedTargetType === "departments" && (
+            <div className="grid gap-2 border p-3 rounded-md">
+              <Label>Select Departments</Label>
+              <div className="grid grid-cols-2 gap-2 max-h-32 overflow-y-auto">
+                {departments.map(dept => (
+                  <div key={dept.id} className="flex items-center space-x-2">
+                    <Checkbox 
+                      id={dept.id} 
+                      checked={selectedDepartments.includes(dept.id)}
+                      onCheckedChange={() => toggleDepartment(dept.id)}
+                    />
+                    <Label htmlFor={dept.id} className="text-sm font-normal">{dept.name}</Label>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+          
+          {selectedTargetType === "custom" && (
+            <div className="grid gap-2">
+              <Label htmlFor="userSearch">Search Users</Label>
+              <div className="flex items-center space-x-2">
+                <Input id="userSearch" placeholder="Search by name or email" />
+                <Button variant="outline" size="sm">
+                  <Users className="h-4 w-4" />
+                </Button>
+              </div>
+              <div className="text-xs text-muted-foreground mt-1">
+                Use the advanced user selector to choose specific users
+              </div>
+            </div>
+          )}
+          
           <div className="grid gap-2">
             <Label>Start Date</Label>
             <Popover>
@@ -170,3 +243,4 @@ export const CampaignCreator = () => {
     </Dialog>
   );
 };
+

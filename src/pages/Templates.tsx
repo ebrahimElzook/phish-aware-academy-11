@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Search, PlusCircle, Mail, CreditCard, Gift, AlertTriangle, FileText, ShieldAlert, Share2, Briefcase, Calendar } from 'lucide-react';
+import { Search, PlusCircle, Mail, CreditCard, Gift, AlertTriangle, FileText, ShieldAlert, Share2, Briefcase, Calendar, Users } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { Calendar as CalendarComponent } from '@/components/ui/calendar';
@@ -19,6 +19,14 @@ import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import { useNavigate } from 'react-router-dom';
 import Video from '@/components/Video';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { Checkbox } from '@/components/ui/checkbox';
 
 // Mock template data
 const templates = [
@@ -106,12 +114,23 @@ const difficultyLevels = [
   'Hard',
 ];
 
+// Mock departments
+const departments = [
+  { id: 'd1', name: 'IT' },
+  { id: 'd2', name: 'HR' },
+  { id: 'd3', name: 'Finance' },
+  { id: 'd4', name: 'Marketing' },
+  { id: 'd5', name: 'Operations' },
+];
+
 const Templates = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [selectedDifficulty, setSelectedDifficulty] = useState('All');
   const [templateStartDate, setTemplateStartDate] = useState<Date>();
   const [templateEndDate, setTemplateEndDate] = useState<Date>();
+  const [selectedTargetType, setSelectedTargetType] = useState<string>("all");
+  const [selectedDepartments, setSelectedDepartments] = useState<string[]>([]);
   const navigate = useNavigate();
   const { toast } = useToast();
   
@@ -148,11 +167,37 @@ const Templates = () => {
       return;
     }
 
-    // Store dates in session storage to use them in the template editor
+    if (selectedTargetType === "departments" && selectedDepartments.length === 0) {
+      toast({
+        title: "Target Audience Required",
+        description: "Please select at least one department for your campaign.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    // Store dates and target audience in session storage to use them in the template editor
     sessionStorage.setItem('campaignStartDate', templateStartDate.toISOString());
     sessionStorage.setItem('campaignEndDate', templateEndDate.toISOString());
+    sessionStorage.setItem('campaignTargetType', selectedTargetType);
+    sessionStorage.setItem('campaignTargetDepartments', JSON.stringify(selectedDepartments));
     
     navigate(`/template-editor/${templateId}`);
+  };
+
+  const handleTargetTypeChange = (value: string) => {
+    setSelectedTargetType(value);
+    if (value === "all") {
+      setSelectedDepartments([]);
+    }
+  };
+
+  const toggleDepartment = (deptId: string) => {
+    setSelectedDepartments(prev => 
+      prev.includes(deptId)
+        ? prev.filter(id => id !== deptId)
+        : [...prev, deptId]
+    );
   };
   
   return (
@@ -291,6 +336,64 @@ const Templates = () => {
                         </PopoverContent>
                       </Popover>
                     </div>
+                  </div>
+                </div>
+
+                {/* Target audience selection */}
+                <div className="border-t border-gray-200 pt-4 mt-4">
+                  <h3 className="font-medium text-gray-900 mb-3">Target Audience</h3>
+                  <div className="space-y-3">
+                    <div>
+                      <Label htmlFor="targetType">Audience Type</Label>
+                      <Select 
+                        value={selectedTargetType} 
+                        onValueChange={handleTargetTypeChange}
+                      >
+                        <SelectTrigger id="targetType" className="mt-1">
+                          <SelectValue placeholder="Select audience type" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">All Users</SelectItem>
+                          <SelectItem value="departments">Specific Departments</SelectItem>
+                          <SelectItem value="custom">Custom User Selection</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    
+                    {selectedTargetType === "departments" && (
+                      <div className="border p-3 rounded-md">
+                        <Label className="block mb-2">Select Departments</Label>
+                        <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                          {departments.map(dept => (
+                            <div key={dept.id} className="flex items-center space-x-2">
+                              <Checkbox 
+                                id={`template-${dept.id}`} 
+                                checked={selectedDepartments.includes(dept.id)}
+                                onCheckedChange={() => toggleDepartment(dept.id)}
+                              />
+                              <Label htmlFor={`template-${dept.id}`} className="text-sm font-normal">
+                                {dept.name}
+                              </Label>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    
+                    {selectedTargetType === "custom" && (
+                      <div className="space-y-2">
+                        <Label htmlFor="templateUserSearch">Search Users</Label>
+                        <div className="flex items-center space-x-2">
+                          <Input id="templateUserSearch" placeholder="Search by name or email" />
+                          <Button variant="outline" size="sm">
+                            <Users className="h-4 w-4" />
+                          </Button>
+                        </div>
+                        <div className="text-xs text-muted-foreground">
+                          Use the advanced user selector to choose specific users
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
