@@ -12,6 +12,7 @@ import Analytics from "./pages/Analytics";
 import AISupport from "./pages/AISupport";
 import NotFound from "./pages/NotFound";
 import LMSCampaigns from "./pages/LMSCampaigns";
+import UserManagement from "./pages/UserManagement";
 
 const queryClient = new QueryClient();
 
@@ -29,6 +30,7 @@ const App = () => (
           <Route path="/analytics" element={<Analytics />} />
           <Route path="/ai-support" element={<AISupport />} />
           <Route path="/lms-campaigns" element={<LMSCampaigns />} />
+          <Route path="/user-management" element={<UserManagement />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>

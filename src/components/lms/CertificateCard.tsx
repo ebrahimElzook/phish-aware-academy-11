@@ -8,9 +8,10 @@ import {
   CardTitle
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Award, Download, Eye } from "lucide-react";
+import { Award, Download, Eye, FileText } from "lucide-react";
 import { format } from 'date-fns';
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
+import { useToast } from '@/hooks/use-toast';
 import CertificatePreview from './CertificatePreview';
 
 interface CertificateCardProps {
@@ -18,14 +19,35 @@ interface CertificateCardProps {
   title: string;
   userName: string;
   completionDate: Date;
+  courseId?: string;
+  department?: string;
 }
 
 export const CertificateCard: React.FC<CertificateCardProps> = ({
   id,
   title,
   userName,
-  completionDate
+  completionDate,
+  department = "Not Specified"
 }) => {
+  const { toast } = useToast();
+
+  const handleDownload = () => {
+    // In a real application, this would generate and download the certificate
+    toast({
+      title: "Download Initiated",
+      description: "Your certificate is being prepared for download.",
+    });
+
+    // Simulate download delay
+    setTimeout(() => {
+      toast({
+        title: "Certificate Downloaded",
+        description: "Your certificate has been downloaded successfully.",
+      });
+    }, 1500);
+  };
+
   return (
     <Card className="h-full">
       <CardHeader className="pb-3">
@@ -43,8 +65,16 @@ export const CertificateCard: React.FC<CertificateCardProps> = ({
             <span className="font-medium">{userName}</span>
           </div>
           <div className="flex justify-between text-sm">
+            <span className="text-muted-foreground">Department:</span>
+            <span className="font-medium">{department}</span>
+          </div>
+          <div className="flex justify-between text-sm">
             <span className="text-muted-foreground">Completion Date:</span>
             <span className="font-medium">{format(completionDate, 'MMM d, yyyy')}</span>
+          </div>
+          <div className="flex justify-between text-sm">
+            <span className="text-muted-foreground">Certificate ID:</span>
+            <span className="font-medium text-xs">{id.substring(0, 8)}</span>
           </div>
         </div>
       </CardContent>
@@ -65,7 +95,7 @@ export const CertificateCard: React.FC<CertificateCardProps> = ({
           </DialogContent>
         </Dialog>
         
-        <Button variant="outline" size="sm" className="gap-1">
+        <Button variant="outline" size="sm" className="gap-1" onClick={handleDownload}>
           <Download className="h-4 w-4" />
           Download
         </Button>
