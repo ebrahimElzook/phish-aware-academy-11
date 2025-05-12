@@ -2,26 +2,15 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { 
-  Shield, 
-  Mail, 
-  Users, 
-  ChartBar, 
-  BookOpen, 
-  CheckCircle, 
-  ChevronRight,
-  UserRound
-} from 'lucide-react';
+import { Shield, Mail, Users, ChartBar, BookOpen, CheckCircle, ChevronRight, UserRound } from 'lucide-react';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { UserIntegrations } from '@/components/integrations/UserIntegrations';
 import { UserAccessControl } from '@/components/admin/UserAccessControl';
 import { Toaster } from '@/components/ui/toaster';
-
 const Index = () => {
-  return (
-    <div className="min-h-screen flex flex-col">
+  return <div className="min-h-screen flex flex-col">
       <Navbar />
       
       {/* Hero Section */}
@@ -66,7 +55,7 @@ const Index = () => {
                   </div>
                 </div>
                 <p className="text-sm text-gray-700 mb-3">
-                  Dear Employee, <br/><br/>
+                  Dear Employee, <br /><br />
                   We have detected unusual activity on your account. Please verify your identity by clicking the link below.
                 </p>
                 <Button variant="outline" className="w-full justify-center text-[#907527] border-[#907527]">
@@ -87,33 +76,7 @@ const Index = () => {
       </section>
       
       {/* User Management Section */}
-      <section className="py-16 px-6 bg-white">
-        <div className="max-w-7xl mx-auto">
-          <div className="text-center max-w-3xl mx-auto mb-12">
-            <h2 className="text-3xl font-bold mb-4 text-[#0a192f]">User Management</h2>
-            <p className="text-gray-600 text-lg">Manage user access and integrations for your organization's security training</p>
-          </div>
-          
-          <Card className="border-gray-200 shadow-lg">
-            <CardContent className="p-6">
-              <Tabs defaultValue="integrations" className="w-full">
-                <TabsList className="grid w-full grid-cols-2 mb-6">
-                  <TabsTrigger value="integrations">User Integrations</TabsTrigger>
-                  <TabsTrigger value="access">Access Control</TabsTrigger>
-                </TabsList>
-                
-                <TabsContent value="integrations">
-                  <UserIntegrations />
-                </TabsContent>
-                
-                <TabsContent value="access">
-                  <UserAccessControl />
-                </TabsContent>
-              </Tabs>
-            </CardContent>
-          </Card>
-        </div>
-      </section>
+      
       
       {/* Features Section */}
       <section className="py-20 px-6 bg-[#f9f8f4]">
@@ -211,8 +174,6 @@ const Index = () => {
       
       <Footer />
       <Toaster />
-    </div>
-  );
+    </div>;
 };
-
 export default Index;
