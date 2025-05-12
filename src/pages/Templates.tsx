@@ -8,121 +8,98 @@ import { Search, PlusCircle, Mail, CreditCard, Gift, AlertTriangle, FileText, Sh
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { Calendar as CalendarComponent } from '@/components/ui/calendar';
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '@/components/ui/popover';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import { useNavigate } from 'react-router-dom';
 import Video from '@/components/Video';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
 
 // Mock template data
-const templates = [
-  {
-    id: 1,
-    name: 'Password Reset',
-    category: 'Account Security',
-    description: 'Email requesting password reset with suspicious link',
-    difficulty: 'Easy',
-    icon: <Mail className="h-10 w-10 text-phish-500" />,
-  },
-  {
-    id: 2,
-    name: 'Payment Confirmation',
-    category: 'Financial',
-    description: 'Fake invoice or payment receipt with malicious attachment',
-    difficulty: 'Medium',
-    icon: <CreditCard className="h-10 w-10 text-phish-500" />,
-  },
-  {
-    id: 3,
-    name: 'Gift Card Offer',
-    category: 'Promotions',
-    description: 'Free gift card offer requiring personal information',
-    difficulty: 'Easy',
-    icon: <Gift className="h-10 w-10 text-phish-500" />,
-  },
-  {
-    id: 4,
-    name: 'Account Suspension',
-    category: 'Account Security',
-    description: 'Notification about account suspension requiring immediate action',
-    difficulty: 'Medium',
-    icon: <AlertTriangle className="h-10 w-10 text-phish-500" />,
-  },
-  {
-    id: 5,
-    name: 'Document Share',
-    category: 'Business',
-    description: 'Shared document requiring login to view content',
-    difficulty: 'Hard',
-    icon: <FileText className="h-10 w-10 text-phish-500" />,
-  },
-  {
-    id: 6,
-    name: 'Security Alert',
-    category: 'Account Security',
-    description: 'Urgent security alert requiring verification',
-    difficulty: 'Medium',
-    icon: <ShieldAlert className="h-10 w-10 text-phish-500" />,
-  },
-  {
-    id: 7,
-    name: 'File Share Request',
-    category: 'Business',
-    description: 'Request to access shared files with suspicious URL',
-    difficulty: 'Hard',
-    icon: <Share2 className="h-10 w-10 text-phish-500" />,
-  },
-  {
-    id: 8,
-    name: 'Job Opportunity',
-    category: 'Career',
-    description: 'Unsolicited job offer requiring personal information',
-    difficulty: 'Medium',
-    icon: <Briefcase className="h-10 w-10 text-phish-500" />,
-  },
-];
+const templates = [{
+  id: 1,
+  name: 'Password Reset',
+  category: 'Account Security',
+  description: 'Email requesting password reset with suspicious link',
+  difficulty: 'Easy',
+  icon: <Mail className="h-10 w-10 text-phish-500" />
+}, {
+  id: 2,
+  name: 'Payment Confirmation',
+  category: 'Financial',
+  description: 'Fake invoice or payment receipt with malicious attachment',
+  difficulty: 'Medium',
+  icon: <CreditCard className="h-10 w-10 text-phish-500" />
+}, {
+  id: 3,
+  name: 'Gift Card Offer',
+  category: 'Promotions',
+  description: 'Free gift card offer requiring personal information',
+  difficulty: 'Easy',
+  icon: <Gift className="h-10 w-10 text-phish-500" />
+}, {
+  id: 4,
+  name: 'Account Suspension',
+  category: 'Account Security',
+  description: 'Notification about account suspension requiring immediate action',
+  difficulty: 'Medium',
+  icon: <AlertTriangle className="h-10 w-10 text-phish-500" />
+}, {
+  id: 5,
+  name: 'Document Share',
+  category: 'Business',
+  description: 'Shared document requiring login to view content',
+  difficulty: 'Hard',
+  icon: <FileText className="h-10 w-10 text-phish-500" />
+}, {
+  id: 6,
+  name: 'Security Alert',
+  category: 'Account Security',
+  description: 'Urgent security alert requiring verification',
+  difficulty: 'Medium',
+  icon: <ShieldAlert className="h-10 w-10 text-phish-500" />
+}, {
+  id: 7,
+  name: 'File Share Request',
+  category: 'Business',
+  description: 'Request to access shared files with suspicious URL',
+  difficulty: 'Hard',
+  icon: <Share2 className="h-10 w-10 text-phish-500" />
+}, {
+  id: 8,
+  name: 'Job Opportunity',
+  category: 'Career',
+  description: 'Unsolicited job offer requiring personal information',
+  difficulty: 'Medium',
+  icon: <Briefcase className="h-10 w-10 text-phish-500" />
+}];
 
 // Template categories
-const categories = [
-  'All',
-  'Account Security',
-  'Financial',
-  'Promotions',
-  'Business',
-  'Career',
-];
+const categories = ['All', 'Account Security', 'Financial', 'Promotions', 'Business', 'Career'];
 
 // Difficulty levels
-const difficultyLevels = [
-  'All',
-  'Easy',
-  'Medium',
-  'Hard',
-];
+const difficultyLevels = ['All', 'Easy', 'Medium', 'Hard'];
 
 // Mock departments
-const departments = [
-  { id: 'd1', name: 'IT' },
-  { id: 'd2', name: 'HR' },
-  { id: 'd3', name: 'Finance' },
-  { id: 'd4', name: 'Marketing' },
-  { id: 'd5', name: 'Operations' },
-];
-
+const departments = [{
+  id: 'd1',
+  name: 'IT'
+}, {
+  id: 'd2',
+  name: 'HR'
+}, {
+  id: 'd3',
+  name: 'Finance'
+}, {
+  id: 'd4',
+  name: 'Marketing'
+}, {
+  id: 'd5',
+  name: 'Operations'
+}];
 const Templates = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
@@ -132,23 +109,21 @@ const Templates = () => {
   const [selectedTargetType, setSelectedTargetType] = useState<string>("all");
   const [selectedDepartments, setSelectedDepartments] = useState<string[]>([]);
   const navigate = useNavigate();
-  const { toast } = useToast();
-  
+  const {
+    toast
+  } = useToast();
+
   // Filter templates based on search and filters
   const filteredTemplates = templates.filter(template => {
-    const matchesSearch = template.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                          template.description.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesSearch = template.name.toLowerCase().includes(searchQuery.toLowerCase()) || template.description.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesCategory = selectedCategory === 'All' || template.category === selectedCategory;
     const matchesDifficulty = selectedDifficulty === 'All' || template.difficulty === selectedDifficulty;
-    
     return matchesSearch && matchesCategory && matchesDifficulty;
   });
-  
   const handleCreateTemplate = () => {
     navigate('/template-editor');
   };
-
-  const handleUseTemplate = (templateId) => {
+  const handleUseTemplate = templateId => {
     if (!templateStartDate || !templateEndDate) {
       toast({
         title: "Campaign Dates Required",
@@ -157,7 +132,6 @@ const Templates = () => {
       });
       return;
     }
-    
     if (templateEndDate < templateStartDate) {
       toast({
         title: "Invalid Date Range",
@@ -166,7 +140,6 @@ const Templates = () => {
       });
       return;
     }
-
     if (selectedTargetType === "departments" && selectedDepartments.length === 0) {
       toast({
         title: "Target Audience Required",
@@ -181,27 +154,18 @@ const Templates = () => {
     sessionStorage.setItem('campaignEndDate', templateEndDate.toISOString());
     sessionStorage.setItem('campaignTargetType', selectedTargetType);
     sessionStorage.setItem('campaignTargetDepartments', JSON.stringify(selectedDepartments));
-    
     navigate(`/template-editor/${templateId}`);
   };
-
   const handleTargetTypeChange = (value: string) => {
     setSelectedTargetType(value);
     if (value === "all") {
       setSelectedDepartments([]);
     }
   };
-
   const toggleDepartment = (deptId: string) => {
-    setSelectedDepartments(prev => 
-      prev.includes(deptId)
-        ? prev.filter(id => id !== deptId)
-        : [...prev, deptId]
-    );
+    setSelectedDepartments(prev => prev.includes(deptId) ? prev.filter(id => id !== deptId) : [...prev, deptId]);
   };
-  
-  return (
-    <div className="min-h-screen flex flex-col">
+  return <div className="min-h-screen flex flex-col">
       <Navbar />
       
       <div className="flex-grow bg-gray-50 py-8 px-6">
@@ -209,7 +173,7 @@ const Templates = () => {
           <Tabs defaultValue="phishing" className="space-y-4">
             <TabsList>
               <TabsTrigger value="phishing">Phishing Templates</TabsTrigger>
-              <TabsTrigger value="lms">Training Videos</TabsTrigger>
+              
             </TabsList>
 
             <TabsContent value="phishing">
@@ -231,29 +195,17 @@ const Templates = () => {
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
                   <div className="relative">
                     <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                    <Input
-                      placeholder="Search templates..."
-                      className="pl-9"
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                    />
+                    <Input placeholder="Search templates..." className="pl-9" value={searchQuery} onChange={e => setSearchQuery(e.target.value)} />
                   </div>
                   
                   <div>
                     <label htmlFor="category" className="block text-sm font-medium text-gray-700 mb-1">
                       Category
                     </label>
-                    <select
-                      id="category"
-                      className="w-full rounded-md border border-gray-300 p-2"
-                      value={selectedCategory}
-                      onChange={(e) => setSelectedCategory(e.target.value)}
-                    >
-                      {categories.map((category) => (
-                        <option key={category} value={category}>
+                    <select id="category" className="w-full rounded-md border border-gray-300 p-2" value={selectedCategory} onChange={e => setSelectedCategory(e.target.value)}>
+                      {categories.map(category => <option key={category} value={category}>
                           {category}
-                        </option>
-                      ))}
+                        </option>)}
                     </select>
                   </div>
                   
@@ -261,17 +213,10 @@ const Templates = () => {
                     <label htmlFor="difficulty" className="block text-sm font-medium text-gray-700 mb-1">
                       Difficulty
                     </label>
-                    <select
-                      id="difficulty"
-                      className="w-full rounded-md border border-gray-300 p-2"
-                      value={selectedDifficulty}
-                      onChange={(e) => setSelectedDifficulty(e.target.value)}
-                    >
-                      {difficultyLevels.map((level) => (
-                        <option key={level} value={level}>
+                    <select id="difficulty" className="w-full rounded-md border border-gray-300 p-2" value={selectedDifficulty} onChange={e => setSelectedDifficulty(e.target.value)}>
+                      {difficultyLevels.map(level => <option key={level} value={level}>
                           {level}
-                        </option>
-                      ))}
+                        </option>)}
                     </select>
                   </div>
                 </div>
@@ -284,26 +229,13 @@ const Templates = () => {
                       <Label htmlFor="startDate">Start Date</Label>
                       <Popover>
                         <PopoverTrigger asChild>
-                          <Button
-                            id="startDate"
-                            variant="outline"
-                            className={cn(
-                              "w-full justify-start text-left font-normal mt-1",
-                              !templateStartDate && "text-muted-foreground"
-                            )}
-                          >
+                          <Button id="startDate" variant="outline" className={cn("w-full justify-start text-left font-normal mt-1", !templateStartDate && "text-muted-foreground")}>
                             <Calendar className="mr-2 h-4 w-4" />
                             {templateStartDate ? format(templateStartDate, "PPP") : <span>Pick a start date</span>}
                           </Button>
                         </PopoverTrigger>
                         <PopoverContent className="w-auto p-0" align="start">
-                          <CalendarComponent
-                            mode="single"
-                            selected={templateStartDate}
-                            onSelect={setTemplateStartDate}
-                            initialFocus
-                            className={cn("p-3 pointer-events-auto")}
-                          />
+                          <CalendarComponent mode="single" selected={templateStartDate} onSelect={setTemplateStartDate} initialFocus className={cn("p-3 pointer-events-auto")} />
                         </PopoverContent>
                       </Popover>
                     </div>
@@ -312,27 +244,13 @@ const Templates = () => {
                       <Label htmlFor="endDate">End Date</Label>
                       <Popover>
                         <PopoverTrigger asChild>
-                          <Button
-                            id="endDate"
-                            variant="outline"
-                            className={cn(
-                              "w-full justify-start text-left font-normal mt-1",
-                              !templateEndDate && "text-muted-foreground"
-                            )}
-                          >
+                          <Button id="endDate" variant="outline" className={cn("w-full justify-start text-left font-normal mt-1", !templateEndDate && "text-muted-foreground")}>
                             <Calendar className="mr-2 h-4 w-4" />
                             {templateEndDate ? format(templateEndDate, "PPP") : <span>Pick an end date</span>}
                           </Button>
                         </PopoverTrigger>
                         <PopoverContent className="w-auto p-0" align="start">
-                          <CalendarComponent
-                            mode="single"
-                            selected={templateEndDate}
-                            onSelect={setTemplateEndDate}
-                            fromDate={templateStartDate}
-                            initialFocus
-                            className={cn("p-3 pointer-events-auto")}
-                          />
+                          <CalendarComponent mode="single" selected={templateEndDate} onSelect={setTemplateEndDate} fromDate={templateStartDate} initialFocus className={cn("p-3 pointer-events-auto")} />
                         </PopoverContent>
                       </Popover>
                     </div>
@@ -345,10 +263,7 @@ const Templates = () => {
                   <div className="space-y-3">
                     <div>
                       <Label htmlFor="targetType">Audience Type</Label>
-                      <Select 
-                        value={selectedTargetType} 
-                        onValueChange={handleTargetTypeChange}
-                      >
+                      <Select value={selectedTargetType} onValueChange={handleTargetTypeChange}>
                         <SelectTrigger id="targetType" className="mt-1">
                           <SelectValue placeholder="Select audience type" />
                         </SelectTrigger>
@@ -360,28 +275,19 @@ const Templates = () => {
                       </Select>
                     </div>
                     
-                    {selectedTargetType === "departments" && (
-                      <div className="border p-3 rounded-md">
+                    {selectedTargetType === "departments" && <div className="border p-3 rounded-md">
                         <Label className="block mb-2">Select Departments</Label>
                         <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-                          {departments.map(dept => (
-                            <div key={dept.id} className="flex items-center space-x-2">
-                              <Checkbox 
-                                id={`template-${dept.id}`} 
-                                checked={selectedDepartments.includes(dept.id)}
-                                onCheckedChange={() => toggleDepartment(dept.id)}
-                              />
+                          {departments.map(dept => <div key={dept.id} className="flex items-center space-x-2">
+                              <Checkbox id={`template-${dept.id}`} checked={selectedDepartments.includes(dept.id)} onCheckedChange={() => toggleDepartment(dept.id)} />
                               <Label htmlFor={`template-${dept.id}`} className="text-sm font-normal">
                                 {dept.name}
                               </Label>
-                            </div>
-                          ))}
+                            </div>)}
                         </div>
-                      </div>
-                    )}
+                      </div>}
                     
-                    {selectedTargetType === "custom" && (
-                      <div className="space-y-2">
+                    {selectedTargetType === "custom" && <div className="space-y-2">
                         <Label htmlFor="templateUserSearch">Search Users</Label>
                         <div className="flex items-center space-x-2">
                           <Input id="templateUserSearch" placeholder="Search by name or email" />
@@ -392,17 +298,14 @@ const Templates = () => {
                         <div className="text-xs text-muted-foreground">
                           Use the advanced user selector to choose specific users
                         </div>
-                      </div>
-                    )}
+                      </div>}
                   </div>
                 </div>
               </div>
 
               {/* Templates grid */}
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                {filteredTemplates.length > 0 ? (
-                  filteredTemplates.map((template) => (
-                    <Card key={template.id} className="border-gray-100 overflow-hidden hover:shadow-md transition-shadow">
+                {filteredTemplates.length > 0 ? filteredTemplates.map(template => <Card key={template.id} className="border-gray-100 overflow-hidden hover:shadow-md transition-shadow">
                       <CardContent className="p-6">
                         <div className="flex flex-col items-center text-center">
                           <div className="bg-phish-50 p-4 rounded-full mb-4">
@@ -413,13 +316,7 @@ const Templates = () => {
                             <span className="text-xs font-medium text-gray-500 bg-gray-100 px-2 py-1 rounded">
                               {template.category}
                             </span>
-                            <span className={`ml-2 text-xs font-medium px-2 py-1 rounded ${
-                              template.difficulty === 'Easy' 
-                                ? 'bg-green-100 text-green-800' 
-                                : template.difficulty === 'Medium'
-                                ? 'bg-yellow-100 text-yellow-800'
-                                : 'bg-red-100 text-red-800'
-                            }`}>
+                            <span className={`ml-2 text-xs font-medium px-2 py-1 rounded ${template.difficulty === 'Easy' ? 'bg-green-100 text-green-800' : template.difficulty === 'Medium' ? 'bg-yellow-100 text-yellow-800' : 'bg-red-100 text-red-800'}`}>
                               {template.difficulty}
                             </span>
                           </div>
@@ -427,60 +324,26 @@ const Templates = () => {
                         </div>
                       </CardContent>
                       <CardFooter className="p-3 bg-gray-50 flex justify-center border-t border-gray-100">
-                        <Button 
-                          variant="outline" 
-                          className="w-full text-phish-600 border-phish-200 hover:bg-phish-50"
-                          onClick={() => handleUseTemplate(template.id)}
-                        >
+                        <Button variant="outline" className="w-full text-phish-600 border-phish-200 hover:bg-phish-50" onClick={() => handleUseTemplate(template.id)}>
                           Use Template
                         </Button>
                       </CardFooter>
-                    </Card>
-                  ))
-                ) : (
-                  <div className="col-span-full py-12 text-center">
+                    </Card>) : <div className="col-span-full py-12 text-center">
                     <p className="text-lg text-gray-600">No templates found matching your criteria.</p>
-                  </div>
-                )}
+                  </div>}
               </div>
             </TabsContent>
 
             <TabsContent value="lms">
-              <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8">
-                <div>
-                  <h1 className="text-2xl font-bold mb-1">Training Videos</h1>
-                  <p className="text-gray-600">Manage and create video-based security awareness training</p>
-                </div>
-                <div className="mt-4 md:mt-0">
-                  <Button asChild variant="default" className="bg-phish-600 hover:bg-phish-700">
-                    <Link to="/lms-campaigns">
-                      <Video className="h-4 w-4 mr-2" />
-                      View All Videos
-                    </Link>
-                  </Button>
-                </div>
-              </div>
+              
 
-              <Card className="text-center p-12">
-                <CardContent>
-                  <Video className="h-12 w-12 mx-auto mb-4 text-gray-400" />
-                  <h3 className="text-lg font-medium mb-2">Training Video Management</h3>
-                  <p className="text-gray-600 mb-6">
-                    Create and manage your video-based security awareness training materials
-                  </p>
-                  <Button asChild variant="default" className="bg-phish-600 hover:bg-phish-700">
-                    <Link to="/lms-campaigns">Go to Video Management</Link>
-                  </Button>
-                </CardContent>
-              </Card>
+              
             </TabsContent>
           </Tabs>
         </div>
       </div>
       
       <Footer />
-    </div>
-  );
+    </div>;
 };
-
 export default Templates;
