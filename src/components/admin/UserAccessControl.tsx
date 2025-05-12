@@ -31,30 +31,30 @@ export const UserAccessControl: React.FC = () => {
   const [users, setUsers] = useState<User[]>([
     { 
       id: '1', 
-      name: 'أحمد محمد', 
+      name: 'Ahmed Mohammed', 
       email: 'ahmed@example.com', 
-      department: 'تكنولوجيا المعلومات', 
+      department: 'IT', 
       status: 'active' 
     },
     { 
       id: '2', 
-      name: 'سارة علي', 
+      name: 'Sarah Ali', 
       email: 'sara@example.com', 
-      department: 'الموارد البشرية', 
+      department: 'HR', 
       status: 'active' 
     },
     { 
       id: '3', 
-      name: 'محمد خالد', 
+      name: 'Mohammed Khalid', 
       email: 'mohammed@example.com', 
-      department: 'المالية', 
+      department: 'Finance', 
       status: 'active' 
     },
     { 
       id: '4', 
-      name: 'عمر سعيد', 
+      name: 'Omar Said', 
       email: 'omar@example.com', 
-      department: 'التسويق', 
+      department: 'Marketing', 
       status: 'inactive' 
     },
   ]);
@@ -64,12 +64,12 @@ export const UserAccessControl: React.FC = () => {
       user.id === userId ? {...user, status} : user
     ));
 
-    const statusText = status === 'active' ? 'تفعيل' : 'تعطيل';
+    const statusText = status === 'active' ? 'activated' : 'deactivated';
     const userName = users.find(user => user.id === userId)?.name;
     
     toast({
-      title: `تم ${statusText} المستخدم`,
-      description: `تم ${statusText} المستخدم ${userName} بنجاح.`,
+      title: `User ${statusText}`,
+      description: `${userName} has been ${statusText} successfully.`,
     });
   };
 
@@ -87,7 +87,7 @@ export const UserAccessControl: React.FC = () => {
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <ShieldCheck className="h-5 w-5 text-[#907527]" />
-          التحكم بالصلاحيات
+          Access Control
         </CardTitle>
       </CardHeader>
       <CardContent>
@@ -96,7 +96,7 @@ export const UserAccessControl: React.FC = () => {
             <div className="relative flex-1">
               <Search className="absolute left-2 top-2.5 h-4 w-4 text-gray-500" />
               <Input
-                placeholder="بحث عن مستخدم..."
+                placeholder="Search for user..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="pl-8"
@@ -107,11 +107,11 @@ export const UserAccessControl: React.FC = () => {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>الاسم</TableHead>
-                <TableHead>البريد الإلكتروني</TableHead>
-                <TableHead>القسم</TableHead>
-                <TableHead>الحالة</TableHead>
-                <TableHead>الإجراءات</TableHead>
+                <TableHead>Name</TableHead>
+                <TableHead>Email</TableHead>
+                <TableHead>Department</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -127,12 +127,12 @@ export const UserAccessControl: React.FC = () => {
                       {user.status === 'active' ? (
                         <>
                           <Check className="h-3 w-3 mr-1" />
-                          مفعل
+                          Active
                         </>
                       ) : (
                         <>
                           <X className="h-3 w-3 mr-1" />
-                          معطل
+                          Inactive
                         </>
                       )}
                     </div>
@@ -145,7 +145,7 @@ export const UserAccessControl: React.FC = () => {
                         className="bg-red-50 text-red-700 border-red-200 hover:bg-red-100"
                         onClick={() => handleStatusChange(user.id, 'inactive')}
                       >
-                        تعطيل
+                        Deactivate
                       </Button>
                     ) : (
                       <Button
@@ -154,7 +154,7 @@ export const UserAccessControl: React.FC = () => {
                         className="bg-green-50 text-green-700 border-green-200 hover:bg-green-100"
                         onClick={() => handleStatusChange(user.id, 'active')}
                       >
-                        تفعيل
+                        Activate
                       </Button>
                     )}
                   </TableCell>

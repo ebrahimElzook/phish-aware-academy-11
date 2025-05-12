@@ -20,21 +20,21 @@ const UserManagement = () => {
       
       <div className="flex-grow bg-gray-50 py-8 px-6">
         <div className="max-w-7xl mx-auto space-y-6">
-          <h1 className="text-3xl font-bold">إدارة المستخدمين</h1>
+          <h1 className="text-3xl font-bold">User Management</h1>
           
           <Tabs defaultValue={activeTab} onValueChange={setActiveTab} className="w-full">
             <TabsList className="grid w-full grid-cols-3">
               <TabsTrigger value="users" className="flex items-center gap-1">
                 <Users className="h-4 w-4" />
-                <span>إضافة المستخدمين</span>
+                <span>Add Users</span>
               </TabsTrigger>
               <TabsTrigger value="departments" className="flex items-center gap-1">
                 <FileText className="h-4 w-4" />
-                <span>الإدارات</span>
+                <span>Departments</span>
               </TabsTrigger>
               <TabsTrigger value="access" className="flex items-center gap-1">
                 <ShieldCheck className="h-4 w-4" />
-                <span>التحكم بالصلاحيات</span>
+                <span>Access Control</span>
               </TabsTrigger>
             </TabsList>
             

@@ -33,7 +33,7 @@ interface User {
 
 export const UserDepartments = () => {
   const { toast } = useToast();
-  const [departments, setDepartments] = useState(['تكنولوجيا المعلومات', 'الموارد البشرية', 'المالية', 'التسويق', 'العمليات']);
+  const [departments, setDepartments] = useState(['IT', 'HR', 'Finance', 'Marketing', 'Operations']);
   const [newDepartment, setNewDepartment] = useState('');
   const [selectedDepartment, setSelectedDepartment] = useState('');
   const [movingUser, setMovingUser] = useState<User | null>(null);
@@ -41,18 +41,18 @@ export const UserDepartments = () => {
   
   // Mock data for demonstration
   const [users, setUsers] = useState<User[]>([
-    { id: 'u1', name: 'أحمد محمد', email: 'ahmed@example.com', department: 'تكنولوجيا المعلومات' },
-    { id: 'u2', name: 'سارة علي', email: 'sara@example.com', department: 'الموارد البشرية' },
-    { id: 'u3', name: 'محمد خالد', email: 'mohammed@example.com', department: 'المالية' },
-    { id: 'u4', name: 'عمر سعيد', email: 'omar@example.com', department: 'التسويق' },
-    { id: 'u5', name: 'فاطمة أحمد', email: 'fatima@example.com', department: 'الموارد البشرية' },
+    { id: 'u1', name: 'Ahmed Mohammed', email: 'ahmed@example.com', department: 'IT' },
+    { id: 'u2', name: 'Sarah Ali', email: 'sara@example.com', department: 'HR' },
+    { id: 'u3', name: 'Mohammed Khalid', email: 'mohammed@example.com', department: 'Finance' },
+    { id: 'u4', name: 'Omar Said', email: 'omar@example.com', department: 'Marketing' },
+    { id: 'u5', name: 'Fatima Ahmed', email: 'fatima@example.com', department: 'HR' },
   ]);
 
   const handleAddDepartment = () => {
     if (!newDepartment) {
       toast({
-        title: "خطأ",
-        description: "الرجاء إدخال اسم القسم",
+        title: "Error",
+        description: "Please enter a department name",
         variant: "destructive",
       });
       return;
@@ -60,8 +60,8 @@ export const UserDepartments = () => {
 
     if (departments.includes(newDepartment)) {
       toast({
-        title: "خطأ",
-        description: "هذا القسم موجود بالفعل",
+        title: "Error",
+        description: "This department already exists",
         variant: "destructive",
       });
       return;
@@ -71,8 +71,8 @@ export const UserDepartments = () => {
     setNewDepartment('');
     
     toast({
-      title: "تمت الإضافة بنجاح",
-      description: `تم إضافة قسم ${newDepartment} بنجاح`,
+      title: "Department Added",
+      description: `${newDepartment} department has been added successfully`,
     });
   };
 
@@ -82,8 +82,8 @@ export const UserDepartments = () => {
     
     if (usersInDept.length > 0) {
       toast({
-        title: "لا يمكن الحذف",
-        description: "لا يمكن حذف قسم يحتوي على مستخدمين. قم بنقل المستخدمين أولاً.",
+        title: "Cannot Delete",
+        description: "Cannot delete a department with users. Please move users first.",
         variant: "destructive",
       });
       return;
@@ -91,16 +91,16 @@ export const UserDepartments = () => {
     
     setDepartments(departments.filter(d => d !== dept));
     toast({
-      title: "تم الحذف بنجاح",
-      description: `تم حذف قسم ${dept} بنجاح`,
+      title: "Department Deleted",
+      description: `${dept} department has been deleted successfully`,
     });
   };
 
   const handleMoveUser = () => {
     if (!movingUser || !targetDepartment) {
       toast({
-        title: "خطأ",
-        description: "الرجاء تحديد المستخدم والقسم الهدف",
+        title: "Error",
+        description: "Please select a user and target department",
         variant: "destructive",
       });
       return;
@@ -114,8 +114,8 @@ export const UserDepartments = () => {
     }));
 
     toast({
-      title: "تم النقل بنجاح",
-      description: `تم نقل ${movingUser.name} إلى قسم ${targetDepartment} بنجاح`,
+      title: "User Moved",
+      description: `${movingUser.name} has been moved to ${targetDepartment} successfully`,
     });
     
     setMovingUser(null);
@@ -132,31 +132,31 @@ export const UserDepartments = () => {
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <FileText className="h-5 w-5 text-[#907527]" />
-          إدارة الأقسام
+          Department Management
         </CardTitle>
       </CardHeader>
       <CardContent>
         <div className="space-y-6">
           <div className="space-y-2">
-            <h3 className="text-lg font-medium">إضافة قسم جديد</h3>
+            <h3 className="text-lg font-medium">Add New Department</h3>
             <div className="flex items-center gap-2">
               <Input
                 value={newDepartment}
                 onChange={(e) => setNewDepartment(e.target.value)}
-                placeholder="اسم القسم"
+                placeholder="Department name"
               />
               <Button 
                 onClick={handleAddDepartment}
                 className="bg-[#907527] hover:bg-[#705b1e]"
               >
                 <Plus className="h-4 w-4 mr-2" />
-                إضافة
+                Add
               </Button>
             </div>
           </div>
 
           <div className="space-y-2">
-            <h3 className="text-lg font-medium">الأقسام الحالية</h3>
+            <h3 className="text-lg font-medium">Current Departments</h3>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               {departments.map((dept, index) => (
                 <div key={index} className="bg-gray-50 p-4 rounded flex items-center justify-between">
@@ -175,16 +175,16 @@ export const UserDepartments = () => {
           </div>
 
           <div className="space-y-4">
-            <h3 className="text-lg font-medium">المستخدمون حسب القسم</h3>
+            <h3 className="text-lg font-medium">Users by Department</h3>
             
             <div className="flex items-center gap-2">
-              <Label htmlFor="filter-department">تصفية حسب القسم:</Label>
+              <Label htmlFor="filter-department">Filter by Department:</Label>
               <Select value={selectedDepartment} onValueChange={setSelectedDepartment}>
                 <SelectTrigger className="w-[240px]">
-                  <SelectValue placeholder="جميع الأقسام" />
+                  <SelectValue placeholder="All Departments" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">جميع الأقسام</SelectItem>
+                  <SelectItem value="">All Departments</SelectItem>
                   {departments.map((dept) => (
                     <SelectItem key={dept} value={dept}>
                       {dept}
@@ -197,10 +197,10 @@ export const UserDepartments = () => {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>الاسم</TableHead>
-                  <TableHead>البريد الإلكتروني</TableHead>
-                  <TableHead>القسم</TableHead>
-                  <TableHead>الإجراءات</TableHead>
+                  <TableHead>Name</TableHead>
+                  <TableHead>Email</TableHead>
+                  <TableHead>Department</TableHead>
+                  <TableHead>Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -217,22 +217,22 @@ export const UserDepartments = () => {
                             size="sm" 
                             onClick={() => setMovingUser(user)}
                           >
-                            نقل
+                            Move
                           </Button>
                         </DialogTrigger>
                         <DialogContent>
                           <DialogHeader>
-                            <DialogTitle>نقل المستخدم إلى قسم آخر</DialogTitle>
+                            <DialogTitle>Move User to Another Department</DialogTitle>
                           </DialogHeader>
                           <div className="py-4">
                             <p className="mb-4">
-                              نقل <span className="font-bold">{movingUser?.name}</span> من قسم <span className="font-bold">{movingUser?.department}</span>
+                              Moving <span className="font-bold">{movingUser?.name}</span> from <span className="font-bold">{movingUser?.department}</span> department
                             </p>
                             <div className="space-y-2">
-                              <Label htmlFor="target-department">القسم الجديد</Label>
+                              <Label htmlFor="target-department">New Department</Label>
                               <Select value={targetDepartment} onValueChange={setTargetDepartment}>
                                 <SelectTrigger id="target-department">
-                                  <SelectValue placeholder="اختر القسم" />
+                                  <SelectValue placeholder="Select department" />
                                 </SelectTrigger>
                                 <SelectContent>
                                   {departments.filter(d => d !== movingUser?.department).map((dept) => (
@@ -246,13 +246,13 @@ export const UserDepartments = () => {
                           </div>
                           <DialogFooter>
                             <DialogClose asChild>
-                              <Button variant="outline">إلغاء</Button>
+                              <Button variant="outline">Cancel</Button>
                             </DialogClose>
                             <Button 
                               onClick={handleMoveUser}
                               className="bg-[#907527] hover:bg-[#705b1e]"
                             >
-                              تأكيد النقل
+                              Confirm Move
                             </Button>
                           </DialogFooter>
                         </DialogContent>
