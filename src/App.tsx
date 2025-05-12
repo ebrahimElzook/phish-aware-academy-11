@@ -13,6 +13,10 @@ import AISupport from "./pages/AISupport";
 import NotFound from "./pages/NotFound";
 import LMSCampaigns from "./pages/LMSCampaigns";
 import UserManagement from "./pages/UserManagement";
+import Login from "./pages/Login";
+import Register from "./pages/Register";
+import ResetPassword from "./pages/ResetPassword";
+import Campaigns from "./pages/Campaigns";
 
 const queryClient = new QueryClient();
 
@@ -24,6 +28,9 @@ const App = () => (
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<Index />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/register" element={<Register />} />
+          <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/templates" element={<Templates />} />
           <Route path="/template-editor/:id?" element={<TemplateEditor />} />
@@ -31,6 +38,7 @@ const App = () => (
           <Route path="/ai-support" element={<AISupport />} />
           <Route path="/lms-campaigns" element={<LMSCampaigns />} />
           <Route path="/user-management" element={<UserManagement />} />
+          <Route path="/campaigns" element={<Campaigns />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
