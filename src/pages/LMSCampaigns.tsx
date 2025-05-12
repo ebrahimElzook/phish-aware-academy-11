@@ -13,7 +13,8 @@ import {
   FileText, 
   Users,
   Award,
-  Settings
+  Settings,
+  BookOpen
 } from 'lucide-react';
 import CertificateCard from '@/components/lms/CertificateCard';
 import Navbar from '@/components/Navbar';
@@ -50,9 +51,26 @@ const LMSCampaigns = () => {
       
       <div className="flex-grow bg-gray-50 py-8 px-6">
         <div className="max-w-7xl mx-auto space-y-6">
-          <div className="flex items-center gap-2 mb-6">
-            <Video className="h-6 w-6 text-[#907527]" />
-            <h1 className="text-2xl font-bold">LMS Management</h1>
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b pb-4 mb-6">
+            <div className="flex items-center gap-2">
+              <Video className="h-6 w-6 text-[#907527]" />
+              <h1 className="text-2xl font-bold">LMS Management</h1>
+            </div>
+            
+            <div className="flex flex-wrap gap-2">
+              <Link to="/employee-courses">
+                <div className="flex items-center text-sm bg-white border px-3 py-2 rounded-md hover:bg-gray-50">
+                  <BookOpen className="h-4 w-4 mr-2 text-[#907527]" />
+                  Employee Course View
+                </div>
+              </Link>
+              <Link to="/profile-settings">
+                <div className="flex items-center text-sm bg-white border px-3 py-2 rounded-md hover:bg-gray-50">
+                  <Settings className="h-4 w-4 mr-2 text-[#907527]" />
+                  Profile Settings
+                </div>
+              </Link>
+            </div>
           </div>
 
           <Tabs defaultValue="videos" className="w-full">

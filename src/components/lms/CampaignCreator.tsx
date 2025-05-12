@@ -19,7 +19,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Video, Plus, Calendar, Users, Award, ArrowRight } from 'lucide-react';
+import { Video, Plus, Calendar, Users, Award, ArrowRight, Edit } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Calendar as CalendarComponent } from '@/components/ui/calendar';
 import {
@@ -32,6 +32,7 @@ import { cn } from '@/lib/utils';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import CertificatePreview from './CertificatePreview';
+import { Textarea } from '@/components/ui/textarea';
 
 export const CampaignCreator = () => {
   const { toast } = useToast();
@@ -42,6 +43,9 @@ export const CampaignCreator = () => {
   const [enableCertificate, setEnableCertificate] = React.useState<boolean>(true);
   const [certificateTitle, setCertificateTitle] = React.useState<string>("Security Awareness Training");
   const [currentStep, setCurrentStep] = React.useState<number>(1);
+  const [selectedVideos, setSelectedVideos] = React.useState<string[]>([]);
+  const [videoQuestions, setVideoQuestions] = React.useState<{[key: string]: Question[]}>({});
+  const [editingVideo, setEditingVideo] = React.useState<string | null>(null);
   
   // Mock data for demonstration - in real app this would come from your backend
   const availableVideos = [
@@ -58,6 +62,17 @@ export const CampaignCreator = () => {
     { id: 'd4', name: 'Marketing' },
     { id: 'd5', name: 'Operations' },
   ];
+
+  // Interface for MCQ questions
+  interface Question {
+    id: string;
+    text: string;
+    options: {
+      id: string;
+      text: string;
+      isCorrect: boolean;
+    }[];
+  }
 
   const handleCreateCampaign = () => {
     if (!startDate || !endDate) {
@@ -99,6 +114,85 @@ export const CampaignCreator = () => {
     );
   };
 
+  const handleVideoSelection = (videoId: string) => {
+    setSelectedVideos(prev => 
+      prev.includes(videoId)
+        ? prev.filter(id => id !== videoId)
+        : [...prev, videoId]
+    );
+    
+    // Initialize questions for this video if not already done
+    if (!videoQuestions[videoId]) {
+      setVideoQuestions(prev => ({
+        ...prev,
+        [videoId]: []
+      }));
+    }
+  };
+
+  const addQuestionToVideo = (videoId: string) => {
+    const newQuestion: Question = {
+      id: `q${Date.now()}`,
+      text: '',
+      options: [
+        { id: `o1-${Date.now()}`, text: '', isCorrect: false },
+        { id: `o2-${Date.now()}`, text: '', isCorrect: false },
+        { id: `o3-${Date.now()}`, text: '', isCorrect: false },
+        { id: `o4-${Date.now()}`, text: '', isCorrect: false }
+      ]
+    };
+
+    setVideoQuestions(prev => ({
+      ...prev,
+      [videoId]: [...(prev[videoId] || []), newQuestion]
+    }));
+  };
+
+  const updateQuestionText = (videoId: string, questionId: string, text: string) => {
+    setVideoQuestions(prev => ({
+      ...prev,
+      [videoId]: prev[videoId].map(q => 
+        q.id === questionId ? { ...q, text } : q
+      )
+    }));
+  };
+
+  const updateOptionText = (videoId: string, questionId: string, optionId: string, text: string) => {
+    setVideoQuestions(prev => ({
+      ...prev,
+      [videoId]: prev[videoId].map(q => 
+        q.id === questionId ? {
+          ...q,
+          options: q.options.map(o => 
+            o.id === optionId ? { ...o, text } : o
+          )
+        } : q
+      )
+    }));
+  };
+
+  const setCorrectOption = (videoId: string, questionId: string, optionId: string) => {
+    setVideoQuestions(prev => ({
+      ...prev,
+      [videoId]: prev[videoId].map(q => 
+        q.id === questionId ? {
+          ...q,
+          options: q.options.map(o => ({
+            ...o,
+            isCorrect: o.id === optionId
+          }))
+        } : q
+      )
+    }));
+  };
+
+  const removeQuestion = (videoId: string, questionId: string) => {
+    setVideoQuestions(prev => ({
+      ...prev,
+      [videoId]: prev[videoId].filter(q => q.id !== questionId)
+    }));
+  };
+
   const nextStep = () => {
     if (currentStep < 3) {
       setCurrentStep(currentStep + 1);
@@ -119,7 +213,7 @@ export const CampaignCreator = () => {
           Create New Campaign
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[550px]">
+      <DialogContent className="sm:max-w-[600px]">
         <DialogHeader>
           <DialogTitle>Create Training Campaign</DialogTitle>
           <DialogDescription>
@@ -257,23 +351,100 @@ export const CampaignCreator = () => {
                 </PopoverContent>
               </Popover>
             </div>
+            
             <div className="grid gap-2">
               <Label htmlFor="videos">Select Videos</Label>
-              <Select>
-                <SelectTrigger>
-                  <SelectValue placeholder="Choose videos to include" />
-                </SelectTrigger>
-                <SelectContent>
-                  {availableVideos.map((video) => (
-                    <SelectItem key={video.id} value={video.id}>
-                      <div className="flex items-center gap-2">
-                        <Video className="h-4 w-4" />
-                        {video.title}
+              <div className="border rounded-md p-3 space-y-2 max-h-60 overflow-y-auto">
+                {availableVideos.map((video) => (
+                  <div key={video.id} className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-2">
+                        <Checkbox 
+                          id={`video-${video.id}`} 
+                          checked={selectedVideos.includes(video.id)}
+                          onCheckedChange={() => handleVideoSelection(video.id)}
+                        />
+                        <Label htmlFor={`video-${video.id}`} className="text-sm font-normal flex items-center">
+                          <Video className="h-4 w-4 mr-2" />
+                          {video.title}
+                        </Label>
                       </div>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                      
+                      {selectedVideos.includes(video.id) && (
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => setEditingVideo(editingVideo === video.id ? null : video.id)}
+                        >
+                          <Edit className="h-3 w-3 mr-1" />
+                          {videoQuestions[video.id]?.length ? 
+                            `Questions (${videoQuestions[video.id].length})` : 
+                            "Add Questions"}
+                        </Button>
+                      )}
+                    </div>
+                    
+                    {editingVideo === video.id && (
+                      <div className="pl-6 border-l-2 border-gray-200 space-y-4 mt-2">
+                        {videoQuestions[video.id]?.map((question, qIndex) => (
+                          <div key={question.id} className="space-y-2 bg-gray-50 p-3 rounded">
+                            <div className="flex justify-between items-start">
+                              <Label className="font-medium">Question {qIndex + 1}</Label>
+                              <Button 
+                                variant="ghost" 
+                                size="sm" 
+                                className="h-7 px-2 text-red-500 hover:text-red-600 hover:bg-red-50"
+                                onClick={() => removeQuestion(video.id, question.id)}
+                              >
+                                Remove
+                              </Button>
+                            </div>
+                            
+                            <Textarea 
+                              value={question.text}
+                              onChange={(e) => updateQuestionText(video.id, question.id, e.target.value)}
+                              placeholder="Enter question text"
+                              className="min-h-[60px]"
+                            />
+                            
+                            <div className="space-y-2">
+                              <Label className="text-sm">Answer Options</Label>
+                              {question.options.map((option, index) => (
+                                <div key={option.id} className="flex items-center gap-2">
+                                  <div className="flex-1 flex items-center gap-2">
+                                    <Checkbox 
+                                      checked={option.isCorrect}
+                                      onCheckedChange={() => setCorrectOption(video.id, question.id, option.id)}
+                                    />
+                                    <Input 
+                                      value={option.text}
+                                      onChange={(e) => updateOptionText(video.id, question.id, option.id, e.target.value)}
+                                      placeholder={`Option ${index + 1}`}
+                                    />
+                                  </div>
+                                </div>
+                              ))}
+                              <div className="text-xs text-muted-foreground">
+                                Check the box next to the correct answer
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                        
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          className="w-full"
+                          onClick={() => addQuestionToVideo(video.id)}
+                        >
+                          <Plus className="h-3 w-3 mr-1" />
+                          Add New Question
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
         )}
@@ -370,4 +541,3 @@ export const CampaignCreator = () => {
     </Dialog>
   );
 };
-
