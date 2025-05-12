@@ -35,7 +35,7 @@ export const UserDepartments = () => {
   const { toast } = useToast();
   const [departments, setDepartments] = useState(['IT', 'HR', 'Finance', 'Marketing', 'Operations']);
   const [newDepartment, setNewDepartment] = useState('');
-  const [selectedDepartment, setSelectedDepartment] = useState('');
+  const [selectedDepartment, setSelectedDepartment] = useState('all');
   const [movingUser, setMovingUser] = useState<User | null>(null);
   const [targetDepartment, setTargetDepartment] = useState('');
   
@@ -123,9 +123,9 @@ export const UserDepartments = () => {
   };
 
   // Filter users by selected department
-  const filteredUsers = selectedDepartment 
-    ? users.filter(user => user.department === selectedDepartment)
-    : users;
+  const filteredUsers = selectedDepartment === 'all'
+    ? users
+    : users.filter(user => user.department === selectedDepartment);
 
   return (
     <Card>
@@ -184,7 +184,7 @@ export const UserDepartments = () => {
                   <SelectValue placeholder="All Departments" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All Departments</SelectItem>
+                  <SelectItem value="all">All Departments</SelectItem>
                   {departments.map((dept) => (
                     <SelectItem key={dept} value={dept}>
                       {dept}
