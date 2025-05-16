@@ -1,11 +1,9 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -76,14 +74,26 @@ export const SubscriptionManagement = () => {
 
   const handleSaveChanges = () => {
     if (editingSubscription && startDate && endDate) {
-      // Update subscription dates
+      // Get current status based on dates
+      const currentDate = new Date();
+      let newStatus: 'active' | 'expired' | 'pending';
+      
+      if (currentDate > endDate) {
+        newStatus = 'expired';
+      } else if (currentDate < startDate) {
+        newStatus = 'pending';
+      } else {
+        newStatus = 'active';
+      }
+      
+      // Update subscription dates with properly typed status
       const updatedSubscriptions = subscriptions.map(subscription => 
         subscription.id === editingSubscription.id 
           ? { 
               ...subscription,
               startDate,
               endDate,
-              status: new Date() > endDate ? 'expired' : new Date() < startDate ? 'pending' : 'active'
+              status: newStatus
             } 
           : subscription
       );
@@ -195,6 +205,7 @@ export const SubscriptionManagement = () => {
                         selected={startDate}
                         onSelect={setStartDate}
                         initialFocus
+                        className={cn("p-3 pointer-events-auto")}
                       />
                     </PopoverContent>
                   </Popover>
@@ -225,6 +236,7 @@ export const SubscriptionManagement = () => {
                         disabled={date => 
                           startDate ? date < startDate : false
                         }
+                        className={cn("p-3 pointer-events-auto")}
                       />
                     </PopoverContent>
                   </Popover>
