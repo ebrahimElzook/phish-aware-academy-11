@@ -17,6 +17,7 @@ import ResetPassword from "./pages/ResetPassword";
 import Campaigns from "./pages/Campaigns";
 import EmployeeCourses from "./pages/EmployeeCourses";
 import ProfileSettings from "./pages/ProfileSettings";
+import SuperAdminPanel from "./pages/SuperAdminPanel";
 
 const queryClient = new QueryClient();
 
@@ -39,6 +40,7 @@ const App = () => (
           <Route path="/campaigns" element={<Campaigns />} />
           <Route path="/employee-courses" element={<EmployeeCourses />} />
           <Route path="/profile-settings" element={<ProfileSettings />} />
+          <Route path="/super-admin" element={<SuperAdminPanel />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
