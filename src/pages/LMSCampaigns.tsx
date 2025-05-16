@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { VideoUploader } from '@/components/lms/VideoUploader';
@@ -8,45 +7,33 @@ import { UserIntegrations } from '@/components/integrations/UserIntegrations';
 import { Card } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { 
-  Video, 
-  FileText, 
-  Users,
-  Award,
-  Settings,
-  BookOpen
-} from 'lucide-react';
+import { Video, FileText, Users, Award, Settings, BookOpen } from 'lucide-react';
 import CertificateCard from '@/components/lms/CertificateCard';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
-
 const LMSCampaigns = () => {
-  const { toast } = useToast();
+  const {
+    toast
+  } = useToast();
 
   // Mock certificates data for demonstration
-  const mockCertificates = [
-    {
-      id: "cert1",
-      title: "Password Security Basics",
-      userName: "Alex Johnson",
-      completionDate: new Date('2025-04-15')
-    },
-    {
-      id: "cert2",
-      title: "Social Engineering Awareness",
-      userName: "Alex Johnson",
-      completionDate: new Date('2025-03-28')
-    },
-    {
-      id: "cert3",
-      title: "Data Protection 101",
-      userName: "Alex Johnson",
-      completionDate: new Date('2025-02-10')
-    }
-  ];
-
-  return (
-    <div className="min-h-screen flex flex-col">
+  const mockCertificates = [{
+    id: "cert1",
+    title: "Password Security Basics",
+    userName: "Alex Johnson",
+    completionDate: new Date('2025-04-15')
+  }, {
+    id: "cert2",
+    title: "Social Engineering Awareness",
+    userName: "Alex Johnson",
+    completionDate: new Date('2025-03-28')
+  }, {
+    id: "cert3",
+    title: "Data Protection 101",
+    userName: "Alex Johnson",
+    completionDate: new Date('2025-02-10')
+  }];
+  return <div className="min-h-screen flex flex-col">
       <Navbar />
       
       <div className="flex-grow bg-gray-50 py-8 px-6">
@@ -59,16 +46,10 @@ const LMSCampaigns = () => {
             
             <div className="flex flex-wrap gap-2">
               <Link to="/employee-courses">
-                <div className="flex items-center text-sm bg-white border px-3 py-2 rounded-md hover:bg-gray-50">
-                  <BookOpen className="h-4 w-4 mr-2 text-[#907527]" />
-                  Employee Course View
-                </div>
+                
               </Link>
               <Link to="/profile-settings">
-                <div className="flex items-center text-sm bg-white border px-3 py-2 rounded-md hover:bg-gray-50">
-                  <Settings className="h-4 w-4 mr-2 text-[#907527]" />
-                  Profile Settings
-                </div>
+                
               </Link>
             </div>
           </div>
@@ -87,14 +68,8 @@ const LMSCampaigns = () => {
                 <Award className="h-4 w-4" />
                 <span>Certificates</span>
               </TabsTrigger>
-              <TabsTrigger value="users" className="flex items-center gap-1">
-                <Users className="h-4 w-4" />
-                <span>Users</span>
-              </TabsTrigger>
-              <TabsTrigger value="settings" className="flex items-center gap-1">
-                <Settings className="h-4 w-4" />
-                <span>Settings</span>
-              </TabsTrigger>
+              
+              
             </TabsList>
 
             <TabsContent value="videos">
@@ -124,15 +99,7 @@ const LMSCampaigns = () => {
                 </div>
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {mockCertificates.map(cert => (
-                    <CertificateCard
-                      key={cert.id}
-                      id={cert.id}
-                      title={cert.title}
-                      userName={cert.userName}
-                      completionDate={cert.completionDate}
-                    />
-                  ))}
+                  {mockCertificates.map(cert => <CertificateCard key={cert.id} id={cert.id} title={cert.title} userName={cert.userName} completionDate={cert.completionDate} />)}
                 </div>
               </div>
             </TabsContent>
@@ -144,18 +111,13 @@ const LMSCampaigns = () => {
             </TabsContent>
 
             <TabsContent value="settings">
-              <Card className="p-6">
-                <h2 className="text-xl font-semibold mb-4">LMS Settings</h2>
-                <p className="text-gray-600">Configure your LMS preferences and settings here.</p>
-              </Card>
+              
             </TabsContent>
           </Tabs>
         </div>
       </div>
       
       <Footer />
-    </div>
-  );
+    </div>;
 };
-
 export default LMSCampaigns;
