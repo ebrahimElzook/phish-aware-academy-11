@@ -25,12 +25,12 @@ export const UserManualEntry = () => {
   
   // Mock data for demonstration
   const [users, setUsers] = useState([
-    { id: 'u1', name: 'أحمد محمد', email: 'ahmed@example.com', department: 'تكنولوجيا المعلومات' },
-    { id: 'u2', name: 'سارة علي', email: 'sara@example.com', department: 'الموارد البشرية' },
-    { id: 'u3', name: 'محمد خالد', email: 'mohammed@example.com', department: 'المالية' },
+    { id: 'u1', name: 'Ahmed Mohammed', email: 'ahmed@example.com', department: 'IT' },
+    { id: 'u2', name: 'Sarah Ali', email: 'sara@example.com', department: 'HR' },
+    { id: 'u3', name: 'Mohammed Khalid', email: 'mohammed@example.com', department: 'Finance' },
   ]);
 
-  const [departments, setDepartments] = useState(['تكنولوجيا المعلومات', 'الموارد البشرية', 'المالية', 'التسويق', 'العمليات']);
+  const [departments, setDepartments] = useState(['IT', 'HR', 'Finance', 'Marketing', 'Operations']);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -41,8 +41,8 @@ export const UserManualEntry = () => {
   const handleFileUpload = () => {
     if (!file) {
       toast({
-        title: "لم يتم اختيار ملف",
-        description: "الرجاء اختيار ملف Excel لرفعه",
+        title: "No file selected",
+        description: "Please select an Excel file to upload",
         variant: "destructive",
       });
       return;
@@ -50,23 +50,23 @@ export const UserManualEntry = () => {
 
     // Here you would handle the actual file upload to your backend
     toast({
-      title: "بدأ رفع الملف",
-      description: `جاري رفع ${file.name}. قد يستغرق هذا بعض الوقت.`,
+      title: "File upload started",
+      description: `Uploading ${file.name}. This may take a moment.`,
     });
 
     // Simulate upload process
     setTimeout(() => {
       // Add sample users to demonstrate
       const newUsers = [
-        { id: 'u4', name: 'عمر سعيد', email: 'omar@example.com', department: 'التسويق' },
-        { id: 'u5', name: 'فاطمة أحمد', email: 'fatima@example.com', department: 'الموارد البشرية' },
+        { id: 'u4', name: 'Omar Said', email: 'omar@example.com', department: 'Marketing' },
+        { id: 'u5', name: 'Fatima Ahmed', email: 'fatima@example.com', department: 'HR' },
       ];
       
       setUsers([...users, ...newUsers]);
       
       toast({
-        title: "تم الرفع بنجاح",
-        description: `تم رفع ${file.name} وإضافة المستخدمين بنجاح.`,
+        title: "Upload successful",
+        description: `${file.name} has been uploaded and users added successfully.`,
       });
       setFile(null);
       
@@ -79,8 +79,8 @@ export const UserManualEntry = () => {
   const handleAddUser = () => {
     if (!name || !email || !department) {
       toast({
-        title: "معلومات غير مكتملة",
-        description: "الرجاء إدخال جميع المعلومات المطلوبة",
+        title: "Incomplete information",
+        description: "Please enter all required information",
         variant: "destructive",
       });
       return;
@@ -96,8 +96,8 @@ export const UserManualEntry = () => {
     setUsers([...users, newUser]);
     
     toast({
-      title: "تمت الإضافة بنجاح",
-      description: "تم إضافة المستخدم بنجاح",
+      title: "User added",
+      description: "User has been added successfully",
     });
 
     // Clear form
@@ -111,7 +111,7 @@ export const UserManualEntry = () => {
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <UserPlus className="h-5 w-5 text-[#907527]" />
-          إضافة المستخدمين
+          Add Users
         </CardTitle>
       </CardHeader>
       <CardContent>
@@ -119,40 +119,40 @@ export const UserManualEntry = () => {
           <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="manual" className="flex items-center gap-1">
               <UserPlus className="h-4 w-4" />
-              <span>إضافة يدوية</span>
+              <span>Manual Entry</span>
             </TabsTrigger>
             <TabsTrigger value="excel" className="flex items-center gap-1">
               <FileSpreadsheet className="h-4 w-4" />
-              <span>استيراد من Excel</span>
+              <span>Import from Excel</span>
             </TabsTrigger>
           </TabsList>
           
           <TabsContent value="manual" className="space-y-4 py-4">
             <div className="grid md:grid-cols-3 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="name">اسم الموظف</Label>
+                <Label htmlFor="name">Employee Name</Label>
                 <Input 
                   id="name" 
                   value={name} 
                   onChange={(e) => setName(e.target.value)}
-                  placeholder="ادخل اسم الموظف"
+                  placeholder="Enter employee name"
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="email">البريد الإلكتروني</Label>
+                <Label htmlFor="email">Email Address</Label>
                 <Input 
                   id="email"
                   type="email"
                   value={email} 
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="ادخل البريد الإلكتروني"
+                  placeholder="Enter email address"
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="department">القسم</Label>
+                <Label htmlFor="department">Department</Label>
                 <Select value={department} onValueChange={setDepartment}>
                   <SelectTrigger>
-                    <SelectValue placeholder="اختر القسم" />
+                    <SelectValue placeholder="Select department" />
                   </SelectTrigger>
                   <SelectContent>
                     {departments.map((dept) => (
@@ -169,13 +169,13 @@ export const UserManualEntry = () => {
               className="bg-[#907527] hover:bg-[#705b1e]"
             >
               <UserPlus className="h-4 w-4 mr-2" />
-              إضافة المستخدم
+              Add User
             </Button>
           </TabsContent>
           
           <TabsContent value="excel" className="space-y-4 py-4">
             <div className="space-y-2">
-              <Label htmlFor="excel-upload">رفع ملف Excel للمستخدمين</Label>
+              <Label htmlFor="excel-upload">Upload Excel File with Users</Label>
               <div className="grid gap-2">
                 <Input
                   id="excel-upload"
@@ -184,32 +184,32 @@ export const UserManualEntry = () => {
                   onChange={handleFileChange}
                 />
                 <div className="text-xs text-gray-500">
-                  الصيغ المقبولة: .xlsx, .xls, .csv
+                  Accepted formats: .xlsx, .xls, .csv
                 </div>
               </div>
             </div>
             <div className="flex items-center gap-2">
               {file && (
                 <div className="text-sm">
-                  تم اختيار: {file.name}
+                  Selected: {file.name}
                 </div>
               )}
             </div>
             <div className="space-y-4">
               <div className="space-y-2">
-                <Label>الأعمدة المطلوبة</Label>
+                <Label>Required Columns</Label>
                 <div className="grid grid-cols-2 gap-2 text-sm">
                   <div className="flex items-center gap-2 bg-gray-50 p-2 rounded">
                     <Check className="h-4 w-4 text-green-500" />
-                    <span>البريد الإلكتروني</span>
+                    <span>Email Address</span>
                   </div>
                   <div className="flex items-center gap-2 bg-gray-50 p-2 rounded">
                     <Check className="h-4 w-4 text-green-500" />
-                    <span>الاسم</span>
+                    <span>Name</span>
                   </div>
                   <div className="flex items-center gap-2 bg-gray-50 p-2 rounded">
                     <Check className="h-4 w-4 text-green-500" />
-                    <span>القسم</span>
+                    <span>Department</span>
                   </div>
                 </div>
               </div>
@@ -220,19 +220,19 @@ export const UserManualEntry = () => {
               className="bg-[#907527] hover:bg-[#705b1e]"
             >
               <Upload className="h-4 w-4 mr-2" />
-              رفع المستخدمين
+              Upload Users
             </Button>
           </TabsContent>
         </Tabs>
 
         <div className="mt-8">
-          <h3 className="text-lg font-medium mb-4">قائمة المستخدمين</h3>
+          <h3 className="text-lg font-medium mb-4">User List</h3>
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>الاسم</TableHead>
-                <TableHead>البريد الإلكتروني</TableHead>
-                <TableHead>القسم</TableHead>
+                <TableHead>Name</TableHead>
+                <TableHead>Email</TableHead>
+                <TableHead>Department</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
