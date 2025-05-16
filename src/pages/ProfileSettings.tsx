@@ -17,8 +17,6 @@ interface UserProfile {
   id: string;
   name: string;
   email: string;
-  role: 'admin' | 'employee';
-  department: string;
   avatar?: string;
 }
 
@@ -31,8 +29,6 @@ const ProfileSettings = () => {
     id: 'user-1',
     name: 'Alex Johnson',
     email: 'alex.johnson@example.com',
-    role: 'admin',
-    department: 'IT Security',
     avatar: ''
   });
   
@@ -139,9 +135,7 @@ const ProfileSettings = () => {
             <div>
               <h1 className="text-2xl font-bold">{user.name}</h1>
               <div className="flex items-center gap-2 text-gray-500">
-                <span>{user.role === 'admin' ? 'Administrator' : 'Employee'}</span>
-                <span>•</span>
-                <span>{user.department}</span>
+                <span>{user.email}</span>
               </div>
             </div>
           </div>
@@ -196,29 +190,6 @@ const ProfileSettings = () => {
                           />
                         </div>
                       </div>
-                    </div>
-                    
-                    <div className="space-y-2">
-                      <Label htmlFor="department">Department</Label>
-                      <Input
-                        id="department"
-                        value={user.department}
-                        disabled
-                        className="bg-gray-50"
-                      />
-                      <p className="text-sm text-muted-foreground">
-                        Department can only be changed by administrators.
-                      </p>
-                    </div>
-                    
-                    <div className="space-y-2">
-                      <Label htmlFor="role">Role</Label>
-                      <Input
-                        id="role"
-                        value={user.role === 'admin' ? 'Administrator' : 'Employee'}
-                        disabled
-                        className="bg-gray-50"
-                      />
                     </div>
                   </div>
                 </CardContent>

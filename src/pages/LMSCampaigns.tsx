@@ -1,16 +1,17 @@
+
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { VideoUploader } from '@/components/lms/VideoUploader';
+import { VideoLibrary } from '@/components/lms/VideoLibrary';
 import { CampaignList } from '@/components/lms/CampaignList';
 import { CampaignCreator } from '@/components/lms/CampaignCreator';
-import { UserIntegrations } from '@/components/integrations/UserIntegrations';
 import { Card } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { Video, FileText, Users, Award, Settings, BookOpen } from 'lucide-react';
+import { Video, FileText, Users, Award } from 'lucide-react';
 import CertificateCard from '@/components/lms/CertificateCard';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
+
 const LMSCampaigns = () => {
   const {
     toast
@@ -33,7 +34,9 @@ const LMSCampaigns = () => {
     userName: "Alex Johnson",
     completionDate: new Date('2025-02-10')
   }];
-  return <div className="min-h-screen flex flex-col">
+  
+  return (
+    <div className="min-h-screen flex flex-col">
       <Navbar />
       
       <div className="flex-grow bg-gray-50 py-8 px-6">
@@ -55,7 +58,7 @@ const LMSCampaigns = () => {
           </div>
 
           <Tabs defaultValue="videos" className="w-full">
-            <TabsList className="grid w-full max-w-md mx-auto mb-6 grid-cols-5">
+            <TabsList className="grid w-full max-w-md mx-auto mb-6 grid-cols-3">
               <TabsTrigger value="videos" className="flex items-center gap-1">
                 <Video className="h-4 w-4" />
                 <span>Videos</span>
@@ -68,18 +71,10 @@ const LMSCampaigns = () => {
                 <Award className="h-4 w-4" />
                 <span>Certificates</span>
               </TabsTrigger>
-              
-              
             </TabsList>
 
             <TabsContent value="videos">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <VideoUploader />
-                <Card className="p-6">
-                  <h2 className="text-xl font-semibold mb-4">Video Library</h2>
-                  <p className="text-gray-600">Your uploaded videos will appear here.</p>
-                </Card>
-              </div>
+              <VideoLibrary />
             </TabsContent>
 
             <TabsContent value="campaigns">
@@ -103,21 +98,13 @@ const LMSCampaigns = () => {
                 </div>
               </div>
             </TabsContent>
-
-            <TabsContent value="users">
-              <div className="grid grid-cols-1 gap-6">
-                <UserIntegrations />
-              </div>
-            </TabsContent>
-
-            <TabsContent value="settings">
-              
-            </TabsContent>
           </Tabs>
         </div>
       </div>
       
       <Footer />
-    </div>;
+    </div>
+  );
 };
+
 export default LMSCampaigns;

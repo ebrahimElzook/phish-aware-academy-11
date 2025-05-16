@@ -21,8 +21,8 @@ const ResetPassword = () => {
     // Simulate API call to request password reset
     setTimeout(() => {
       toast({
-        title: "تم إرسال رابط إعادة تعيين كلمة المرور",
-        description: "تحقق من بريدك الإلكتروني للحصول على تعليمات إعادة تعيين كلمة المرور",
+        title: "Password reset link sent",
+        description: "Check your email for password reset instructions",
       });
       setSubmitted(true);
       setLoading(false);
@@ -38,28 +38,28 @@ const ResetPassword = () => {
             alt="CSWORD Logo" 
             className="h-12 mx-auto mb-4" 
           />
-          <h1 className="text-3xl font-bold">إعادة تعيين كلمة المرور</h1>
-          <p className="text-gray-500 mt-2">أدخل بريدك الإلكتروني لإعادة تعيين كلمة المرور</p>
+          <h1 className="text-3xl font-bold">Reset Password</h1>
+          <p className="text-gray-500 mt-2">Enter your email to reset your password</p>
         </div>
         
         <Card>
           <CardHeader>
-            <CardTitle>استعادة كلمة المرور</CardTitle>
+            <CardTitle>Password Recovery</CardTitle>
             <CardDescription>
-              سنرسل لك رابطاً عبر البريد الإلكتروني لإعادة تعيين كلمة المرور
+              We'll send you a link via email to reset your password
             </CardDescription>
           </CardHeader>
           <CardContent>
             {!submitted ? (
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="email">البريد الإلكتروني</Label>
+                  <Label htmlFor="email">Email</Label>
                   <div className="relative">
                     <Mail className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
                     <Input 
                       id="email" 
                       type="email" 
-                      placeholder="ادخل بريدك الإلكتروني" 
+                      placeholder="Enter your email" 
                       className="pl-10" 
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
@@ -78,29 +78,29 @@ const ResetPassword = () => {
                         <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
                         <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
                       </svg>
-                      جاري المعالجة...
+                      Processing...
                     </span>
                   ) : (
-                    "إرسال رابط إعادة التعيين"
+                    "Send Reset Link"
                   )}
                 </Button>
               </form>
             ) : (
               <div className="text-center space-y-4">
                 <div className="bg-green-50 text-green-700 p-4 rounded-md">
-                  <p className="font-medium">تم إرسال البريد الإلكتروني</p>
+                  <p className="font-medium">Email Sent</p>
                   <p className="text-sm mt-1">
-                    تم إرسال رابط إعادة تعيين كلمة المرور إلى {email}
+                    A password reset link has been sent to {email}
                   </p>
                 </div>
                 <p className="text-sm text-gray-500">
-                  لم تتلق البريد الإلكتروني؟ تحقق من مجلد البريد المزعج أو{' '}
+                  Didn't receive the email? Check your spam folder or{' '}
                   <Button 
                     variant="link" 
                     className="p-0 h-auto text-[#907527]"
                     onClick={() => setSubmitted(false)}
                   >
-                    أعد المحاولة
+                    try again
                   </Button>
                 </p>
               </div>
@@ -109,7 +109,7 @@ const ResetPassword = () => {
           <CardFooter className="flex justify-center">
             <Link to="/login" className="text-sm text-gray-500 hover:text-gray-700 flex items-center gap-1">
               <ArrowLeft className="h-4 w-4" />
-              العودة لصفحة تسجيل الدخول
+              Back to login page
             </Link>
           </CardFooter>
         </Card>

@@ -22,16 +22,16 @@ const Login = () => {
     setTimeout(() => {
       if (email === 'admin@example.com' && password === 'password') {
         toast({
-          title: "تم تسجيل الدخول بنجاح",
-          description: "مرحباً بك في لوحة التحكم",
+          title: "Login successful",
+          description: "Welcome to the dashboard",
         });
         
         // In a real application, you would redirect to dashboard
         window.location.href = '/dashboard';
       } else {
         toast({
-          title: "فشل تسجيل الدخول",
-          description: "البريد الإلكتروني أو كلمة المرور غير صحيحة",
+          title: "Login failed",
+          description: "Email or password is incorrect",
           variant: "destructive",
         });
         setLoading(false);
@@ -48,25 +48,25 @@ const Login = () => {
             alt="CSWORD Logo" 
             className="h-12 mx-auto mb-4" 
           />
-          <h1 className="text-3xl font-bold">مرحباً بعودتك</h1>
-          <p className="text-gray-500 mt-2">قم بتسجيل الدخول للوصول إلى لوحة التحكم</p>
+          <h1 className="text-3xl font-bold">Welcome back</h1>
+          <p className="text-gray-500 mt-2">Log in to access the control panel</p>
         </div>
         
         <Card>
           <CardHeader>
-            <CardTitle>تسجيل الدخول</CardTitle>
-            <CardDescription>أدخل بيانات الدخول الخاصة بك</CardDescription>
+            <CardTitle>Login</CardTitle>
+            <CardDescription>Enter your login credentials</CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="email">البريد الإلكتروني</Label>
+                <Label htmlFor="email">Email</Label>
                 <div className="relative">
                   <Mail className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
                   <Input 
                     id="email" 
                     type="email" 
-                    placeholder="ادخل بريدك الإلكتروني" 
+                    placeholder="Enter your email" 
                     className="pl-10" 
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
@@ -76,9 +76,9 @@ const Login = () => {
               </div>
               <div className="space-y-2">
                 <div className="flex justify-between items-center">
-                  <Label htmlFor="password">كلمة المرور</Label>
+                  <Label htmlFor="password">Password</Label>
                   <Link to="/reset-password" className="text-xs text-[#907527] hover:underline">
-                    نسيت كلمة المرور؟
+                    Forgot password?
                   </Link>
                 </div>
                 <div className="relative">
@@ -105,25 +105,17 @@ const Login = () => {
                       <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
                       <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
                     </svg>
-                    جاري تسجيل الدخول...
+                    Logging in...
                   </span>
                 ) : (
                   <span className="flex items-center gap-2">
                     <LogIn className="h-4 w-4" />
-                    تسجيل الدخول
+                    Login
                   </span>
                 )}
               </Button>
             </form>
           </CardContent>
-          <CardFooter className="flex justify-center">
-            <p className="text-sm text-gray-500">
-              ليس لديك حساب؟{' '}
-              <Link to="/register" className="text-[#907527] hover:underline">
-                إنشاء حساب جديد
-              </Link>
-            </p>
-          </CardFooter>
         </Card>
       </div>
     </div>
