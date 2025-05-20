@@ -121,9 +121,15 @@ const Templates = () => {
     return matchesSearch && matchesCategory && matchesDifficulty;
   });
   const handleCreateTemplate = () => {
-    navigate('/template-editor');
+    // Get the company slug from the URL
+    const path = window.location.pathname;
+    const parts = path.split('/');
+    const companySlug = parts[1]; // First part after the first slash
+    
+    // Navigate to the template editor with the company slug
+    navigate(`/${companySlug}/template-editor`);
   };
-  const handleUseTemplate = templateId => {
+  const handleUseTemplate = (templateId: number) => {
     if (!templateStartDate || !templateEndDate) {
       toast({
         title: "Campaign Dates Required",
@@ -154,7 +160,14 @@ const Templates = () => {
     sessionStorage.setItem('campaignEndDate', templateEndDate.toISOString());
     sessionStorage.setItem('campaignTargetType', selectedTargetType);
     sessionStorage.setItem('campaignTargetDepartments', JSON.stringify(selectedDepartments));
-    navigate(`/template-editor/${templateId}`);
+    
+    // Get the company slug from the URL
+    const path = window.location.pathname;
+    const parts = path.split('/');
+    const companySlug = parts[1]; // First part after the first slash
+    
+    // Navigate to the template editor with the company slug and template ID
+    navigate(`/${companySlug}/template-editor/${templateId}`);
   };
   const handleTargetTypeChange = (value: string) => {
     setSelectedTargetType(value);

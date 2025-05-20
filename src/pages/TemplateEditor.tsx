@@ -21,6 +21,17 @@ const TemplateEditor = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState("content");
+
+  // Handle back button navigation
+  const handleBackToTemplates = () => {
+    // Get the company slug from the URL
+    const path = window.location.pathname;
+    const parts = path.split('/');
+    const companySlug = parts[1]; // First part after the first slash
+    
+    // Navigate to the templates page with the company slug
+    navigate(`/${companySlug}/templates`);
+  };
   const [template, setTemplate] = useState({
     subject: "Important: Your Account Security Requires Attention",
     sender: "security@orgname.com",
@@ -160,14 +171,16 @@ const TemplateEditor = () => {
       
       <div className="flex-grow bg-gray-50 py-8 px-6">
         <div className="max-w-7xl mx-auto">
+          
           {/* Header */}
           <div className="flex items-center mb-6">
             <Button 
               variant="ghost" 
-              className="mr-4" 
-              onClick={() => navigate('/templates')}
+              className="mr-4 flex items-center gap-1" 
+              onClick={handleBackToTemplates}
             >
               <ArrowLeft className="h-5 w-5" />
+              <span>Back to Templates</span>
             </Button>
             <div>
               <h1 className="text-2xl font-bold mb-1">Email Template Editor</h1>
