@@ -2,6 +2,8 @@ from django.urls import path, include
 from rest_framework_simplejwt.views import TokenRefreshView
 from . import views
 from .company_views import CompanyListView
+from .user_management_views import UserManagementView, UserDetailView, UserDepartmentUpdateView
+from .department_views import DepartmentListView, DepartmentDetailView
 
 # Standard auth endpoints
 auth_patterns = [
@@ -19,6 +21,15 @@ company_patterns = [
     path('token/refresh/', TokenRefreshView.as_view(), name='company_token_refresh'),
     path('profile/', views.UserProfileView.as_view(), name='company_profile'),
     path('change-password/', views.ChangePasswordView.as_view(), name='company_change_password'),
+    # User management endpoints
+    path('users/', UserManagementView.as_view(), name='company_user_list'),
+    path('users/<str:user_id>/', UserDetailView.as_view(), name='company_user_detail'),
+    path('users/<str:user_id>/update-department/', UserDepartmentUpdateView.as_view(), name='company_user_update_department'),
+    # Department management endpoints
+    path('departments/', DepartmentListView.as_view(), name='company_department_list'),
+    path('departments/<str:department_id>/', DepartmentDetailView.as_view(), name='company_department_detail'),
+    # Bulk upload endpoint
+    path('users/bulk-upload/', UserManagementView.as_view(), name='company_user_bulk_upload'),
 ]
 
 urlpatterns = [

@@ -15,8 +15,30 @@ export const CompanyRoute = () => {
   const { toast } = useToast();
   const { user, isAuthenticated } = useAuth();
 
+  // Check if user is a Super Admin
+  const isSuperAdmin = () => {
+    if (isAuthenticated && user) {
+      const userRole = user.role?.toLowerCase() || '';
+      return userRole === 'super_admin' || userRole === 'superadmin';
+    }
+    return false;
+  };
+  
   useEffect(() => {
     const validateCompany = async () => {
+      // If user is a Super Admin, skip company validation
+      if (isSuperAdmin()) {
+        // Super Admins can access any company
+        setIsValidCompany(true);
+        setIsValidating(false);
+        
+        // Store the company slug for API calls
+        if (companySlug) {
+          localStorage.setItem('companySlug', companySlug);
+        }
+        return;
+      }
+      
       // If no company slug in URL, check if we have one in localStorage
       if (!companySlug) {
         const storedCompanySlug = localStorage.getItem('companySlug');

@@ -74,7 +74,24 @@ export interface User {
   first_name: string;
   last_name: string;
   role: string;
+  is_active?: boolean;
+  department?: string;
+  department_name?: string;
   company?: Company;
+}
+
+export interface Department {
+  id: string;
+  name: string;
+  user_count: number;
+}
+
+export interface NewUserData {
+  first_name: string;
+  last_name: string;
+  email: string;
+  department: string;
+  role: string;
 }
 
 export const companyService = {
@@ -91,6 +108,29 @@ export const companyService = {
       console.error('Error fetching companies:', error);
       throw error;
     }
+  }
+};
+
+// Check if the current user is a Super Admin based on stored token data
+const isSuperAdmin = (): boolean => {
+  try {
+    const token = localStorage.getItem('token');
+    if (!token) return false;
+    
+    // JWT tokens are in the format header.payload.signature
+    // We need to decode the payload (second part)
+    const payload = token.split('.')[1];
+    if (!payload) return false;
+    
+    // Decode the base64 payload
+    const decodedPayload = JSON.parse(atob(payload));
+    
+    // Check if the user role is super_admin
+    return decodedPayload.role?.toLowerCase() === 'super_admin' || 
+           decodedPayload.role?.toLowerCase() === 'superadmin';
+  } catch (error) {
+    console.error('Error checking super admin status:', error);
+    return false;
   }
 };
 
@@ -148,14 +188,32 @@ export const authService = {
       // Check if we're in a company-specific context
       const companySlug = getCompanySlug();
       
-      // Use company-specific endpoint if available
-      const endpoint = companySlug 
-        ? `${API_URL}/auth/${companySlug}/profile/`
-        : `${API_URL}/auth/profile/`;
+      // Check if the user is a Super Admin
+      const superAdmin = isSuperAdmin();
+      
+      // For Super Admins, always use the company-specific endpoint if a company slug is available
+      // This allows them to access any company's data
+      let endpoint;
+      
+      if (superAdmin && companySlug) {
+        // Super Admin accessing a specific company
+        endpoint = `${API_URL}/auth/${companySlug}/profile/`;
+        
+        // Store this company slug for future API calls
+        localStorage.setItem('companySlug', companySlug);
+      } else if (companySlug) {
+        // Regular user in a company context
+        endpoint = `${API_URL}/auth/${companySlug}/profile/`;
+      } else {
+        // No company context
+        endpoint = `${API_URL}/auth/profile/`;
+      }
       
       const response = await fetch(endpoint, {
         headers: {
           'Authorization': `Bearer ${token}`,
+          // Add a header to indicate Super Admin status for backend processing if needed
+          ...(superAdmin ? { 'X-Super-Admin': 'true' } : {}),
         },
       });
 
@@ -219,16 +277,33 @@ export const authService = {
       // Check if we're in a company-specific context
       const companySlug = getCompanySlug();
       
-      // Use company-specific endpoint if available
-      const endpoint = companySlug 
-        ? `${API_URL}/auth/${companySlug}/profile/`
-        : `${API_URL}/auth/profile/`;
+      // Check if the user is a Super Admin
+      const superAdmin = isSuperAdmin();
+      
+      // For Super Admins, always use the company-specific endpoint if a company slug is available
+      let endpoint;
+      
+      if (superAdmin && companySlug) {
+        // Super Admin accessing a specific company
+        endpoint = `${API_URL}/auth/${companySlug}/profile/`;
+        
+        // Store this company slug for future API calls
+        localStorage.setItem('companySlug', companySlug);
+      } else if (companySlug) {
+        // Regular user in a company context
+        endpoint = `${API_URL}/auth/${companySlug}/profile/`;
+      } else {
+        // No company context
+        endpoint = `${API_URL}/auth/profile/`;
+      }
       
       const response = await fetch(endpoint, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`,
+          // Add a header to indicate Super Admin status for backend processing if needed
+          ...(superAdmin ? { 'X-Super-Admin': 'true' } : {}),
         },
         body: JSON.stringify(userData),
       });
@@ -289,6 +364,368 @@ export const authService = {
       }
     } catch (error) {
       console.error('Change password error:', error);
+      throw error;
+    }
+  },
+};
+
+// User management service
+export const userService = {
+  // Get all users for a company
+  getUsers: async (): Promise<User[]> => {
+    const token = localStorage.getItem('token');
+    
+    if (!token) {
+      throw new Error('No authentication token found');
+    }
+
+    try {
+      // Check if we're in a company-specific context
+      const companySlug = getCompanySlug();
+      
+      // Check if the user is a Super Admin
+      const superAdmin = isSuperAdmin();
+      
+      // For Super Admins, always use the company-specific endpoint if a company slug is available
+      let endpoint;
+      
+      if (superAdmin && companySlug) {
+        // Super Admin accessing a specific company
+        endpoint = `${API_URL}/auth/${companySlug}/users/`;
+      } else if (companySlug) {
+        // Regular user in a company context
+        endpoint = `${API_URL}/auth/${companySlug}/users/`;
+      } else {
+        // No company context
+        throw new Error('Company context is required to fetch users');
+      }
+      
+      const response = await fetch(endpoint, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          ...(superAdmin ? { 'X-Super-Admin': 'true' } : {}),
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch users');
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error('Get users error:', error);
+      throw error;
+    }
+  },
+  
+  // Update user status (active/inactive)
+  updateUserStatus: async (userId: string, isActive: boolean): Promise<User> => {
+    const token = localStorage.getItem('token');
+    
+    if (!token) {
+      throw new Error('No authentication token found');
+    }
+
+    try {
+      // Check if we're in a company-specific context
+      const companySlug = getCompanySlug();
+      
+      // Check if the user is a Super Admin
+      const superAdmin = isSuperAdmin();
+      
+      // For Super Admins, always use the company-specific endpoint if a company slug is available
+      let endpoint;
+      
+      if (superAdmin && companySlug) {
+        // Super Admin accessing a specific company
+        endpoint = `${API_URL}/auth/${companySlug}/users/${userId}/`;
+      } else if (companySlug) {
+        // Regular user in a company context
+        endpoint = `${API_URL}/auth/${companySlug}/users/${userId}/`;
+      } else {
+        // No company context
+        throw new Error('Company context is required to update user status');
+      }
+      
+      const response = await fetch(endpoint, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+          ...(superAdmin ? { 'X-Super-Admin': 'true' } : {}),
+        },
+        body: JSON.stringify({ is_active: isActive }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.detail || 'Failed to update user status');
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error('Update user status error:', error);
+      throw error;
+    }
+  },
+
+  // Add a new user
+  addUser: async (userData: NewUserData): Promise<User> => {
+    const token = localStorage.getItem('token');
+    
+    if (!token) {
+      throw new Error('No authentication token found');
+    }
+
+    try {
+      // Check if we're in a company-specific context
+      const companySlug = getCompanySlug();
+      
+      // Check if the user is a Super Admin
+      const superAdmin = isSuperAdmin();
+      
+      let endpoint;
+      
+      if (companySlug) {
+        endpoint = `${API_URL}/auth/${companySlug}/users/`;
+      } else {
+        throw new Error('Company context is required to add a user');
+      }
+      
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+          ...(superAdmin ? { 'X-Super-Admin': 'true' } : {}),
+        },
+        body: JSON.stringify(userData),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.detail || 'Failed to add user');
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error('Add user error:', error);
+      throw error;
+    }
+  },
+
+  // Upload users in bulk via Excel/CSV file
+  uploadUsersBulk: async (formData: FormData): Promise<User[]> => {
+    const token = localStorage.getItem('token');
+    
+    if (!token) {
+      throw new Error('No authentication token found');
+    }
+
+    try {
+      // Check if we're in a company-specific context
+      const companySlug = getCompanySlug();
+      
+      // Check if the user is a Super Admin
+      const superAdmin = isSuperAdmin();
+      
+      let endpoint;
+      
+      if (companySlug) {
+        endpoint = `${API_URL}/auth/${companySlug}/users/bulk-upload/`;
+      } else {
+        throw new Error('Company context is required to upload users');
+      }
+      
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          ...(superAdmin ? { 'X-Super-Admin': 'true' } : {}),
+        },
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.detail || 'Failed to upload users');
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error('Upload users error:', error);
+      throw error;
+    }
+  },
+
+  // Get all departments for a company
+  getDepartments: async (): Promise<Department[]> => {
+    const token = localStorage.getItem('token');
+    
+    if (!token) {
+      throw new Error('No authentication token found');
+    }
+
+    try {
+      // Check if we're in a company-specific context
+      const companySlug = getCompanySlug();
+      
+      // Check if the user is a Super Admin
+      const superAdmin = isSuperAdmin();
+      
+      let endpoint;
+      
+      if (companySlug) {
+        endpoint = `${API_URL}/auth/${companySlug}/departments/`;
+      } else {
+        throw new Error('Company context is required to fetch departments');
+      }
+      
+      const response = await fetch(endpoint, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          ...(superAdmin ? { 'X-Super-Admin': 'true' } : {}),
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch departments');
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error('Get departments error:', error);
+      throw error;
+    }
+  },
+
+  // Add a new department
+  addDepartment: async (name: string): Promise<Department> => {
+    const token = localStorage.getItem('token');
+    
+    if (!token) {
+      throw new Error('No authentication token found');
+    }
+
+    try {
+      // Check if we're in a company-specific context
+      const companySlug = getCompanySlug();
+      
+      // Check if the user is a Super Admin
+      const superAdmin = isSuperAdmin();
+      
+      let endpoint;
+      
+      if (companySlug) {
+        endpoint = `${API_URL}/auth/${companySlug}/departments/`;
+      } else {
+        throw new Error('Company context is required to add a department');
+      }
+      
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+          ...(superAdmin ? { 'X-Super-Admin': 'true' } : {}),
+        },
+        body: JSON.stringify({ name }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.detail || 'Failed to add department');
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error('Add department error:', error);
+      throw error;
+    }
+  },
+
+  // Delete a department
+  deleteDepartment: async (departmentId: string): Promise<void> => {
+    const token = localStorage.getItem('token');
+    
+    if (!token) {
+      throw new Error('No authentication token found');
+    }
+
+    try {
+      // Check if we're in a company-specific context
+      const companySlug = getCompanySlug();
+      
+      // Check if the user is a Super Admin
+      const superAdmin = isSuperAdmin();
+      
+      let endpoint;
+      
+      if (companySlug) {
+        endpoint = `${API_URL}/auth/${companySlug}/departments/${departmentId}/`;
+      } else {
+        throw new Error('Company context is required to delete a department');
+      }
+      
+      const response = await fetch(endpoint, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          ...(superAdmin ? { 'X-Super-Admin': 'true' } : {}),
+        },
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.detail || 'Failed to delete department');
+      }
+    } catch (error) {
+      console.error('Delete department error:', error);
+      throw error;
+    }
+  },
+
+  // Update user's department
+  updateUserDepartment: async (userId: string, departmentId: string): Promise<User> => {
+    const token = localStorage.getItem('token');
+    
+    if (!token) {
+      throw new Error('No authentication token found');
+    }
+
+    try {
+      // Check if we're in a company-specific context
+      const companySlug = getCompanySlug();
+      
+      // Check if the user is a Super Admin
+      const superAdmin = isSuperAdmin();
+      
+      let endpoint;
+      
+      if (companySlug) {
+        endpoint = `${API_URL}/auth/${companySlug}/users/${userId}/update-department/`;
+      } else {
+        throw new Error('Company context is required to update user department');
+      }
+      
+      const response = await fetch(endpoint, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+          ...(superAdmin ? { 'X-Super-Admin': 'true' } : {}),
+        },
+        body: JSON.stringify({ department: departmentId }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.detail || 'Failed to update user department');
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error('Update user department error:', error);
       throw error;
     }
   },

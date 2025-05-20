@@ -1,12 +1,11 @@
 
 import React, { useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { UserIntegrations } from '@/components/integrations/UserIntegrations';
 import { UserAccessControl } from '@/components/admin/UserAccessControl';
 import { Toaster } from '@/components/ui/toaster';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { UserManualEntry } from '@/components/admin/UserManualEntry';
-import { UserDepartments } from '@/components/admin/UserDepartments';
+import { DepartmentManagement } from '@/components/admin/DepartmentManagement';
 import { FileText, Users, ShieldCheck } from 'lucide-react';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
@@ -43,7 +42,7 @@ const UserManagement = () => {
             </TabsContent>
             
             <TabsContent value="departments">
-              <UserDepartments />
+              <DepartmentManagement />
             </TabsContent>
             
             <TabsContent value="access">

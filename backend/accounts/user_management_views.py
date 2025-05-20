@@ -1,0 +1,477 @@
+from rest_framework import permissions, status
+from rest_framework.response import Response
+from rest_framework.views import APIView
+from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
+from django.contrib.auth import get_user_model
+from django.shortcuts import get_object_or_404
+from .models import Company, Department
+from .serializers import UserSerializer
+import pandas as pd
+import io
+
+User = get_user_model()
+
+class UserManagementView(APIView):
+    """
+    View for listing and managing users within a company
+    """
+    permission_classes = [permissions.IsAuthenticated]
+    parser_classes = [JSONParser, MultiPartParser, FormParser]
+    
+    def get(self, request, company_slug=None):
+        """
+        List all users in a company
+        Only accessible by admins, company admins, and super admins
+        """
+        # If company_slug is provided, check if user has access
+        if company_slug:
+            company = get_object_or_404(Company, slug=company_slug)
+            
+            # Check if user has admin privileges
+            user_role = request.user.role.lower() if request.user.role else ''
+            is_admin = user_role in ['admin', 'company_admin', 'super_admin']
+            
+            # Check if user belongs to this company or is a super admin
+            if not is_admin or (user_role != 'super_admin' and (not request.user.company or request.user.company.id != company.id)):
+                return Response(
+                    {"detail": "You don't have access to manage users in this company."},
+                    status=status.HTTP_403_FORBIDDEN
+                )
+                
+            # Get all users in this company
+            users = User.objects.filter(company=company)
+            serializer = UserSerializer(users, many=True)
+            return Response(serializer.data)
+        
+        # If no company slug, only super admins can see all users
+        if request.user.role.lower() == 'super_admin':
+            users = User.objects.all()
+            serializer = UserSerializer(users, many=True)
+            return Response(serializer.data)
+        
+        return Response(
+            {"detail": "Company context is required."},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+    
+    def post(self, request, company_slug=None):
+        """
+        Add a new user to the company
+        """
+        # Check if this is a bulk upload request
+        if 'file' in request.FILES:
+            return self.bulk_upload(request, company_slug)
+            
+        # If company_slug is provided, check if user has access
+        if company_slug:
+            company = get_object_or_404(Company, slug=company_slug)
+            
+            # Check if user has admin privileges
+            user_role = request.user.role.lower() if request.user.role else ''
+            is_admin = user_role in ['admin', 'company_admin', 'super_admin']
+            
+            # Check if user belongs to this company or is a super admin
+            if not is_admin or (user_role != 'super_admin' and (not request.user.company or request.user.company.id != company.id)):
+                return Response(
+                    {"detail": "You don't have access to add users to this company."},
+                    status=status.HTTP_403_FORBIDDEN
+                )
+            
+            # Get the data from the request
+            data = request.data.copy()
+            
+            # Validate required fields
+            required_fields = ['first_name', 'last_name', 'email', 'role']
+            for field in required_fields:
+                if field not in data:
+                    return Response(
+                        {"detail": f"{field} is required."},
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
+            
+            # Check if department exists
+            department = None
+            if 'department' in data and data['department']:
+                try:
+                    department = Department.objects.get(id=data['department'], company=company)
+                except Department.DoesNotExist:
+                    return Response(
+                        {"detail": "Department not found."},
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
+            else:
+                # Use default IT department or create one
+                department, created = Department.objects.get_or_create(
+                    name='IT',
+                    company=company,
+                    defaults={'name': 'IT', 'company': company}
+                )
+            
+            # Generate a username if not provided
+            if 'username' not in data or not data['username']:
+                # Create username from email
+                data['username'] = data['email'].split('@')[0]
+                
+                # Check if username exists and append numbers if needed
+                base_username = data['username']
+                counter = 1
+                while User.objects.filter(username=data['username']).exists():
+                    data['username'] = f"{base_username}{counter}"
+                    counter += 1
+            
+            # Generate a default password if not provided
+            if 'password' not in data or not data['password']:
+                data['password'] = 'ChangeMe123!'
+            
+            # Set the company
+            data['company'] = company.id
+            
+            # Set the department
+            data['department'] = department.id
+            
+            # Create the user
+            serializer = UserSerializer(data=data)
+            if serializer.is_valid():
+                user = User.objects.create_user(
+                    username=data['username'],
+                    email=data['email'],
+                    password=data['password'],
+                    first_name=data['first_name'],
+                    last_name=data['last_name'],
+                    role=data['role'],
+                    company=company,
+                    department=department
+                )
+                return Response(UserSerializer(user).data, status=status.HTTP_201_CREATED)
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        
+        return Response(
+            {"detail": "Company context is required."},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+    
+    def bulk_upload(self, request, company_slug=None):
+        """
+        Bulk upload users from a CSV or Excel file
+        """
+        if not company_slug:
+            return Response(
+                {"detail": "Company context is required."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+            
+        company = get_object_or_404(Company, slug=company_slug)
+        
+        # Check if user has admin privileges
+        user_role = request.user.role.lower() if request.user.role else ''
+        is_admin = user_role in ['admin', 'company_admin', 'super_admin']
+        
+        # Check if user belongs to this company or is a super admin
+        if not is_admin or (user_role != 'super_admin' and (not request.user.company or request.user.company.id != company.id)):
+            return Response(
+                {"detail": "You don't have access to add users to this company."},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        # Get the file from the request
+        file = request.FILES['file']
+        
+        # Check file extension
+        if file.name.endswith('.csv'):
+            # Read CSV file
+            try:
+                df = pd.read_csv(file)
+            except Exception as e:
+                return Response(
+                    {"detail": f"Error reading CSV file: {str(e)}"},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+        elif file.name.endswith(('.xls', '.xlsx')):
+            # Read Excel file
+            try:
+                df = pd.read_excel(file)
+            except Exception as e:
+                return Response(
+                    {"detail": f"Error reading Excel file: {str(e)}"},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+        else:
+            return Response(
+                {"detail": "Unsupported file format. Please upload a CSV or Excel file."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Check required columns
+        required_columns = ['first_name', 'last_name', 'email']
+        for column in required_columns:
+            if column not in df.columns:
+                return Response(
+                    {"detail": f"Missing required column: {column}"},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+        
+        # Process the data
+        created_users = []
+        errors = []
+        
+        for index, row in df.iterrows():
+            try:
+                # Get required fields
+                first_name = row['first_name']
+                last_name = row['last_name']
+                email = row['email']
+                
+                # Get optional fields with defaults
+                role = row.get('role', 'USER')
+                department_name = row.get('department', 'IT')
+                
+                # Validate role
+                valid_roles = [choice[0] for choice in User.Role.choices]
+                if role not in valid_roles:
+                    role = 'USER'  # Default to USER if invalid
+                
+                # Get or create department
+                department, created = Department.objects.get_or_create(
+                    name=department_name,
+                    company=company,
+                    defaults={'name': department_name, 'company': company}
+                )
+                
+                # Generate username from email
+                username = email.split('@')[0]
+                
+                # Check if username exists and append numbers if needed
+                base_username = username
+                counter = 1
+                while User.objects.filter(username=username).exists():
+                    username = f"{base_username}{counter}"
+                    counter += 1
+                
+                # Check if user with this email already exists
+                if User.objects.filter(email=email).exists():
+                    errors.append(f"User with email {email} already exists")
+                    continue
+                
+                # Create the user
+                user = User.objects.create_user(
+                    username=username,
+                    email=email,
+                    password='ChangeMe123!',  # Default password
+                    first_name=first_name,
+                    last_name=last_name,
+                    role=role,
+                    company=company,
+                    department=department
+                )
+                
+                created_users.append(user)
+            except Exception as e:
+                errors.append(f"Error processing row {index+1}: {str(e)}")
+        
+        # Return the results
+        return Response({
+            "created_users": UserSerializer(created_users, many=True).data,
+            "errors": errors,
+            "total_created": len(created_users),
+            "total_errors": len(errors)
+        }, status=status.HTTP_201_CREATED if created_users else status.HTTP_400_BAD_REQUEST)
+
+class UserDetailView(APIView):
+    """
+    View for retrieving, updating or deleting a user instance
+    """
+    permission_classes = [permissions.IsAuthenticated]
+    
+    def get(self, request, user_id, company_slug=None):
+        """
+        Retrieve a user by ID
+        """
+        # If company_slug is provided, check if user has access
+        if company_slug:
+            company = get_object_or_404(Company, slug=company_slug)
+            
+            # Check if user has admin privileges
+            user_role = request.user.role.lower() if request.user.role else ''
+            is_admin = user_role in ['admin', 'company_admin', 'super_admin']
+            
+            # Check if user belongs to this company or is a super admin
+            if not is_admin or (user_role != 'super_admin' and (not request.user.company or request.user.company.id != company.id)):
+                return Response(
+                    {"detail": "You don't have access to manage users in this company."},
+                    status=status.HTTP_403_FORBIDDEN
+                )
+                
+            # Get the user
+            user = get_object_or_404(User, id=user_id, company=company)
+            serializer = UserSerializer(user)
+            return Response(serializer.data)
+        
+        # If no company slug, only super admins can access any user
+        if request.user.role.lower() == 'super_admin':
+            user = get_object_or_404(User, id=user_id)
+            serializer = UserSerializer(user)
+            return Response(serializer.data)
+        
+        return Response(
+            {"detail": "Company context is required."},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+    
+    def patch(self, request, user_id, company_slug=None):
+        """
+        Update a user's information
+        """
+        # If company_slug is provided, check if user has access
+        if company_slug:
+            company = get_object_or_404(Company, slug=company_slug)
+            
+            # Check if user has admin privileges
+            user_role = request.user.role.lower() if request.user.role else ''
+            is_admin = user_role in ['admin', 'company_admin', 'super_admin']
+            
+            # Check if user belongs to this company or is a super admin
+            if not is_admin or (user_role != 'super_admin' and (not request.user.company or request.user.company.id != company.id)):
+                return Response(
+                    {"detail": "You don't have access to manage users in this company."},
+                    status=status.HTTP_403_FORBIDDEN
+                )
+                
+            # Get the user to update
+            user = get_object_or_404(User, id=user_id, company=company)
+            
+            # Don't allow changing super admin status unless you are a super admin
+            if user.role.lower() == 'super_admin' and request.user.role.lower() != 'super_admin':
+                return Response(
+                    {"detail": "You don't have permission to modify a super admin."},
+                    status=status.HTTP_403_FORBIDDEN
+                )
+            
+            # Don't allow users to deactivate themselves
+            if str(user.id) == str(request.user.id) and 'is_active' in request.data and not request.data['is_active']:
+                return Response(
+                    {"detail": "You cannot deactivate your own account."},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            
+            # Update the user
+            serializer = UserSerializer(user, data=request.data, partial=True)
+            if serializer.is_valid():
+                serializer.save()
+                return Response(serializer.data)
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        
+        # If no company slug, only super admins can update any user
+        if request.user.role.lower() == 'super_admin':
+            user = get_object_or_404(User, id=user_id)
+            
+            # Don't allow users to deactivate themselves
+            if str(user.id) == str(request.user.id) and 'is_active' in request.data and not request.data['is_active']:
+                return Response(
+                    {"detail": "You cannot deactivate your own account."},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            
+            serializer = UserSerializer(user, data=request.data, partial=True)
+            if serializer.is_valid():
+                serializer.save()
+                return Response(serializer.data)
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        
+        return Response(
+            {"detail": "Company context is required."},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+
+class UserDepartmentUpdateView(APIView):
+    """
+    View for updating a user's department
+    """
+    permission_classes = [permissions.IsAuthenticated]
+    
+    def patch(self, request, user_id, company_slug=None):
+        """
+        Update a user's department
+        """
+        # If company_slug is provided, check if user has access
+        if company_slug:
+            company = get_object_or_404(Company, slug=company_slug)
+            
+            # Check if user has admin privileges
+            user_role = request.user.role.lower() if request.user.role else ''
+            is_admin = user_role in ['admin', 'company_admin', 'super_admin']
+            
+            # Check if user belongs to this company or is a super admin
+            if not is_admin or (user_role != 'super_admin' and (not request.user.company or request.user.company.id != company.id)):
+                return Response(
+                    {"detail": "You don't have access to manage users in this company."},
+                    status=status.HTTP_403_FORBIDDEN
+                )
+                
+            # Get the user to update
+            user = get_object_or_404(User, id=user_id, company=company)
+            
+            # Check if department is provided
+            if 'department' not in request.data:
+                return Response(
+                    {"detail": "Department ID is required."},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            
+            department_id = request.data['department']
+            
+            # Check if department exists
+            try:
+                department = Department.objects.get(id=department_id, company=company)
+            except Department.DoesNotExist:
+                return Response(
+                    {"detail": "Department not found."},
+                    status=status.HTTP_404_NOT_FOUND
+                )
+            
+            # Update the user's department
+            user.department = department
+            user.save()
+            
+            serializer = UserSerializer(user)
+            return Response(serializer.data)
+        
+        # If no company slug, only super admins can update any user
+        if request.user.role.lower() == 'super_admin':
+            user = get_object_or_404(User, id=user_id)
+            
+            # Check if department is provided
+            if 'department' not in request.data:
+                return Response(
+                    {"detail": "Department ID is required."},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            
+            department_id = request.data['department']
+            
+            # Check if department exists
+            try:
+                department = Department.objects.get(id=department_id)
+                # For super admin, ensure the department and user belong to the same company
+                if department.company != user.company:
+                    return Response(
+                        {"detail": "Department and user must belong to the same company."},
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
+            except Department.DoesNotExist:
+                return Response(
+                    {"detail": "Department not found."},
+                    status=status.HTTP_404_NOT_FOUND
+                )
+            
+            # Update the user's department
+            user.department = department
+            user.save()
+            
+            serializer = UserSerializer(user)
+            return Response(serializer.data)
+        
+        return Response(
+            {"detail": "Company context is required."},
+            status=status.HTTP_400_BAD_REQUEST
+        )

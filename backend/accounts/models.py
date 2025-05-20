@@ -1,11 +1,25 @@
 from django.db import models
 from django.contrib.auth.models import AbstractUser
 from django.utils.translation import gettext_lazy as _
+from django.utils.text import slugify
+
+class Department(models.Model):
+    name = models.CharField(max_length=100)
+    company = models.ForeignKey('Company', on_delete=models.CASCADE, related_name='departments')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        unique_together = ['name', 'company']
+    
+    def __str__(self):
+        return f"{self.name} ({self.company.name})"
 
 class User(AbstractUser):
     class Role(models.TextChoices):
         SUPER_ADMIN = 'SUPER_ADMIN', _('Super Admin')
         COMPANY_ADMIN = 'COMPANY_ADMIN', _('Company Admin')
+        ADMIN = 'ADMIN', _('Admin')
         USER = 'USER', _('User')
     
     role = models.CharField(
@@ -20,7 +34,20 @@ class User(AbstractUser):
         blank=True,
         related_name='users'
     )
+    department = models.ForeignKey(
+        Department,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='users'
+    )
     email = models.EmailField(_('email address'), unique=True)
+    is_active = models.BooleanField(
+        _('active'),
+        default=True,
+        help_text=_('Designates whether this user should be treated as active. '
+                    'Unselect this instead of deleting accounts.')
+    )
     
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = ['username']
@@ -38,6 +65,5 @@ class Company(models.Model):
     def save(self, *args, **kwargs):
         # Auto-generate slug from name if not provided
         if not self.slug:
-            from django.utils.text import slugify
             self.slug = slugify(self.name)
         super().save(*args, **kwargs)

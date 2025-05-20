@@ -7,12 +7,14 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { Mail, Lock, LogIn } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
 
 const Login = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
   const location = useLocation();
   const { companySlug } = useParams<{ companySlug?: string }>();
+  const { user, isAuthenticated, loading: authLoading } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -24,6 +26,37 @@ const Login = () => {
       navigate('/select-company');
     }
   }, [companySlug, navigate, location]);
+  
+  // Redirect logged-in users to the appropriate page based on their role
+  useEffect(() => {
+    if (isAuthenticated && user && !authLoading) {
+      // Get a valid company slug - either from URL params or from localStorage
+      const validCompanySlug = companySlug || localStorage.getItem('companySlug');
+      
+      if (validCompanySlug) {
+        // Get user role and convert to lowercase for case-insensitive comparison
+        const userRole = user.role?.toLowerCase() || '';
+        
+        // Define admin roles
+        const adminRoles = ['admin', 'super_admin', 'company_admin'];
+        
+        // Redirect based on role
+        if (userRole === 'user') {
+          // Regular users go to training
+          navigate(`/${validCompanySlug}/lms-campaigns`, { replace: true });
+        } else if (adminRoles.some(role => userRole === role || userRole.includes(role))) {
+          // Admins go to dashboard
+          navigate(`/${validCompanySlug}/dashboard`, { replace: true });
+        } else {
+          // Default fallback
+          navigate(`/${validCompanySlug}/dashboard`, { replace: true });
+        }
+      } else {
+        // If no valid company slug, redirect to company selection
+        navigate('/select-company', { replace: true });
+      }
+    }
+  }, [isAuthenticated, user, authLoading, companySlug, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

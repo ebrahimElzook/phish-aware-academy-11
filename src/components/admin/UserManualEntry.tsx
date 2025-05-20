@@ -1,12 +1,12 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { FileSpreadsheet, UserPlus, Upload, Check, UserRound } from 'lucide-react';
+import { FileSpreadsheet, UserPlus, Upload, Check, UserRound, RefreshCw, Loader2, Search } from 'lucide-react';
 import {
   Select,
   SelectContent,
@@ -15,22 +15,57 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Skeleton } from '@/components/ui/skeleton';
+import { userService } from '@/services/api';
+
+// Use the User and Department interfaces from the API service
+import { User, Department } from '@/services/api';
 
 export const UserManualEntry = () => {
   const { toast } = useToast();
   const [file, setFile] = useState<File | null>(null);
-  const [name, setName] = useState('');
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
   const [department, setDepartment] = useState('');
+  const [role, setRole] = useState('USER');
   
-  // Mock data for demonstration
-  const [users, setUsers] = useState([
-    { id: 'u1', name: 'Ahmed Mohammed', email: 'ahmed@example.com', department: 'IT' },
-    { id: 'u2', name: 'Sarah Ali', email: 'sara@example.com', department: 'HR' },
-    { id: 'u3', name: 'Mohammed Khalid', email: 'mohammed@example.com', department: 'Finance' },
-  ]);
-
-  const [departments, setDepartments] = useState(['IT', 'HR', 'Finance', 'Marketing', 'Operations']);
+  const [users, setUsers] = useState<User[]>([]);
+  const [departments, setDepartments] = useState<Department[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
+  
+  // Fetch users and departments on component mount
+  useEffect(() => {
+    fetchData();
+  }, []);
+  
+  const fetchData = async () => {
+    try {
+      setLoading(true);
+      const [usersData, departmentsData] = await Promise.all([
+        userService.getUsers(),
+        userService.getDepartments()
+      ]);
+      setUsers(usersData);
+      setDepartments(departmentsData);
+    } catch (error) {
+      toast({
+        title: "Failed to load data",
+        description: "There was an error loading users and departments. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    await fetchData();
+    setRefreshing(false);
+  };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -38,7 +73,7 @@ export const UserManualEntry = () => {
     }
   };
 
-  const handleFileUpload = () => {
+  const handleFileUpload = async () => {
     if (!file) {
       toast({
         title: "No file selected",
@@ -48,36 +83,38 @@ export const UserManualEntry = () => {
       return;
     }
 
-    // Here you would handle the actual file upload to your backend
     toast({
       title: "File upload started",
       description: `Uploading ${file.name}. This may take a moment.`,
     });
 
-    // Simulate upload process
-    setTimeout(() => {
-      // Add sample users to demonstrate
-      const newUsers = [
-        { id: 'u4', name: 'Omar Said', email: 'omar@example.com', department: 'Marketing' },
-        { id: 'u5', name: 'Fatima Ahmed', email: 'fatima@example.com', department: 'HR' },
-      ];
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
       
+      const newUsers = await userService.uploadUsersBulk(formData);
       setUsers([...users, ...newUsers]);
       
       toast({
         title: "Upload successful",
         description: `${file.name} has been uploaded and users added successfully.`,
       });
-      setFile(null);
       
+      setFile(null);
       // Reset the file input
       const fileInput = document.getElementById('excel-upload') as HTMLInputElement;
       if (fileInput) fileInput.value = '';
-    }, 2000);
+    } catch (error) {
+      toast({
+        title: "Upload failed",
+        description: "There was an error uploading the file. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
-  const handleAddUser = () => {
-    if (!name || !email || !department) {
+  const handleAddUser = async () => {
+    if (!firstName || !lastName || !email || !department || !role) {
       toast({
         title: "Incomplete information",
         description: "Please enter all required information",
@@ -86,33 +123,61 @@ export const UserManualEntry = () => {
       return;
     }
 
-    const newUser = {
-      id: `u${Math.random().toString(16).slice(2)}`,
-      name,
-      email,
-      department
-    };
+    try {
+      const newUser = await userService.addUser({
+        first_name: firstName,
+        last_name: lastName,
+        email,
+        department,
+        role
+      });
 
-    setUsers([...users, newUser]);
-    
-    toast({
-      title: "User added",
-      description: "User has been added successfully",
-    });
+      setUsers([...users, newUser]);
+      
+      toast({
+        title: "User added",
+        description: "User has been added successfully",
+      });
 
-    // Clear form
-    setName('');
-    setEmail('');
-    setDepartment('');
+      // Clear form
+      setFirstName('');
+      setLastName('');
+      setEmail('');
+      setDepartment('');
+      setRole('USER');
+    } catch (error) {
+      toast({
+        title: "Failed to add user",
+        description: "There was an error adding the user. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
+
+  // Filter users based on search term
+  const filteredUsers = users.filter(user => 
+    `${user.first_name} ${user.last_name}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    user.department?.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   return (
     <Card>
-      <CardHeader>
+      <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle className="flex items-center gap-2">
           <UserPlus className="h-5 w-5 text-[#907527]" />
           Add Users
         </CardTitle>
+        <Button 
+          variant="outline" 
+          size="sm" 
+          onClick={handleRefresh} 
+          disabled={loading || refreshing}
+          className="flex items-center gap-1"
+        >
+          <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
+          Refresh
+        </Button>
       </CardHeader>
       <CardContent>
         <Tabs defaultValue="manual" className="w-full">
@@ -129,14 +194,25 @@ export const UserManualEntry = () => {
           
           <TabsContent value="manual" className="space-y-4 py-4">
             <div className="grid md:grid-cols-3 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="name">Employee Name</Label>
-                <Input 
-                  id="name" 
-                  value={name} 
-                  onChange={(e) => setName(e.target.value)}
-                  placeholder="Enter employee name"
-                />
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="firstName">First Name</Label>
+                  <Input
+                    id="firstName"
+                    value={firstName} 
+                    onChange={(e) => setFirstName(e.target.value)}
+                    placeholder="Enter first name"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="lastName">Last Name</Label>
+                  <Input
+                    id="lastName"
+                    value={lastName} 
+                    onChange={(e) => setLastName(e.target.value)}
+                    placeholder="Enter last name"
+                  />
+                </div>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="email">Email Address</Label>
@@ -155,11 +231,30 @@ export const UserManualEntry = () => {
                     <SelectValue placeholder="Select department" />
                   </SelectTrigger>
                   <SelectContent>
-                    {departments.map((dept) => (
-                      <SelectItem key={dept} value={dept}>
-                        {dept}
+                    {departments.length > 0 ? (
+                      departments.map((dept) => (
+                        <SelectItem key={dept.id} value={dept.id}>
+                          {dept.name}
+                        </SelectItem>
+                      ))
+                    ) : (
+                      <SelectItem value="default" disabled>
+                        No departments available
                       </SelectItem>
-                    ))}
+                    )}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="role">Role</Label>
+                <Select value={role} onValueChange={setRole}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select role" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="USER">User</SelectItem>
+                    <SelectItem value="ADMIN">Admin</SelectItem>
+                    <SelectItem value="COMPANY_ADMIN">Company Admin</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -226,25 +321,58 @@ export const UserManualEntry = () => {
         </Tabs>
 
         <div className="mt-8">
-          <h3 className="text-lg font-medium mb-4">User List</h3>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Name</TableHead>
-                <TableHead>Email</TableHead>
-                <TableHead>Department</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {users.map(user => (
-                <TableRow key={user.id}>
-                  <TableCell className="font-medium">{user.name}</TableCell>
-                  <TableCell>{user.email}</TableCell>
-                  <TableCell>{user.department}</TableCell>
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-medium">User List</h3>
+            <div className="relative w-64">
+              <Search className="absolute left-2 top-2.5 h-4 w-4 text-gray-500" />
+              <Input
+                placeholder="Search users..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-8"
+              />
+            </div>
+          </div>
+          
+          {loading ? (
+            <div className="space-y-4">
+              <Skeleton className="h-12 w-full" />
+              <Skeleton className="h-12 w-full" />
+              <Skeleton className="h-12 w-full" />
+              <Skeleton className="h-12 w-full" />
+            </div>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Name</TableHead>
+                  <TableHead>Email</TableHead>
+                  <TableHead>Department</TableHead>
+                  <TableHead>Role</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {filteredUsers.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={4} className="text-center py-8 text-gray-500">
+                      {searchTerm ? 'No users found matching your search.' : 'No users found in this company.'}
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  filteredUsers.map(user => (
+                    <TableRow key={user.id}>
+                      <TableCell className="font-medium">{user.first_name} {user.last_name}</TableCell>
+                      <TableCell>{user.email}</TableCell>
+                      <TableCell>
+                        {user.department_name || '-'}
+                      </TableCell>
+                      <TableCell className="capitalize">{user.role?.toLowerCase()}</TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          )}
         </div>
       </CardContent>
     </Card>
