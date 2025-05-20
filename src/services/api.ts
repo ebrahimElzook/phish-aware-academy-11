@@ -1,0 +1,322 @@
+// API service for communicating with the Django backend
+
+const API_URL = 'http://localhost:8000/api';
+
+// Get company slug from URL path (e.g., /company-name/dashboard)
+const getCompanySlug = (): string | null => {
+  const path = window.location.pathname;
+  const parts = path.split('/');
+  
+  // Check if path has at least one segment and it's not a known route
+  if (parts.length > 1 && parts[1]) {
+    // First check if we have a stored company slug that matches the current URL
+    const storedCompanySlug = localStorage.getItem('companySlug');
+    if (storedCompanySlug && path.startsWith(`/${storedCompanySlug}`)) {
+      return storedCompanySlug;
+    }
+    
+    // Check if the first segment is a company slug (not a known route)
+    if (![
+      'login', 'register', 'dashboard', 'templates', 'campaigns',
+      'analytics', 'users', 'profile', 'admin', 'select-company',
+      'reset-password', 'super-admin', 'lms-campaigns', 'user-management',
+      'employee-courses', 'profile-settings'
+    ].includes(parts[1])) {
+      // Store the company slug for future reference
+      localStorage.setItem('companySlug', parts[1]);
+      return parts[1];
+    }
+  }
+  
+  // If not found in URL, try to get from localStorage
+  return localStorage.getItem('companySlug');
+};
+
+export interface LoginResponse {
+  access: string;
+  refresh: string;
+  user: {
+    id: string;
+    username: string;
+    email: string;
+    first_name: string;
+    last_name: string;
+    role: string;
+  };
+}
+
+export interface Company {
+  id: string;
+  name: string;
+  slug: string;
+  description?: string;
+}
+
+export interface User {
+  id: string;
+  username: string;
+  email: string;
+  first_name: string;
+  last_name: string;
+  role: string;
+  company?: Company;
+}
+
+export const companyService = {
+  getCompanies: async (): Promise<Company[]> => {
+    try {
+      const response = await fetch(`${API_URL}/auth/companies/`);
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch companies');
+      }
+      
+      return await response.json();
+    } catch (error) {
+      console.error('Error fetching companies:', error);
+      throw error;
+    }
+  }
+};
+
+export const authService = {
+  login: async (email: string, password: string): Promise<LoginResponse> => {
+    try {
+      // Check if we're in a company-specific context
+      const companySlug = getCompanySlug();
+      
+      // Use company-specific endpoint if available
+      const endpoint = companySlug 
+        ? `${API_URL}/auth/${companySlug}/token/`
+        : `${API_URL}/auth/token/`;
+      
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email, password }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.detail || 'Login failed');
+      }
+
+      const data = await response.json();
+      
+      // Store the token in localStorage
+      localStorage.setItem('token', data.access);
+      localStorage.setItem('refreshToken', data.refresh);
+      
+      return data;
+    } catch (error) {
+      console.error('Login error:', error);
+      throw error;
+    }
+  },
+
+  logout: () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('refreshToken');
+    // Don't remove companySlug to maintain company context after logout
+  },
+
+  getProfile: async (): Promise<User> => {
+    const token = localStorage.getItem('token');
+    
+    if (!token) {
+      throw new Error('No authentication token found');
+    }
+
+    try {
+      // Check if we're in a company-specific context
+      const companySlug = getCompanySlug();
+      
+      // Use company-specific endpoint if available
+      const endpoint = companySlug 
+        ? `${API_URL}/auth/${companySlug}/profile/`
+        : `${API_URL}/auth/profile/`;
+      
+      const response = await fetch(endpoint, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch profile');
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error('Get profile error:', error);
+      throw error;
+    }
+  },
+
+  refreshToken: async (): Promise<string> => {
+    const refreshToken = localStorage.getItem('refreshToken');
+    
+    if (!refreshToken) {
+      throw new Error('No refresh token found');
+    }
+
+    try {
+      // Check if we're in a company-specific context
+      const companySlug = getCompanySlug();
+      
+      // Use company-specific endpoint if available
+      const endpoint = companySlug 
+        ? `${API_URL}/auth/${companySlug}/token/refresh/`
+        : `${API_URL}/auth/token/refresh/`;
+      
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ refresh: refreshToken }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to refresh token');
+      }
+
+      const data = await response.json();
+      localStorage.setItem('token', data.access);
+      
+      return data.access;
+    } catch (error) {
+      console.error('Refresh token error:', error);
+      throw error;
+    }
+  },
+
+  updateProfile: async (userData: { first_name?: string; last_name?: string; email?: string }): Promise<User> => {
+    const token = localStorage.getItem('token');
+    
+    if (!token) {
+      throw new Error('No authentication token found');
+    }
+
+    try {
+      // Check if we're in a company-specific context
+      const companySlug = getCompanySlug();
+      
+      // Use company-specific endpoint if available
+      const endpoint = companySlug 
+        ? `${API_URL}/auth/${companySlug}/profile/`
+        : `${API_URL}/auth/profile/`;
+      
+      const response = await fetch(endpoint, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify(userData),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.detail || 'Failed to update profile');
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error('Update profile error:', error);
+      throw error;
+    }
+  },
+
+  changePassword: async (currentPassword: string, newPassword: string): Promise<void> => {
+    const token = localStorage.getItem('token');
+    
+    if (!token) {
+      throw new Error('No authentication token found');
+    }
+
+    try {
+      // Check if we're in a company-specific context
+      const companySlug = getCompanySlug();
+      
+      // Use the dedicated change-password endpoint
+      const endpoint = companySlug 
+        ? `${API_URL}/auth/${companySlug}/change-password/`
+        : `${API_URL}/auth/change-password/`;
+      
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          current_password: currentPassword,
+          new_password: newPassword,
+        }),
+      });
+
+      // Handle non-JSON responses
+      if (!response.ok) {
+        try {
+          const contentType = response.headers.get('content-type');
+          if (contentType && contentType.includes('application/json')) {
+            const errorData = await response.json();
+            throw new Error(errorData.detail || 'Failed to change password');
+          } else {
+            throw new Error(`Failed to change password: Server returned ${response.status} ${response.statusText}`);
+          }
+        } catch (parseError) {
+          throw new Error(`Failed to change password: ${response.status} ${response.statusText}`);
+        }
+      }
+    } catch (error) {
+      console.error('Change password error:', error);
+      throw error;
+    }
+  },
+};
+
+// Add an interceptor to handle token refresh
+export const fetchWithAuth = async (url: string, options: RequestInit = {}): Promise<Response> => {
+  const token = localStorage.getItem('token');
+  
+  if (!token) {
+    throw new Error('No authentication token found');
+  }
+
+  const headers = {
+    ...options.headers,
+    'Authorization': `Bearer ${token}`,
+  };
+
+  try {
+    const response = await fetch(url, {
+      ...options,
+      headers,
+    });
+
+    if (response.status === 401) {
+      // Token expired, try to refresh
+      try {
+        await authService.refreshToken();
+        // Retry the request with the new token
+        return fetchWithAuth(url, options);
+      } catch (refreshError) {
+        // Refresh failed, redirect to login
+        authService.logout();
+        window.location.href = '/login';
+        throw new Error('Session expired. Please login again.');
+      }
+    }
+
+    return response;
+  } catch (error) {
+    console.error('Fetch with auth error:', error);
+    throw error;
+  }
+};
+
+export default authService;

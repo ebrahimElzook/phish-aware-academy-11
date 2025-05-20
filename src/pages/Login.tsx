@@ -1,6 +1,6 @@
 
-import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { Link, useNavigate, useParams, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -10,33 +10,52 @@ import { Mail, Lock, LogIn } from 'lucide-react';
 
 const Login = () => {
   const { toast } = useToast();
+  const navigate = useNavigate();
+  const location = useLocation();
+  const { companySlug } = useParams<{ companySlug?: string }>();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  
+  useEffect(() => {
+    // If accessing the login page directly without a company slug
+    if (!companySlug && location.pathname === '/login') {
+      // Redirect to company selection page
+      navigate('/select-company');
+    }
+  }, [companySlug, navigate, location]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     
-    // Simulate login API call
-    setTimeout(() => {
-      if (email === 'admin@example.com' && password === 'password') {
-        toast({
-          title: "Login successful",
-          description: "Welcome to the dashboard",
-        });
-        
-        // In a real application, you would redirect to dashboard
-        window.location.href = '/dashboard';
+    try {
+      // Import the authService dynamically to avoid circular dependencies
+      const { authService } = await import('@/services/api');
+      
+      // Call the Django backend login API
+      await authService.login(email, password);
+      
+      toast({
+        title: "Login successful",
+        description: "Welcome to the dashboard",
+      });
+      
+      // Redirect to company-specific dashboard if in a company context
+      if (companySlug) {
+        window.location.href = `/${companySlug}/dashboard`;
       } else {
-        toast({
-          title: "Login failed",
-          description: "Email or password is incorrect",
-          variant: "destructive",
-        });
-        setLoading(false);
+        window.location.href = '/dashboard';
       }
-    }, 1500);
+    } catch (error) {
+      console.error('Login error:', error);
+      toast({
+        title: "Login failed",
+        description: error instanceof Error ? error.message : "Email or password is incorrect",
+        variant: "destructive",
+      });
+      setLoading(false);
+    }
   };
 
   return (

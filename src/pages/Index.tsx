@@ -2,16 +2,31 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Shield, Mail, Users, ChartBar, BookOpen, CheckCircle, ChevronRight, UserRound } from 'lucide-react';
-import Navbar from '@/components/Navbar';
+import { Shield, Mail, Users, ChartBar, BookOpen, CheckCircle, ChevronRight, UserRound, Building } from 'lucide-react';
 import Footer from '@/components/Footer';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { UserIntegrations } from '@/components/integrations/UserIntegrations';
 import { UserAccessControl } from '@/components/admin/UserAccessControl';
 import { Toaster } from '@/components/ui/toaster';
+
 const Index = () => {
   return <div className="min-h-screen flex flex-col">
-      <Navbar />
+      {/* Custom Header */}
+      <header className="bg-white border-b border-gray-100 py-4 px-6 w-full">
+        <div className="max-w-7xl mx-auto flex justify-between items-center">
+          <div className="flex items-center gap-2">
+            <img src="/lovable-uploads/876a553e-d478-4016-a8f0-1580f492ca19.png" alt="CSWORD Logo" className="h-10" />
+          </div>
+          <div className="flex items-center gap-4">
+            <Link to="/select-company">
+              <Button variant="outline" className="flex items-center gap-2 border-[#907527] text-[#907527] hover:bg-[#f5f3e8]">
+                <Building className="h-4 w-4" />
+                <span>Select Company</span>
+              </Button>
+            </Link>
+          </div>
+        </div>
+      </header>
       
       {/* Hero Section */}
       <section className="bg-gradient-to-b from-white to-[#f5f3e8] pt-16 pb-20 px-6">

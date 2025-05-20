@@ -3,7 +3,9 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { AuthProvider } from "./contexts/AuthContext";
+import { ProtectedRoute } from "./components/auth/ProtectedRoute";
 import Index from "./pages/Index";
 import Dashboard from "./pages/Dashboard";
 import Templates from "./pages/Templates";
@@ -13,13 +15,28 @@ import NotFound from "./pages/NotFound";
 import LMSCampaigns from "./pages/LMSCampaigns";
 import UserManagement from "./pages/UserManagement";
 import Login from "./pages/Login";
+import SelectCompany from "./pages/SelectCompany";
 import ResetPassword from "./pages/ResetPassword";
 import Campaigns from "./pages/Campaigns";
 import EmployeeCourses from "./pages/EmployeeCourses";
 import ProfileSettings from "./pages/ProfileSettings";
 import SuperAdminPanel from "./pages/SuperAdminPanel";
+import { CompanyRoute } from "./components/auth/CompanyRoute";
 
 const queryClient = new QueryClient();
+
+// Helper function to check if a path is a company slug
+const isCompanySlug = (path: string): boolean => {
+  // List of known routes that are not company slugs
+  const knownRoutes = [
+    'login', 'register', 'dashboard', 'templates', 'campaigns',
+    'analytics', 'users', 'profile', 'admin', 'reset-password',
+    'template-editor', 'lms-campaigns', 'user-management',
+    'employee-courses', 'profile-settings', 'super-admin'
+  ];
+  
+  return !knownRoutes.includes(path);
+};
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
@@ -27,22 +44,41 @@ const App = () => (
       <Toaster />
       <Sonner />
       <BrowserRouter>
-        <Routes>
+        <AuthProvider>
+          <Routes>
+          {/* Root route - show home page */}
           <Route path="/" element={<Index />} />
-          <Route path="/login" element={<Login />} />
+          
+          {/* Global routes */}
+          <Route path="/select-company" element={<SelectCompany />} />
           <Route path="/reset-password" element={<ResetPassword />} />
-          <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/templates" element={<Templates />} />
-          <Route path="/template-editor/:id?" element={<TemplateEditor />} />
-          <Route path="/analytics" element={<Analytics />} />
-          <Route path="/lms-campaigns" element={<LMSCampaigns />} />
-          <Route path="/user-management" element={<UserManagement />} />
-          <Route path="/campaigns" element={<Campaigns />} />
-          <Route path="/employee-courses" element={<EmployeeCourses />} />
-          <Route path="/profile-settings" element={<ProfileSettings />} />
           <Route path="/super-admin" element={<SuperAdminPanel />} />
+          
+          {/* Company-specific routes with validation */}
+          <Route path=":companySlug" element={<CompanyRoute />}>
+            <Route index element={<Navigate to="dashboard" replace />} />
+            
+            {/* Public routes */}
+            <Route path="login" element={<Login />} />
+            
+            {/* Protected routes - require authentication */}
+            <Route element={<ProtectedRoute />}>
+              <Route path="dashboard" element={<Dashboard />} />
+              <Route path="templates" element={<Templates />} />
+              <Route path="template-editor/:id?" element={<TemplateEditor />} />
+              <Route path="analytics" element={<Analytics />} />
+              <Route path="lms-campaigns" element={<LMSCampaigns />} />
+              <Route path="user-management" element={<UserManagement />} />
+              <Route path="campaigns" element={<Campaigns />} />
+              <Route path="employee-courses" element={<EmployeeCourses />} />
+              <Route path="profile-settings" element={<ProfileSettings />} />
+            </Route>
+          </Route>
+          
+          {/* 404 route */}
           <Route path="*" element={<NotFound />} />
         </Routes>
+        </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>

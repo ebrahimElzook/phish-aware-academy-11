@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -12,35 +12,60 @@ import { Mail, Key, User, Shield, LogOut, Save } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
+import { authService, User as UserType } from '@/services/api';
+import { useAuth } from '@/contexts/AuthContext';
 
-interface UserProfile {
-  id: string;
-  name: string;
-  email: string;
-  avatar?: string;
-}
+// We'll use the User type from the API service
 
 const ProfileSettings = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
+  const { user: authUser, refreshUser } = useAuth();
   
-  // Mock user data - in a real app, this would come from your auth system
-  const [user, setUser] = useState<UserProfile>({
-    id: 'user-1',
-    name: 'Alex Johnson',
-    email: 'alex.johnson@example.com',
-    avatar: ''
-  });
+  const [user, setUser] = useState<UserType | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   
   const [formData, setFormData] = useState({
-    name: user.name,
-    email: user.email,
+    first_name: '',
+    last_name: '',
+    email: '',
     currentPassword: '',
     newPassword: '',
     confirmPassword: ''
   });
   
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  // Fetch user data when component mounts
+  useEffect(() => {
+    const fetchUserData = async () => {
+      try {
+        setIsLoading(true);
+        const userData = await authService.getProfile();
+        setUser(userData);
+        
+        // Initialize form data with user data
+        setFormData({
+          first_name: userData.first_name || '',
+          last_name: userData.last_name || '',
+          email: userData.email || '',
+          currentPassword: '',
+          newPassword: '',
+          confirmPassword: ''
+        });
+      } catch (error) {
+        console.error('Failed to fetch user data:', error);
+        toast({
+          title: "Error",
+          description: "Failed to load your profile. Please try again.",
+          variant: "destructive",
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    fetchUserData();
+  }, [toast]);
   
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -50,27 +75,41 @@ const ProfileSettings = () => {
     }));
   };
   
-  const handleProfileUpdate = () => {
-    setIsSubmitting(true);
-    
-    // Simulate API call
-    setTimeout(() => {
-      setUser(prev => ({
-        ...prev,
-        name: formData.name,
+  const handleProfileUpdate = async () => {
+    try {
+      setIsSubmitting(true);
+      
+      // Update profile with API
+      const updatedUser = await authService.updateProfile({
+        first_name: formData.first_name,
+        last_name: formData.last_name,
         email: formData.email
-      }));
+      });
+      
+      // Update local state
+      setUser(updatedUser);
+      
+      // Refresh user in auth context
+      await refreshUser();
       
       toast({
         title: "Profile Updated",
         description: "Your profile information has been updated successfully.",
       });
-      
+    } catch (error) {
+      console.error('Failed to update profile:', error);
+      toast({
+        title: "Update Failed",
+        description: error instanceof Error ? error.message : "Failed to update your profile.",
+        variant: "destructive",
+      });
+    } finally {
       setIsSubmitting(false);
-    }, 1000);
+    }
   };
   
-  const handlePasswordChange = () => {
+  const handlePasswordChange = async () => {
+    // Validate passwords
     if (formData.newPassword !== formData.confirmPassword) {
       toast({
         title: "Passwords Don't Match",
@@ -89,34 +128,58 @@ const ProfileSettings = () => {
       return;
     }
     
-    setIsSubmitting(true);
-    
-    // Simulate API call
-    setTimeout(() => {
+    try {
+      setIsSubmitting(true);
+      
+      // Change password with API
+      await authService.changePassword(formData.currentPassword, formData.newPassword);
+      
       toast({
         title: "Password Changed",
-        description: "Your password has been updated successfully.",
+        description: "Your password has been updated successfully. You will be logged out.",
       });
       
-      setFormData(prev => ({
-        ...prev,
-        currentPassword: '',
-        newPassword: '',
-        confirmPassword: ''
-      }));
+      // Get company slug for redirection
+      const companySlug = localStorage.getItem('companySlug');
       
+      // Short delay to show the success message before logout
+      setTimeout(() => {
+        // Log the user out
+        authService.logout();
+        
+        // Redirect to login page
+        if (companySlug) {
+          window.location.href = `/${companySlug}/login`;
+        } else {
+          window.location.href = '/select-company';
+        }
+      }, 1500);
+      
+    } catch (error) {
+      console.error('Failed to change password:', error);
+      toast({
+        title: "Password Change Failed",
+        description: error instanceof Error ? error.message : "Failed to update your password. Please check your current password and try again.",
+        variant: "destructive",
+      });
       setIsSubmitting(false);
-    }, 1000);
+    }
   };
   
   const handleLogout = () => {
-    // In a real app, this would clear your auth state
+    authService.logout();
     toast({
       title: "Logged Out",
       description: "You have been logged out successfully.",
     });
     
-    navigate('/login');
+    // Get company slug for redirection
+    const companySlug = localStorage.getItem('companySlug');
+    if (companySlug) {
+      navigate(`/${companySlug}/login`);
+    } else {
+      navigate('/select-company');
+    }
   };
 
   return (
@@ -125,20 +188,35 @@ const ProfileSettings = () => {
       
       <div className="flex-grow bg-gray-50 py-8 px-6">
         <div className="max-w-4xl mx-auto">
-          <div className="flex items-center gap-4 mb-6">
-            <Avatar className="h-14 w-14">
-              <AvatarImage src={user.avatar} />
-              <AvatarFallback className="bg-[#907527]">
-                {user.name.split(' ').map(n => n[0]).join('')}
-              </AvatarFallback>
-            </Avatar>
-            <div>
-              <h1 className="text-2xl font-bold">{user.name}</h1>
-              <div className="flex items-center gap-2 text-gray-500">
-                <span>{user.email}</span>
+          {isLoading ? (
+            <div className="flex items-center gap-4 mb-6 animate-pulse">
+              <div className="h-14 w-14 rounded-full bg-gray-200"></div>
+              <div className="space-y-2">
+                <div className="h-6 w-48 bg-gray-200 rounded"></div>
+                <div className="h-4 w-32 bg-gray-200 rounded"></div>
               </div>
             </div>
-          </div>
+          ) : user ? (
+            <div className="flex items-center gap-4 mb-6">
+              <Avatar className="h-14 w-14">
+                <AvatarFallback className="bg-[#907527]">
+                  {user.first_name && user.last_name 
+                    ? `${user.first_name[0]}${user.last_name[0]}` 
+                    : user.username[0]}
+                </AvatarFallback>
+              </Avatar>
+              <div>
+                <h1 className="text-2xl font-bold">
+                  {user.first_name && user.last_name 
+                    ? `${user.first_name} ${user.last_name}` 
+                    : user.username}
+                </h1>
+                <div className="flex items-center gap-2 text-gray-500">
+                  <span>{user.email}</span>
+                </div>
+              </div>
+            </div>
+          ) : null}
           
           <Tabs defaultValue="profile">
             <TabsList className="mb-6">
@@ -164,31 +242,47 @@ const ProfileSettings = () => {
                   <div className="space-y-4">
                     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                       <div className="space-y-2">
-                        <Label htmlFor="name">Full Name</Label>
+                        <Label htmlFor="first_name">First Name</Label>
                         <div className="relative">
                           <User className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
                           <Input
-                            id="name"
-                            name="name"
-                            value={formData.name}
+                            id="first_name"
+                            name="first_name"
+                            value={formData.first_name}
                             onChange={handleInputChange}
                             className="pl-10"
+                            disabled={isLoading}
                           />
                         </div>
                       </div>
                       <div className="space-y-2">
-                        <Label htmlFor="email">Email Address</Label>
+                        <Label htmlFor="last_name">Last Name</Label>
                         <div className="relative">
-                          <Mail className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                          <User className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
                           <Input
-                            id="email"
-                            name="email"
-                            type="email"
-                            value={formData.email}
+                            id="last_name"
+                            name="last_name"
+                            value={formData.last_name}
                             onChange={handleInputChange}
                             className="pl-10"
+                            disabled={isLoading}
                           />
                         </div>
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="email">Email Address</Label>
+                      <div className="relative">
+                        <Mail className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                        <Input
+                          id="email"
+                          name="email"
+                          type="email"
+                          value={formData.email}
+                          onChange={handleInputChange}
+                          className="pl-10"
+                          disabled={isLoading}
+                        />
                       </div>
                     </div>
                   </div>
