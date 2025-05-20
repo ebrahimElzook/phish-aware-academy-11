@@ -3,6 +3,7 @@ import { Navigate, Outlet, useParams } from 'react-router-dom';
 import { companyService } from '@/services/api';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/contexts/AuthContext';
 
 /**
  * A component that validates if a company exists before rendering its routes
@@ -12,10 +13,24 @@ export const CompanyRoute = () => {
   const [isValidating, setIsValidating] = useState(true);
   const [isValidCompany, setIsValidCompany] = useState(false);
   const { toast } = useToast();
+  const { user, isAuthenticated } = useAuth();
 
   useEffect(() => {
     const validateCompany = async () => {
+      // If no company slug in URL, check if we have one in localStorage
       if (!companySlug) {
+        const storedCompanySlug = localStorage.getItem('companySlug');
+        if (storedCompanySlug) {
+          // We have a stored company slug, consider it valid
+          setIsValidCompany(true);
+        }
+        setIsValidating(false);
+        return;
+      }
+
+      // Skip validation for special routes
+      if (companySlug === 'unauthorized' || companySlug === 'select-company') {
+        setIsValidCompany(true);
         setIsValidating(false);
         return;
       }
@@ -28,14 +43,20 @@ export const CompanyRoute = () => {
         setIsValidCompany(companyExists);
         
         if (!companyExists) {
-          // Clear the stored company slug if it's invalid
-          localStorage.removeItem('companySlug');
+          // Don't clear the stored company slug if it's different from the invalid one
+          const storedCompanySlug = localStorage.getItem('companySlug');
+          if (storedCompanySlug === companySlug) {
+            localStorage.removeItem('companySlug');
+          }
           
-          toast({
-            title: "Company Not Found",
-            description: `The company "${companySlug}" does not exist.`,
-            variant: "destructive",
-          });
+          // Only show toast if not a system route
+          if (companySlug !== 'login' && companySlug !== 'dashboard') {
+            toast({
+              title: "Company Not Found",
+              description: `The company "${companySlug}" does not exist.`,
+              variant: "destructive",
+            });
+          }
         } else {
           // Store valid company slug
           localStorage.setItem('companySlug', companySlug);
@@ -72,8 +93,25 @@ export const CompanyRoute = () => {
     );
   }
 
-  // If company is invalid, redirect to company selection
+  // If company is invalid
   if (!isValidCompany) {
+    // If user is authenticated, redirect based on role
+    if (isAuthenticated && user) {
+      // Get the valid company slug from localStorage (if it exists)
+      const storedCompanySlug = localStorage.getItem('companySlug');
+      
+      if (storedCompanySlug) {
+        // If user is a regular user, redirect to training page
+        if (user.role?.toLowerCase() === 'user') {
+          return <Navigate to={`/${storedCompanySlug}/lms-campaigns`} replace />;
+        } else {
+          // For admins and other roles, redirect to dashboard
+          return <Navigate to={`/${storedCompanySlug}/dashboard`} replace />;
+        }
+      }
+    }
+    
+    // If not authenticated or no stored company, redirect to company selection
     return <Navigate to="/select-company" replace />;
   }
 

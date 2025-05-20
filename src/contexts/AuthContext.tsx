@@ -26,8 +26,40 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       const token = localStorage.getItem('token');
       if (token) {
         setIsAuthenticated(true);
-        const userData = await authService.getProfile();
-        setUser(userData);
+        
+        // Check if we're on a valid company path
+        const pathParts = location.pathname.split('/');
+        const possibleCompanySlug = pathParts[1];
+        
+        // Skip known system routes that aren't company slugs
+        const systemRoutes = ['unauthorized', 'select-company', 'login', 'register', 'reset-password'];
+        
+        if (systemRoutes.includes(possibleCompanySlug)) {
+          // We're on a system route, use the stored company slug if available
+          const storedCompanySlug = localStorage.getItem('companySlug');
+          
+          if (storedCompanySlug) {
+            // Temporarily override the company slug in the URL for the API call
+            const originalGetCompanySlug = window.location.pathname;
+            window.history.replaceState(null, '', `/${storedCompanySlug}${location.search}`);
+            
+            try {
+              const userData = await authService.getProfile();
+              setUser(userData);
+            } finally {
+              // Restore the original URL
+              window.history.replaceState(null, '', originalGetCompanySlug);
+            }
+          } else {
+            // No stored company slug, we can't fetch the profile
+            setIsAuthenticated(false);
+            setUser(null);
+          }
+        } else {
+          // Normal case - fetch profile with current URL
+          const userData = await authService.getProfile();
+          setUser(userData);
+        }
       } else {
         setIsAuthenticated(false);
         setUser(null);

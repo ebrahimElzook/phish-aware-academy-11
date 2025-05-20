@@ -34,19 +34,52 @@ const Login = () => {
       const { authService } = await import('@/services/api');
       
       // Call the Django backend login API
-      await authService.login(email, password);
+      const response = await authService.login(email, password);
       
-      toast({
-        title: "Login successful",
-        description: "Welcome to the dashboard",
-      });
-      
-      // Redirect to company-specific dashboard if in a company context
+      // Store the company slug in localStorage if it exists in the URL
       if (companySlug) {
-        window.location.href = `/${companySlug}/dashboard`;
-      } else {
-        window.location.href = '/dashboard';
+        localStorage.setItem('companySlug', companySlug);
       }
+      
+      // Get user role from the response
+      const userRole = response.user?.role?.toLowerCase() || '';
+      
+      // Get the valid company slug - either from URL params or from localStorage
+      const validCompanySlug = companySlug || localStorage.getItem('companySlug');
+      
+      // Determine the redirect path based on user role and company context
+      let redirectPath;
+      
+      if (validCompanySlug) {
+        // For regular users, redirect to training page
+        if (userRole === 'user') {
+          redirectPath = `/${validCompanySlug}/lms-campaigns`;
+          
+          toast({
+            title: "Login successful",
+            description: "Welcome to your training portal",
+          });
+        } else {
+          // For admins and other roles, redirect to dashboard
+          redirectPath = `/${validCompanySlug}/dashboard`;
+          
+          toast({
+            title: "Login successful",
+            description: "Welcome to the dashboard",
+          });
+        }
+      } else {
+        // If no valid company slug found, redirect to company selection
+        redirectPath = '/select-company';
+        
+        toast({
+          title: "Login successful",
+          description: "Please select a company",
+        });
+      }
+      
+      // Redirect to the appropriate page
+      window.location.href = redirectPath;
     } catch (error) {
       console.error('Login error:', error);
       toast({

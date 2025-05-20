@@ -1,4 +1,4 @@
-import { Navigate, Outlet, useParams } from 'react-router-dom';
+import { Navigate, Outlet, useParams, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Skeleton } from '@/components/ui/skeleton';
 
@@ -7,20 +7,27 @@ interface ProtectedRouteProps {
   redirectTo?: string;
   // If true, will use company-specific login page
   useCompanyRedirect?: boolean;
+  // If true, will restrict users with 'user' role to only training and profile pages
+  restrictUserRole?: boolean;
 }
 
 export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   allowedRoles = [],
   redirectTo = '/login',
-  useCompanyRedirect = true
+  useCompanyRedirect = true,
+  restrictUserRole = true
 }) => {
   const { user, isAuthenticated, loading } = useAuth();
   const { companySlug } = useParams<{ companySlug?: string }>();
+  const location = useLocation();
 
   // Determine the redirect path based on company context
   const getRedirectPath = () => {
-    if (useCompanyRedirect && companySlug) {
-      return `/${companySlug}/login`;
+    // Get a valid company slug - either from URL or from localStorage
+    const validCompanySlug = companySlug || localStorage.getItem('companySlug') || '';
+    
+    if (useCompanyRedirect && validCompanySlug) {
+      return `/${validCompanySlug}/login`;
     }
     return redirectTo;
   };
@@ -43,8 +50,43 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
     return <Navigate to={getRedirectPath()} replace />;
   }
 
-  if (allowedRoles.length > 0 && !allowedRoles.includes(user.role)) {
+  // Convert user role to lowercase for case-insensitive comparison
+  const userRoleLower = user.role?.toLowerCase() || '';
+  
+  // Convert allowed roles to lowercase for comparison
+  const allowedRolesLower = allowedRoles.map(role => role.toLowerCase());
+  
+  if (allowedRoles.length > 0 && !allowedRolesLower.includes(userRoleLower)) {
     return <Navigate to="/unauthorized" replace />;
+  }
+  
+  // If user role is 'user' and we're restricting access, only allow access to training and profile
+  // Company Admin, Admin, and Super Admin have access to all routes
+  const adminRoles = ['admin', 'super_admin', 'company_admin'];
+  if (restrictUserRole && user.role?.toLowerCase() === 'user' && !adminRoles.includes(user.role?.toLowerCase())) {
+    const currentPath = location.pathname.toLowerCase();
+    
+    // Allow access only to training and profile pages
+    const allowedPaths = [
+      '/lms-campaigns',
+      '/profile-settings'
+    ];
+    
+    // Check if the current path contains any of the allowed paths
+    const isAllowedPath = allowedPaths.some(path => currentPath.includes(path));
+    
+    if (!isAllowedPath) {
+      // Get a valid company slug - either from URL or from localStorage
+      const validCompanySlug = companySlug || localStorage.getItem('companySlug');
+      
+      if (validCompanySlug) {
+        // Redirect to training page if trying to access restricted path
+        return <Navigate to={`/${validCompanySlug}/lms-campaigns`} replace />;
+      } else {
+        // If no valid company slug, redirect to company selection
+        return <Navigate to="/select-company" replace />;
+      }
+    }
   }
 
   return <Outlet />;
@@ -78,7 +120,13 @@ export const withAuth = (Component: React.ComponentType, allowedRoles: string[] 
       return <Navigate to={getRedirectPath()} replace />;
     }
 
-    if (allowedRoles.length > 0 && !allowedRoles.includes(user.role)) {
+    // Convert user role to lowercase for case-insensitive comparison
+    const userRoleLower = user.role?.toLowerCase() || '';
+    
+    // Convert allowed roles to lowercase for comparison
+    const allowedRolesLower = allowedRoles.map(role => role.toLowerCase());
+    
+    if (allowedRoles.length > 0 && !allowedRolesLower.includes(userRoleLower)) {
       return <Navigate to="/unauthorized" replace />;
     }
 

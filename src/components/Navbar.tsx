@@ -13,8 +13,15 @@ const Navbar = () => {
   const location = useLocation();
   const { companySlug } = useParams<{ companySlug?: string }>();
   
-  // Get user's display name
+  // Get user's display name and role
   const userName = user?.first_name || user?.username || '';
+  const userRole = user?.role?.toLowerCase() || '';
+  
+  // Determine if the user is a regular user (not admin or company admin)
+  const isRegularUser = userRole === 'user';
+  
+  // Determine if the user has admin privileges (admin, super_admin, or company_admin)
+  const hasAdminPrivileges = ['admin', 'super_admin', 'company_admin'].includes(userRole);
   
   // Helper function to generate company-aware links
   const getLink = (path: string) => {
@@ -50,43 +57,51 @@ const Navbar = () => {
 
         {/* Desktop menu */}
         <div className="hidden md:flex items-center gap-6">
-          {/* Only show Home link when not in a company context */}
-          {!companySlug && (
+          {/* Only show Home link when not in a company context and has admin privileges */}
+          {!companySlug && hasAdminPrivileges && (
             <Link to="/" className={`transition-colors ${isActive("/") ? "text-[#907527]" : "text-gray-700 hover:text-[#907527]"}`}>
               Home
             </Link>
           )}
-          <Link to={getLink("/dashboard")} className={`transition-colors ${isActive("/dashboard") ? "text-[#907527]" : "text-gray-700 hover:text-[#907527]"}`}>
-            Dashboard
-          </Link>
-          <Link to={getLink("/templates")} className={`transition-colors ${isActive("/templates") ? "text-[#907527]" : "text-gray-700 hover:text-[#907527]"}`}>
-            <div className="flex items-center gap-1">
-              <FileText className="h-4 w-4" />
-              <span>Templates</span>
-            </div>
-          </Link>
-          <Link to={getLink("/campaigns")} className={`transition-colors ${isActive("/campaigns") ? "text-[#907527]" : "text-gray-700 hover:text-[#907527]"}`}>
-            <div className="flex items-center gap-1">
-              <Mail className="h-4 w-4" />
-              <span>Campaigns</span>
-            </div>
-          </Link>
-          <Link to={getLink("/analytics")} className={`transition-colors ${isActive("/analytics") ? "text-[#907527]" : "text-gray-700 hover:text-[#907527]"}`}>
-            <div className="flex items-center gap-1">
-              <BarChart className="h-4 w-4" />
-              <span>Analytics</span>
-            </div>
-          </Link>
+          
+          {/* Only show these links for users with admin privileges */}
+          {hasAdminPrivileges && (
+            <>
+              <Link to={getLink("/dashboard")} className={`transition-colors ${isActive("/dashboard") ? "text-[#907527]" : "text-gray-700 hover:text-[#907527]"}`}>
+                Dashboard
+              </Link>
+              <Link to={getLink("/templates")} className={`transition-colors ${isActive("/templates") ? "text-[#907527]" : "text-gray-700 hover:text-[#907527]"}`}>
+                <div className="flex items-center gap-1">
+                  <FileText className="h-4 w-4" />
+                  <span>Templates</span>
+                </div>
+              </Link>
+              <Link to={getLink("/campaigns")} className={`transition-colors ${isActive("/campaigns") ? "text-[#907527]" : "text-gray-700 hover:text-[#907527]"}`}>
+                <div className="flex items-center gap-1">
+                  <Mail className="h-4 w-4" />
+                  <span>Campaigns</span>
+                </div>
+              </Link>
+              <Link to={getLink("/analytics")} className={`transition-colors ${isActive("/analytics") ? "text-[#907527]" : "text-gray-700 hover:text-[#907527]"}`}>
+                <div className="flex items-center gap-1">
+                  <BarChart className="h-4 w-4" />
+                  <span>Analytics</span>
+                </div>
+              </Link>
+              <Link to={getLink("/user-management")} className={`transition-colors ${isActive("/user-management") ? "text-[#907527]" : "text-gray-700 hover:text-[#907527]"}`}>
+                <div className="flex items-center gap-1">
+                  <Users className="h-4 w-4" />
+                  <span>Users</span>
+                </div>
+              </Link>
+            </>
+          )}
+          
+          {/* Training link is shown to all users */}
           <Link to={getLink("/lms-campaigns")} className={`transition-colors ${isActive("/lms-campaigns") ? "text-[#907527]" : "text-gray-700 hover:text-[#907527]"}`}>
             <div className="flex items-center gap-1">
               <BookOpen className="h-4 w-4" />
               <span>Training</span>
-            </div>
-          </Link>
-          <Link to={getLink("/user-management")} className={`transition-colors ${isActive("/user-management") ? "text-[#907527]" : "text-gray-700 hover:text-[#907527]"}`}>
-            <div className="flex items-center gap-1">
-              <Users className="h-4 w-4" />
-              <span>Users</span>
             </div>
           </Link>
           
@@ -131,43 +146,51 @@ const Navbar = () => {
       {isMenuOpen && (
         <div className="md:hidden mt-2 py-2 px-4 animate-in">
           <div className="flex flex-col gap-4">
-            {/* Only show Home link when not in a company context */}
-            {!companySlug && (
+            {/* Only show Home link when not in a company context and has admin privileges */}
+            {!companySlug && hasAdminPrivileges && (
               <Link to="/" className={`transition-colors py-2 ${isActive("/") ? "text-[#907527]" : "text-gray-700 hover:text-[#907527]"}`}>
                 Home
               </Link>
             )}
-            <Link to={getLink("/dashboard")} className={`transition-colors py-2 ${isActive("/dashboard") ? "text-[#907527]" : "text-gray-700 hover:text-[#907527]"}`}>
-              Dashboard
-            </Link>
-            <Link to={getLink("/templates")} className={`transition-colors py-2 ${isActive("/templates") ? "text-[#907527]" : "text-gray-700 hover:text-[#907527]"}`}>
-              <div className="flex items-center gap-1">
-                <FileText className="h-4 w-4" />
-                <span>Templates</span>
-              </div>
-            </Link>
-            <Link to={getLink("/campaigns")} className={`transition-colors py-2 ${isActive("/campaigns") ? "text-[#907527]" : "text-gray-700 hover:text-[#907527]"}`}>
-              <div className="flex items-center gap-1">
-                <Mail className="h-4 w-4" />
-                <span>Campaigns</span>
-              </div>
-            </Link>
-            <Link to={getLink("/analytics")} className={`transition-colors py-2 ${isActive("/analytics") ? "text-[#907527]" : "text-gray-700 hover:text-[#907527]"}`}>
-              <div className="flex items-center gap-1">
-                <BarChart className="h-4 w-4" />
-                <span>Analytics</span>
-              </div>
-            </Link>
+            
+            {/* Only show these links for users with admin privileges */}
+            {hasAdminPrivileges && (
+              <>
+                <Link to={getLink("/dashboard")} className={`transition-colors py-2 ${isActive("/dashboard") ? "text-[#907527]" : "text-gray-700 hover:text-[#907527]"}`}>
+                  Dashboard
+                </Link>
+                <Link to={getLink("/templates")} className={`transition-colors py-2 ${isActive("/templates") ? "text-[#907527]" : "text-gray-700 hover:text-[#907527]"}`}>
+                  <div className="flex items-center gap-1">
+                    <FileText className="h-4 w-4" />
+                    <span>Templates</span>
+                  </div>
+                </Link>
+                <Link to={getLink("/campaigns")} className={`transition-colors py-2 ${isActive("/campaigns") ? "text-[#907527]" : "text-gray-700 hover:text-[#907527]"}`}>
+                  <div className="flex items-center gap-1">
+                    <Mail className="h-4 w-4" />
+                    <span>Campaigns</span>
+                  </div>
+                </Link>
+                <Link to={getLink("/analytics")} className={`transition-colors py-2 ${isActive("/analytics") ? "text-[#907527]" : "text-gray-700 hover:text-[#907527]"}`}>
+                  <div className="flex items-center gap-1">
+                    <BarChart className="h-4 w-4" />
+                    <span>Analytics</span>
+                  </div>
+                </Link>
+                <Link to={getLink("/user-management")} className={`transition-colors py-2 ${isActive("/user-management") ? "text-[#907527]" : "text-gray-700 hover:text-[#907527]"}`}>
+                  <div className="flex items-center gap-1">
+                    <Users className="h-4 w-4" />
+                    <span>Users</span>
+                  </div>
+                </Link>
+              </>
+            )}
+            
+            {/* Training link is shown to all users */}
             <Link to={getLink("/lms-campaigns")} className={`transition-colors py-2 ${isActive("/lms-campaigns") ? "text-[#907527]" : "text-gray-700 hover:text-[#907527]"}`}>
               <div className="flex items-center gap-1">
                 <BookOpen className="h-4 w-4" />
                 <span>Training</span>
-              </div>
-            </Link>
-            <Link to={getLink("/user-management")} className={`transition-colors py-2 ${isActive("/user-management") ? "text-[#907527]" : "text-gray-700 hover:text-[#907527]"}`}>
-              <div className="flex items-center gap-1">
-                <Users className="h-4 w-4" />
-                <span>Users</span>
               </div>
             </Link>
             

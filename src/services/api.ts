@@ -4,24 +4,39 @@ const API_URL = 'http://localhost:8000/api';
 
 // Get company slug from URL path (e.g., /company-name/dashboard)
 const getCompanySlug = (): string | null => {
+  // Special case: if we're on the unauthorized route, don't treat it as a company
+  if (window.location.pathname.startsWith('/unauthorized')) {
+    return localStorage.getItem('companySlug');
+  }
+  
   const path = window.location.pathname;
   const parts = path.split('/');
+  
+  // List of known routes that are not company slugs
+  const knownRoutes = [
+    'login', 'register', 'dashboard', 'templates', 'campaigns',
+    'analytics', 'users', 'profile', 'admin', 'select-company',
+    'reset-password', 'super-admin', 'lms-campaigns', 'user-management',
+    'employee-courses', 'profile-settings', 'unauthorized'
+  ];
   
   // Check if path has at least one segment and it's not a known route
   if (parts.length > 1 && parts[1]) {
     // First check if we have a stored company slug that matches the current URL
     const storedCompanySlug = localStorage.getItem('companySlug');
+    
+    // If the URL path is a known system route, use the stored company slug
+    if (knownRoutes.includes(parts[1])) {
+      return storedCompanySlug;
+    }
+    
+    // If the URL path matches our stored company slug, use it
     if (storedCompanySlug && path.startsWith(`/${storedCompanySlug}`)) {
       return storedCompanySlug;
     }
     
     // Check if the first segment is a company slug (not a known route)
-    if (![
-      'login', 'register', 'dashboard', 'templates', 'campaigns',
-      'analytics', 'users', 'profile', 'admin', 'select-company',
-      'reset-password', 'super-admin', 'lms-campaigns', 'user-management',
-      'employee-courses', 'profile-settings'
-    ].includes(parts[1])) {
+    if (!knownRoutes.includes(parts[1])) {
       // Store the company slug for future reference
       localStorage.setItem('companySlug', parts[1]);
       return parts[1];

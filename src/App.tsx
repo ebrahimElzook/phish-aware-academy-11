@@ -6,12 +6,14 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "./contexts/AuthContext";
 import { ProtectedRoute } from "./components/auth/ProtectedRoute";
+import UserRoleRedirect from "./components/auth/UserRoleRedirect";
 import Index from "./pages/Index";
 import Dashboard from "./pages/Dashboard";
 import Templates from "./pages/Templates";
 import TemplateEditor from "./pages/TemplateEditor";
 import Analytics from "./pages/Analytics";
 import NotFound from "./pages/NotFound";
+import Unauthorized from "./pages/Unauthorized";
 import LMSCampaigns from "./pages/LMSCampaigns";
 import UserManagement from "./pages/UserManagement";
 import Login from "./pages/Login";
@@ -53,23 +55,29 @@ const App = () => (
           <Route path="/select-company" element={<SelectCompany />} />
           <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="/super-admin" element={<SuperAdminPanel />} />
+          <Route path="/unauthorized" element={<Unauthorized />} />
           
           {/* Company-specific routes with validation */}
           <Route path=":companySlug" element={<CompanyRoute />}>
-            <Route index element={<Navigate to="dashboard" replace />} />
+            <Route index element={<UserRoleRedirect />} />
             
             {/* Public routes */}
             <Route path="login" element={<Login />} />
             
-            {/* Protected routes - require authentication */}
-            <Route element={<ProtectedRoute />}>
+            {/* Protected routes */}
+            {/* Admin-only routes */}
+            <Route element={<ProtectedRoute allowedRoles={['admin', 'super_admin', 'company_admin']} />}>
               <Route path="dashboard" element={<Dashboard />} />
               <Route path="templates" element={<Templates />} />
-              <Route path="template-editor/:id?" element={<TemplateEditor />} />
-              <Route path="analytics" element={<Analytics />} />
-              <Route path="lms-campaigns" element={<LMSCampaigns />} />
-              <Route path="user-management" element={<UserManagement />} />
               <Route path="campaigns" element={<Campaigns />} />
+              <Route path="analytics" element={<Analytics />} />
+              <Route path="user-management" element={<UserManagement />} />
+            </Route>
+            
+            {/* Routes accessible to all authenticated users */}
+            <Route element={<ProtectedRoute restrictUserRole={false} />}>
+              <Route path="lms-campaigns" element={<LMSCampaigns />} />
+              <Route path="template-editor/:id?" element={<TemplateEditor />} />
               <Route path="employee-courses" element={<EmployeeCourses />} />
               <Route path="profile-settings" element={<ProfileSettings />} />
             </Route>
