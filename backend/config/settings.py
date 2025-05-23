@@ -24,6 +24,7 @@ INSTALLED_APPS = [
     'corsheaders',
     'rest_framework_simplejwt',
     'accounts',
+    'email_service',
 ]
 
 MIDDLEWARE = [
@@ -107,3 +108,33 @@ SIMPLE_JWT = {
 }
 
 CORS_ALLOW_ALL_ORIGINS = True
+
+# Email Configuration
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'smtp.gmail.com'
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+EMAIL_HOST_USER = 'dangerebrahim@gmail.com'
+EMAIL_HOST_PASSWORD = 'wpam ojgc cmbw vfgd'
+DEFAULT_FROM_EMAIL = 'dangerebrahim@gmail.com'
+
+# CORS Settings
+CORS_ALLOW_CREDENTIALS = True
+CORS_ORIGIN_WHITELIST = [
+    'http://localhost:3000',  # Default React dev server
+    'http://127.0.0.1:3000',  # Alternative localhost
+]
+
+# Use environment variable if available
+import os
+FRONTEND_URL = os.getenv('FRONTEND_URL', 'http://localhost:3000')
+CSRF_TRUSTED_ORIGINS = [FRONTEND_URL]
+CORS_ORIGIN_WHITELIST.append(FRONTEND_URL)
+
+# Session and CSRF settings for cross-origin requests
+SESSION_COOKIE_SAMESITE = 'Lax'
+SESSION_COOKIE_HTTPONLY = True
+SESSION_COOKIE_SECURE = False  # Set to True in production with HTTPS
+CSRF_COOKIE_SAMESITE = 'Lax'
+CSRF_COOKIE_HTTPONLY = False  # Allow JavaScript to read the CSRF token
+CSRF_USE_SESSIONS = False

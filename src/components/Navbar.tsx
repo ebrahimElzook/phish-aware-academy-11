@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { Link, useLocation, useParams } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
-import { Menu, BookOpen, FileText, BarChart, Users, Mail, LogOut, User } from 'lucide-react';
+import { Menu, BookOpen, FileText, BarChart, Users, Mail, LogOut, User, Send } from 'lucide-react';
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useAuth } from '@/contexts/AuthContext';
@@ -94,6 +94,12 @@ const Navbar = () => {
                   <span>Users</span>
                 </div>
               </Link>
+              <Link to={getLink("/sender")} className={`transition-colors ${isActive("/sender") ? "text-[#907527]" : "text-gray-700 hover:text-[#907527]"}`}>
+                <div className="flex items-center gap-1">
+                  <Send className="h-4 w-4" />
+                  <span>Sender</span>
+                </div>
+              </Link>
             </>
           )}
           
@@ -181,6 +187,12 @@ const Navbar = () => {
                   <div className="flex items-center gap-1">
                     <Users className="h-4 w-4" />
                     <span>Users</span>
+                  </div>
+                </Link>
+                <Link to={getLink("/sender")} className={`transition-colors py-2 ${isActive("/sender") ? "text-[#907527]" : "text-gray-700 hover:text-[#907527]"}`}>
+                  <div className="flex items-center gap-1">
+                    <Send className="h-4 w-4" />
+                    <span>Sender</span>
                   </div>
                 </Link>
               </>

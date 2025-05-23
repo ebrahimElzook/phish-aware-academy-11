@@ -16,6 +16,7 @@ import NotFound from "./pages/NotFound";
 import Unauthorized from "./pages/Unauthorized";
 import LMSCampaigns from "./pages/LMSCampaigns";
 import UserManagement from "./pages/UserManagement";
+import Sender from "./pages/Sender";
 import Login from "./pages/Login";
 import SelectCompany from "./pages/SelectCompany";
 import ResetPassword from "./pages/ResetPassword";
@@ -72,6 +73,7 @@ const App = () => (
               <Route path="campaigns" element={<Campaigns />} />
               <Route path="analytics" element={<Analytics />} />
               <Route path="user-management" element={<UserManagement />} />
+              <Route path="sender" element={<Sender />} />
             </Route>
             
             {/* Routes accessible to all authenticated users */}
