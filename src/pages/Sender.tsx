@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/components/ui/use-toast';
-import { EMAIL_API_ENDPOINT } from '@/config';
+import { EMAIL_API_ENDPOINT, EMAIL_CONFIGS_API_ENDPOINT } from '@/config';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 
@@ -29,13 +29,108 @@ const Sender = () => {
   const { companySlug } = useParams<{ companySlug?: string }>();
   const { toast } = useToast();
   
+  // Define interface for email configurations
+  interface EmailConfig {
+    id: number;
+    host: string;
+    port: number;
+    host_user: string;
+    is_active: boolean;
+  }
+
+  const [emailConfigs, setEmailConfigs] = useState<EmailConfig[]>([]);
+  const [selectedConfigId, setSelectedConfigId] = useState<number | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
+
   const [formData, setFormData] = useState({
     to: '',
-    from: 'dangerebrahim@gmail.com', // Pre-fill the from email
+    from: '', // Will be set from selected configuration
     subject: '',
     body: ''
   });
   const [isSending, setIsSending] = useState(false);
+
+  // Fetch email configurations when component mounts
+  useEffect(() => {
+    const fetchEmailConfigs = async () => {
+      try {
+        setIsLoading(true);
+        setLoadError(null);
+        
+        console.log('Fetching email configurations from:', EMAIL_CONFIGS_API_ENDPOINT);
+        
+        // First make an OPTIONS request to handle CORS preflight
+        try {
+          const optionsResponse = await fetch(EMAIL_CONFIGS_API_ENDPOINT, {
+            method: 'OPTIONS',
+            headers: {
+              'Content-Type': 'application/json',
+              'Access-Control-Request-Method': 'GET',
+              'Access-Control-Request-Headers': 'content-type',
+            },
+          });
+          
+          console.log('OPTIONS response status:', optionsResponse.status);
+        } catch (error) {
+          console.warn('OPTIONS request failed, continuing anyway:', error);
+        }
+        
+        // Now make the actual GET request
+        const response = await fetch(EMAIL_CONFIGS_API_ENDPOINT, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          // Don't include credentials for now to avoid CORS issues
+          // credentials: 'include',
+        });
+        
+        console.log('GET response status:', response.status);
+        
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error('Error response:', errorText);
+          throw new Error(`Failed to fetch email configurations: ${response.status} ${response.statusText}`);
+        }
+        
+        const data: EmailConfig[] = await response.json();
+        setEmailConfigs(data);
+        
+        // Select the active configuration by default
+        const activeConfig = data.find(config => config.is_active);
+        if (activeConfig) {
+          setSelectedConfigId(activeConfig.id);
+          setFormData(prev => ({
+            ...prev,
+            from: activeConfig.host_user
+          }));
+        }
+      } catch (error) {
+        console.error('Error fetching email configurations:', error);
+        setLoadError(error instanceof Error ? error.message : 'Failed to load email configurations');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    fetchEmailConfigs();
+  }, []);
+
+  // Handle configuration selection change
+  const handleConfigChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const configId = parseInt(e.target.value);
+    setSelectedConfigId(configId);
+    
+    // Update the from email based on the selected configuration
+    const selectedConfig = emailConfigs.find(config => config.id === configId);
+    if (selectedConfig) {
+      setFormData(prev => ({
+        ...prev,
+        from: selectedConfig.host_user
+      }));
+    }
+  };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -138,6 +233,34 @@ const Sender = () => {
                   onChange={handleChange}
                   required
                 />
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="emailConfig">Email Configuration</Label>
+                <select
+                  id="emailConfig"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  value={selectedConfigId || ''}
+                  onChange={handleConfigChange}
+                  disabled={isLoading || emailConfigs.length === 0}
+                  required
+                >
+                  {isLoading ? (
+                    <option value="">Loading configurations...</option>
+                  ) : emailConfigs.length === 0 ? (
+                    <option value="">No configurations available</option>
+                  ) : (
+                    <>
+                      <option value="">Select email configuration</option>
+                      {emailConfigs.map(config => (
+                        <option key={config.id} value={config.id}>
+                          {config.host_user} ({config.host}:{config.port})
+                        </option>
+                      ))}
+                    </>
+                  )}
+                </select>
+                {loadError && <p className="text-red-500 text-sm mt-1">{loadError}</p>}
               </div>
               
               <div className="space-y-2">
