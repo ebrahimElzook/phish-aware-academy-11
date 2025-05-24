@@ -19,10 +19,18 @@ class CSWordEmailServ(models.Model):
 
 
 class EmailTemplate(models.Model):
+    DIFFICULTY_CHOICES = [
+        ('easy', 'Easy'),
+        ('medium', 'Medium'),
+        ('hard', 'Hard'),
+    ]
+    
     subject = models.CharField(max_length=255, help_text="Email subject line")
     content = models.TextField(help_text="Email content/body")
     company = models.ForeignKey(Company, on_delete=models.CASCADE, blank=True, null=True, help_text="Company associated with this template")
     is_global = models.BooleanField(default=False, help_text="Whether this template is available globally to all companies")
+    difficulty = models.CharField(max_length=10, choices=DIFFICULTY_CHOICES, default='medium', help_text="Difficulty level of the phishing template")
+    category = models.CharField(max_length=100, blank=True, null=True, help_text="Category of the email template (e.g., Financial, HR, IT Support)")
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

@@ -82,6 +82,9 @@ const Sender = () => {
   const [departmentLoadError, setDepartmentLoadError] = useState<string | null>(null);
   const [departmentSearchTerm, setDepartmentSearchTerm] = useState('');
   const [selectedDepartments, setSelectedDepartments] = useState<string[]>([]);
+  
+  // State for all users selection
+  const [selectAllUsers, setSelectAllUsers] = useState(false);
 
   // Fetch users from the current company
   useEffect(() => {
@@ -130,9 +133,7 @@ const Sender = () => {
       try {
         setIsLoadingTemplates(true);
         setTemplateLoadError(null);
-        
-        console.log('Fetching email templates from:', EMAIL_TEMPLATES_API_ENDPOINT);
-        
+                
         // Construct URL with company slug if available
         let url = EMAIL_TEMPLATES_API_ENDPOINT;
         if (companySlug) {
@@ -146,9 +147,7 @@ const Sender = () => {
             'Content-Type': 'application/json',
           },
         });
-        
-        console.log('Templates GET response status:', response.status);
-        
+                
         if (!response.ok) {
           const errorText = await response.text();
           console.error('Error response:', errorText);
@@ -173,9 +172,7 @@ const Sender = () => {
       try {
         setIsLoading(true);
         setLoadError(null);
-        
-        console.log('Fetching email configurations from:', EMAIL_CONFIGS_API_ENDPOINT);
-        
+                
         // First make an OPTIONS request to handle CORS preflight
         try {
           const optionsResponse = await fetch(EMAIL_CONFIGS_API_ENDPOINT, {
@@ -187,7 +184,6 @@ const Sender = () => {
             },
           });
           
-          console.log('OPTIONS response status:', optionsResponse.status);
         } catch (error) {
           console.warn('OPTIONS request failed, continuing anyway:', error);
         }
@@ -201,9 +197,7 @@ const Sender = () => {
           // Don't include credentials for now to avoid CORS issues
           // credentials: 'include',
         });
-        
-        console.log('GET response status:', response.status);
-        
+                
         if (!response.ok) {
           const errorText = await response.text();
           console.error('Error response:', errorText);
@@ -310,21 +304,33 @@ const Sender = () => {
       user.department && departmentIds.includes(user.department)
     );
   };
+  
+  // Get all user emails
+  const getAllUserEmails = (): string[] => {
+    return users.map(user => user.email);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSending(true);
     
     try {
-      // Get all recipients from individual selections and departments
-      const departmentUsers = getDepartmentUsers(selectedDepartments);
-      const departmentEmails = departmentUsers.map(user => user.email);
+      let allRecipients: string[] = [];
       
-      // Combine individual recipients and department recipients, removing duplicates
-      const allRecipients = [...new Set([...selectedRecipients, ...departmentEmails])];
+      if (selectAllUsers) {
+        // If all users are selected, use all user emails
+        allRecipients = getAllUserEmails();
+      } else {
+        // Get all recipients from individual selections and departments
+        const departmentUsers = getDepartmentUsers(selectedDepartments);
+        const departmentEmails = departmentUsers.map(user => user.email);
+        
+        // Combine individual recipients and department recipients, removing duplicates
+        allRecipients = [...new Set([...selectedRecipients, ...departmentEmails])];
+      }
       
       if (allRecipients.length === 0) {
-        throw new Error('Please select at least one recipient or department');
+        throw new Error('Please select at least one recipient, department, or all users');
       }
 
       // First, ensure we have a CSRF token by making an OPTIONS request
@@ -409,6 +415,7 @@ const Sender = () => {
       }));
       setSelectedRecipients([]);
       setSelectedDepartments([]);
+      setSelectAllUsers(false);
     } catch (error) {
       console.error('Error sending email:', error);
       toast({
@@ -438,9 +445,10 @@ const Sender = () => {
               <div className="space-y-2">
                 <Label htmlFor="recipients">Recipients</Label>
                 <Tabs defaultValue="individuals" className="w-full">
-                  <TabsList className="grid w-full grid-cols-2">
+                  <TabsList className="grid w-full grid-cols-3">
                     <TabsTrigger value="individuals">Individual Recipients</TabsTrigger>
                     <TabsTrigger value="departments">Departments</TabsTrigger>
+                    <TabsTrigger value="all-users">All Users</TabsTrigger>
                   </TabsList>
                   
                   <TabsContent value="individuals" className="border rounded-md p-2">
@@ -538,6 +546,37 @@ const Sender = () => {
                       {selectedDepartments.length} department(s) selected
                       {selectedDepartments.length > 0 && (
                         <span> (approx. {getDepartmentUsers(selectedDepartments).length} users)</span>
+                      )}
+                    </div>
+                  </TabsContent>
+                  
+                  <TabsContent value="all-users" className="border rounded-md p-2">
+                    <div className="flex items-center space-x-2 p-4">
+                      <Checkbox 
+                        id="select-all-users"
+                        checked={selectAllUsers}
+                        onCheckedChange={(checked) => setSelectAllUsers(checked === true)}
+                      />
+                      <Label 
+                        htmlFor="select-all-users"
+                        className="flex-1 cursor-pointer"
+                      >
+                        Select all users in the company ({users.length} users)
+                      </Label>
+                    </div>
+                    
+                    <div className="mt-2 p-4 bg-yellow-50 border border-yellow-200 rounded-md">
+                      <p className="text-sm text-yellow-800">
+                        <strong>Warning:</strong> This will send the email to all {users.length} users in the company. 
+                        Please ensure your email content is appropriate for all recipients.
+                      </p>
+                    </div>
+                    
+                    <div className="mt-4 text-sm text-gray-500">
+                      {selectAllUsers ? (
+                        <p>All {users.length} users will receive this email.</p>
+                      ) : (
+                        <p>No users selected. Check the box above to select all users.</p>
                       )}
                     </div>
                   </TabsContent>

@@ -21,9 +21,9 @@ class CSWordEmailServAdmin(admin.ModelAdmin):
 
 @admin.register(EmailTemplate)
 class EmailTemplateAdmin(admin.ModelAdmin):
-    list_display = ('subject', 'company', 'is_global', 'created_at', 'updated_at')
-    list_filter = ('is_global',)
-    search_fields = ('subject', 'content', 'company')
+    list_display = ('subject', 'difficulty', 'category', 'company', 'is_global', 'created_at', 'updated_at')
+    list_filter = ('is_global', 'difficulty', 'category')
+    search_fields = ('subject', 'content', 'company', 'category')
     readonly_fields = ('created_at', 'updated_at', 'content_preview')
     formfield_overrides = {
         models.TextField: {'widget': admin.widgets.AdminTextareaWidget(attrs={'rows': 15})},
@@ -31,7 +31,13 @@ class EmailTemplateAdmin(admin.ModelAdmin):
     
     fieldsets = (
         (None, {
-            'fields': ('subject', 'content', 'content_preview', 'company', 'is_global')
+            'fields': ('subject', 'content', 'content_preview')
+        }),
+        ('Classification', {
+            'fields': ('difficulty', 'category')
+        }),
+        ('Availability', {
+            'fields': ('company', 'is_global')
         }),
         ('Timestamps', {
             'fields': ('created_at', 'updated_at'),
