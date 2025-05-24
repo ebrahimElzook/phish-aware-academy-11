@@ -444,7 +444,19 @@ const Sender = () => {
             <div className="grid grid-cols-1 gap-6">
               <div className="space-y-2">
                 <Label htmlFor="recipients">Recipients</Label>
-                <Tabs defaultValue="individuals" className="w-full">
+                <Tabs defaultValue="individuals" className="w-full" onValueChange={(value) => {
+                    // Clear other tabs when switching
+                    if (value === 'individuals') {
+                      setSelectedDepartments([]);
+                      setSelectAllUsers(false);
+                    } else if (value === 'departments') {
+                      setSelectedRecipients([]);
+                      setSelectAllUsers(false);
+                    } else if (value === 'all-users') {
+                      setSelectedRecipients([]);
+                      setSelectedDepartments([]);
+                    }
+                  }}>
                   <TabsList className="grid w-full grid-cols-3">
                     <TabsTrigger value="individuals">Individual Recipients</TabsTrigger>
                     <TabsTrigger value="departments">Departments</TabsTrigger>
