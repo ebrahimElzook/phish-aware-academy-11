@@ -11,7 +11,8 @@ import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import { Checkbox } from '@/components/ui/checkbox';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { userService, User } from '@/services/api';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { userService, User, Department } from '@/services/api';
 
 // Helper function to get CSRF token from cookies
 function getCookie(name: string) {
@@ -74,6 +75,13 @@ const Sender = () => {
   const [loadingUsers, setLoadingUsers] = useState(true);
   const [userLoadError, setUserLoadError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
+  
+  // State for departments
+  const [departments, setDepartments] = useState<Department[]>([]);
+  const [loadingDepartments, setLoadingDepartments] = useState(true);
+  const [departmentLoadError, setDepartmentLoadError] = useState<string | null>(null);
+  const [departmentSearchTerm, setDepartmentSearchTerm] = useState('');
+  const [selectedDepartments, setSelectedDepartments] = useState<string[]>([]);
 
   // Fetch users from the current company
   useEffect(() => {
@@ -93,6 +101,26 @@ const Sender = () => {
     };
     
     fetchUsers();
+  }, []);
+
+  // Fetch departments from the current company
+  useEffect(() => {
+    const fetchDepartments = async () => {
+      try {
+        setLoadingDepartments(true);
+        setDepartmentLoadError(null);
+        
+        const departmentsData = await userService.getDepartments();
+        setDepartments(departmentsData);
+      } catch (error) {
+        console.error('Error fetching departments:', error);
+        setDepartmentLoadError(error instanceof Error ? error.message : 'Failed to load departments');
+      } finally {
+        setLoadingDepartments(false);
+      }
+    };
+    
+    fetchDepartments();
   }, []);
 
   // Fetch email configurations when component mounts
@@ -256,19 +284,47 @@ const Sender = () => {
     }
   };
   
+  // Handle department checkbox change
+  const handleDepartmentChange = (departmentId: string, checked: boolean) => {
+    if (checked) {
+      setSelectedDepartments(prev => [...prev, departmentId]);
+    } else {
+      setSelectedDepartments(prev => prev.filter(id => id !== departmentId));
+    }
+  };
+  
   // Filter users based on search term
   const filteredUsers = users.filter(user => 
     user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
     `${user.first_name} ${user.last_name}`.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  // Filter departments based on search term
+  const filteredDepartments = departments.filter(department =>
+    department.name.toLowerCase().includes(departmentSearchTerm.toLowerCase())
+  );
+
+  // Get all users from selected departments
+  const getDepartmentUsers = (departmentIds: string[]): User[] => {
+    return users.filter(user => 
+      user.department && departmentIds.includes(user.department)
+    );
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSending(true);
     
     try {
-      if (selectedRecipients.length === 0) {
-        throw new Error('Please select at least one recipient');
+      // Get all recipients from individual selections and departments
+      const departmentUsers = getDepartmentUsers(selectedDepartments);
+      const departmentEmails = departmentUsers.map(user => user.email);
+      
+      // Combine individual recipients and department recipients, removing duplicates
+      const allRecipients = [...new Set([...selectedRecipients, ...departmentEmails])];
+      
+      if (allRecipients.length === 0) {
+        throw new Error('Please select at least one recipient or department');
       }
 
       // First, ensure we have a CSRF token by making an OPTIONS request
@@ -291,7 +347,7 @@ const Sender = () => {
       const successfulSends = [];
       const failedSends = [];
       
-      for (const recipient of selectedRecipients) {
+      for (const recipient of allRecipients) {
         try {
           // Find the recipient's user data to get their name
           const recipientUser = users.find(user => user.email === recipient);
@@ -352,6 +408,7 @@ const Sender = () => {
         body: ''
       }));
       setSelectedRecipients([]);
+      setSelectedDepartments([]);
     } catch (error) {
       console.error('Error sending email:', error);
       toast({
@@ -380,53 +437,111 @@ const Sender = () => {
             <div className="grid grid-cols-1 gap-6">
               <div className="space-y-2">
                 <Label htmlFor="recipients">Recipients</Label>
-                <div className="border rounded-md p-2">
-                  <div className="mb-2">
-                    <Input
-                      id="search-recipients"
-                      type="text"
-                      placeholder="Search users..."
-                      value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
-                      className="mb-2"
-                    />
-                  </div>
+                <Tabs defaultValue="individuals" className="w-full">
+                  <TabsList className="grid w-full grid-cols-2">
+                    <TabsTrigger value="individuals">Individual Recipients</TabsTrigger>
+                    <TabsTrigger value="departments">Departments</TabsTrigger>
+                  </TabsList>
                   
-                  {userLoadError && <p className="text-red-500 text-sm mb-2">{userLoadError}</p>}
+                  <TabsContent value="individuals" className="border rounded-md p-2">
+                    <div className="mb-2">
+                      <Input
+                        id="search-recipients"
+                        type="text"
+                        placeholder="Search users..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        className="mb-2"
+                      />
+                    </div>
+                    
+                    {userLoadError && <p className="text-red-500 text-sm mb-2">{userLoadError}</p>}
+                    
+                    {loadingUsers ? (
+                      <p className="text-sm text-gray-500 p-2">Loading users...</p>
+                    ) : filteredUsers.length === 0 ? (
+                      <p className="text-sm text-gray-500 p-2">
+                        {searchTerm ? 'No users found matching your search.' : 'No users found in this company.'}
+                      </p>
+                    ) : (
+                      <ScrollArea className="h-60 pr-4">
+                        <div className="space-y-2">
+                          {filteredUsers.map((user) => (
+                            <div key={user.id} className="flex items-center space-x-2">
+                              <Checkbox 
+                                id={`user-${user.id}`}
+                                checked={selectedRecipients.includes(user.email)}
+                                onCheckedChange={(checked) => handleRecipientChange(user.email, checked === true)}
+                              />
+                              <Label 
+                                htmlFor={`user-${user.id}`}
+                                className="flex-1 cursor-pointer flex justify-between"
+                              >
+                                <span>{user.first_name} {user.last_name}</span>
+                                <span className="text-gray-500 text-sm">{user.email}</span>
+                              </Label>
+                            </div>
+                          ))}
+                        </div>
+                      </ScrollArea>
+                    )}
+                    
+                    <div className="mt-2 text-sm text-gray-500">
+                      {selectedRecipients.length} individual recipient(s) selected
+                    </div>
+                  </TabsContent>
                   
-                  {loadingUsers ? (
-                    <p className="text-sm text-gray-500 p-2">Loading users...</p>
-                  ) : filteredUsers.length === 0 ? (
-                    <p className="text-sm text-gray-500 p-2">
-                      {searchTerm ? 'No users found matching your search.' : 'No users found in this company.'}
-                    </p>
-                  ) : (
-                    <ScrollArea className="h-60 pr-4">
-                      <div className="space-y-2">
-                        {filteredUsers.map((user) => (
-                          <div key={user.id} className="flex items-center space-x-2">
-                            <Checkbox 
-                              id={`user-${user.id}`}
-                              checked={selectedRecipients.includes(user.email)}
-                              onCheckedChange={(checked) => handleRecipientChange(user.email, checked === true)}
-                            />
-                            <Label 
-                              htmlFor={`user-${user.id}`}
-                              className="flex-1 cursor-pointer flex justify-between"
-                            >
-                              <span>{user.first_name} {user.last_name}</span>
-                              <span className="text-gray-500 text-sm">{user.email}</span>
-                            </Label>
-                          </div>
-                        ))}
-                      </div>
-                    </ScrollArea>
-                  )}
-                  
-                  <div className="mt-2 text-sm text-gray-500">
-                    {selectedRecipients.length} recipient(s) selected
-                  </div>
-                </div>
+                  <TabsContent value="departments" className="border rounded-md p-2">
+                    <div className="mb-2">
+                      <Input
+                        id="search-departments"
+                        type="text"
+                        placeholder="Search departments..."
+                        value={departmentSearchTerm}
+                        onChange={(e) => setDepartmentSearchTerm(e.target.value)}
+                        className="mb-2"
+                      />
+                    </div>
+                    
+                    {departmentLoadError && <p className="text-red-500 text-sm mb-2">{departmentLoadError}</p>}
+                    
+                    {loadingDepartments ? (
+                      <p className="text-sm text-gray-500 p-2">Loading departments...</p>
+                    ) : filteredDepartments.length === 0 ? (
+                      <p className="text-sm text-gray-500 p-2">
+                        {departmentSearchTerm ? 'No departments found matching your search.' : 'No departments found in this company.'}
+                      </p>
+                    ) : (
+                      <ScrollArea className="h-60 pr-4">
+                        <div className="space-y-2">
+                          {filteredDepartments.map((department) => (
+                            <div key={department.id} className="flex items-center space-x-2">
+                              <Checkbox 
+                                id={`department-${department.id}`}
+                                checked={selectedDepartments.includes(department.id)}
+                                onCheckedChange={(checked) => handleDepartmentChange(department.id, checked === true)}
+                              />
+                              <Label 
+                                htmlFor={`department-${department.id}`}
+                                className="flex-1 cursor-pointer flex justify-between"
+                              >
+                                <span>{department.name}</span>
+                                <span className="text-gray-500 text-sm">{department.user_count} users</span>
+                              </Label>
+                            </div>
+                          ))}
+                        </div>
+                      </ScrollArea>
+                    )}
+                    
+                    <div className="mt-2 text-sm text-gray-500">
+                      {selectedDepartments.length} department(s) selected
+                      {selectedDepartments.length > 0 && (
+                        <span> (approx. {getDepartmentUsers(selectedDepartments).length} users)</span>
+                      )}
+                    </div>
+                  </TabsContent>
+                </Tabs>
               </div>
               
               <div className="space-y-2">
