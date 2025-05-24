@@ -293,6 +293,14 @@ const Sender = () => {
       
       for (const recipient of selectedRecipients) {
         try {
+          // Find the recipient's user data to get their name
+          const recipientUser = users.find(user => user.email === recipient);
+          const recipientName = recipientUser ? `${recipientUser.first_name} ${recipientUser.last_name}` : 'User';
+          
+          // Replace template variables with actual values
+          let personalizedBody = formData.body;
+          personalizedBody = personalizedBody.replace(/\{recipient\.name\}/g, recipientName);
+          
           const response = await fetch(EMAIL_API_ENDPOINT, {
             method: 'POST',
             headers: {
@@ -305,7 +313,7 @@ const Sender = () => {
               to: recipient, // Send to one recipient at a time
               from: formData.from,
               subject: formData.subject,
-              body: formData.body
+              body: personalizedBody
             }),
           });
           
