@@ -9,6 +9,9 @@ import { useToast } from '@/components/ui/use-toast';
 import { EMAIL_API_ENDPOINT, EMAIL_CONFIGS_API_ENDPOINT, EMAIL_TEMPLATES_API_ENDPOINT } from '@/config';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
+import { Checkbox } from '@/components/ui/checkbox';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { userService, User } from '@/services/api';
 
 // Helper function to get CSRF token from cookies
 function getCookie(name: string) {
@@ -59,12 +62,38 @@ const Sender = () => {
   const [templateLoadError, setTemplateLoadError] = useState<string | null>(null);
 
   const [formData, setFormData] = useState({
-    to: '',
     from: '', // Will be set from selected configuration
     subject: '',
     body: ''
   });
+  const [selectedRecipients, setSelectedRecipients] = useState<string[]>([]);
   const [isSending, setIsSending] = useState(false);
+  
+  // State for company users
+  const [users, setUsers] = useState<User[]>([]);
+  const [loadingUsers, setLoadingUsers] = useState(true);
+  const [userLoadError, setUserLoadError] = useState<string | null>(null);
+  const [searchTerm, setSearchTerm] = useState('');
+
+  // Fetch users from the current company
+  useEffect(() => {
+    const fetchUsers = async () => {
+      try {
+        setLoadingUsers(true);
+        setUserLoadError(null);
+        
+        const usersData = await userService.getUsers();
+        setUsers(usersData);
+      } catch (error) {
+        console.error('Error fetching users:', error);
+        setUserLoadError(error instanceof Error ? error.message : 'Failed to load users');
+      } finally {
+        setLoadingUsers(false);
+      }
+    };
+    
+    fetchUsers();
+  }, []);
 
   // Fetch email configurations when component mounts
   // Fetch email templates based on company slug
@@ -217,12 +246,31 @@ const Sender = () => {
       [name]: value
     }));
   };
+  
+  // Handle recipient checkbox change
+  const handleRecipientChange = (email: string, checked: boolean) => {
+    if (checked) {
+      setSelectedRecipients(prev => [...prev, email]);
+    } else {
+      setSelectedRecipients(prev => prev.filter(e => e !== email));
+    }
+  };
+  
+  // Filter users based on search term
+  const filteredUsers = users.filter(user => 
+    user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    `${user.first_name} ${user.last_name}`.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSending(true);
     
     try {
+      if (selectedRecipients.length === 0) {
+        throw new Error('Please select at least one recipient');
+      }
+
       // First, ensure we have a CSRF token by making an OPTIONS request
       const csrfResponse = await fetch(EMAIL_API_ENDPOINT, {
         method: 'OPTIONS',
@@ -239,41 +287,63 @@ const Sender = () => {
         throw new Error('CSRF token not found. Please refresh the page and try again.');
       }
       
-      // Now send the actual request
-      const response = await fetch(EMAIL_API_ENDPOINT, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-CSRFToken': csrfToken,
-          'X-Requested-With': 'XMLHttpRequest',
-        },
-        credentials: 'include',
-        body: JSON.stringify({
-          to: formData.to,
-          from: formData.from,
-          subject: formData.subject,
-          body: formData.body
-        }),
-      });
+      // Send to each recipient individually
+      const successfulSends = [];
+      const failedSends = [];
       
-      const responseData = await response.json();
-      
-      if (!response.ok) {
-        throw new Error(responseData.error || 'Failed to send email');
+      for (const recipient of selectedRecipients) {
+        try {
+          const response = await fetch(EMAIL_API_ENDPOINT, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'X-CSRFToken': csrfToken,
+              'X-Requested-With': 'XMLHttpRequest',
+            },
+            credentials: 'include',
+            body: JSON.stringify({
+              to: recipient, // Send to one recipient at a time
+              from: formData.from,
+              subject: formData.subject,
+              body: formData.body
+            }),
+          });
+          
+          const responseData = await response.json();
+          
+          if (!response.ok) {
+            failedSends.push({ email: recipient, error: responseData.error || 'Unknown error' });
+          } else {
+            successfulSends.push(recipient);
+          }
+        } catch (error) {
+          failedSends.push({ email: recipient, error: error instanceof Error ? error.message : 'Unknown error' });
+        }
       }
       
-      toast({
-        title: 'Email sent successfully!',
-        description: `Email to ${responseData.to} has been queued for sending.`,
-      });
+      // Show appropriate toast based on results
+      if (failedSends.length === 0) {
+        toast({
+          title: 'Email sent successfully!',
+          description: `Email to ${successfulSends.length} recipient(s) has been queued for sending.`,
+        });
+      } else if (successfulSends.length === 0) {
+        throw new Error(`Failed to send email to any recipients. First error: ${failedSends[0].error}`);
+      } else {
+        toast({
+          title: 'Partial success',
+          description: `Successfully sent to ${successfulSends.length} recipient(s). Failed to send to ${failedSends.length} recipient(s).`,
+          variant: 'destructive',
+        });
+      }
       
       // Reset form but keep the from email
       setFormData(prev => ({
         ...prev,
-        to: '',
         subject: '',
         body: ''
       }));
+      setSelectedRecipients([]);
     } catch (error) {
       console.error('Error sending email:', error);
       toast({
@@ -301,16 +371,54 @@ const Sender = () => {
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="grid grid-cols-1 gap-6">
               <div className="space-y-2">
-                <Label htmlFor="to">To</Label>
-                <Input
-                  id="to"
-                  name="to"
-                  type="email"
-                  placeholder="recipient@example.com"
-                  value={formData.to}
-                  onChange={handleChange}
-                  required
-                />
+                <Label htmlFor="recipients">Recipients</Label>
+                <div className="border rounded-md p-2">
+                  <div className="mb-2">
+                    <Input
+                      id="search-recipients"
+                      type="text"
+                      placeholder="Search users..."
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      className="mb-2"
+                    />
+                  </div>
+                  
+                  {userLoadError && <p className="text-red-500 text-sm mb-2">{userLoadError}</p>}
+                  
+                  {loadingUsers ? (
+                    <p className="text-sm text-gray-500 p-2">Loading users...</p>
+                  ) : filteredUsers.length === 0 ? (
+                    <p className="text-sm text-gray-500 p-2">
+                      {searchTerm ? 'No users found matching your search.' : 'No users found in this company.'}
+                    </p>
+                  ) : (
+                    <ScrollArea className="h-60 pr-4">
+                      <div className="space-y-2">
+                        {filteredUsers.map((user) => (
+                          <div key={user.id} className="flex items-center space-x-2">
+                            <Checkbox 
+                              id={`user-${user.id}`}
+                              checked={selectedRecipients.includes(user.email)}
+                              onCheckedChange={(checked) => handleRecipientChange(user.email, checked === true)}
+                            />
+                            <Label 
+                              htmlFor={`user-${user.id}`}
+                              className="flex-1 cursor-pointer flex justify-between"
+                            >
+                              <span>{user.first_name} {user.last_name}</span>
+                              <span className="text-gray-500 text-sm">{user.email}</span>
+                            </Label>
+                          </div>
+                        ))}
+                      </div>
+                    </ScrollArea>
+                  )}
+                  
+                  <div className="mt-2 text-sm text-gray-500">
+                    {selectedRecipients.length} recipient(s) selected
+                  </div>
+                </div>
               </div>
               
               <div className="space-y-2">
