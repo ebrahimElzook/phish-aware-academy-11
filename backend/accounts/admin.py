@@ -1,6 +1,7 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django.utils.translation import gettext_lazy as _
+from django import forms
 from .models import User, Company, Department
 
 @admin.register(Company)
@@ -8,7 +9,25 @@ class CompanyAdmin(admin.ModelAdmin):
     list_display = ('name', 'created_at', 'updated_at')
     search_fields = ('name',)
 
+class UserAdminForm(forms.ModelForm):
+    class Meta:
+        model = User
+        fields = '__all__'
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # If we have a user instance and it has a company, filter departments
+        if self.instance and self.instance.pk and self.instance.company:
+            self.fields['department'].queryset = Department.objects.filter(company=self.instance.company)
+        elif 'company' in self.data:
+            try:
+                company_id = int(self.data.get('company'))
+                self.fields['department'].queryset = Department.objects.filter(company_id=company_id)
+            except (ValueError, TypeError):
+                pass
+
 class UserAdmin(BaseUserAdmin):
+    form = UserAdminForm
     model = User
     list_display = ('email', 'username', 'first_name', 'last_name', 'role', 'company', 'department', 'is_staff')
     list_filter = ('is_staff', 'is_superuser', 'role', 'company', 'department')
@@ -29,6 +48,14 @@ class UserAdmin(BaseUserAdmin):
     )
     search_fields = ('email', 'username', 'first_name', 'last_name')
     ordering = ('email',)
+    
+    class Media:
+        js = ('js/admin_user_form.js',)
 
 admin.site.register(User, UserAdmin)
-admin.site.register(Department)
+
+@admin.register(Department)
+class DepartmentAdmin(admin.ModelAdmin):
+    list_display = ('name', 'company', 'created_at', 'updated_at')
+    list_filter = ('company',)
+    search_fields = ('name',)
