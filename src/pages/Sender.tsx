@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/components/ui/use-toast';
-import { EMAIL_API_ENDPOINT, EMAIL_CONFIGS_API_ENDPOINT } from '@/config';
+import { EMAIL_API_ENDPOINT, EMAIL_CONFIGS_API_ENDPOINT, EMAIL_TEMPLATES_API_ENDPOINT } from '@/config';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 
@@ -37,11 +37,26 @@ const Sender = () => {
     host_user: string;
     is_active: boolean;
   }
+  
+  // Define interface for email templates
+  interface EmailTemplate {
+    id: number;
+    subject: string;
+    content: string;
+    company: number | null;
+    company_name: string | null;
+    is_global: boolean;
+  }
 
   const [emailConfigs, setEmailConfigs] = useState<EmailConfig[]>([]);
   const [selectedConfigId, setSelectedConfigId] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
+  
+  const [emailTemplates, setEmailTemplates] = useState<EmailTemplate[]>([]);
+  const [selectedTemplateId, setSelectedTemplateId] = useState<number | null>(null);
+  const [isLoadingTemplates, setIsLoadingTemplates] = useState(true);
+  const [templateLoadError, setTemplateLoadError] = useState<string | null>(null);
 
   const [formData, setFormData] = useState({
     to: '',
@@ -52,6 +67,50 @@ const Sender = () => {
   const [isSending, setIsSending] = useState(false);
 
   // Fetch email configurations when component mounts
+  // Fetch email templates based on company slug
+  useEffect(() => {
+    const fetchEmailTemplates = async () => {
+      try {
+        setIsLoadingTemplates(true);
+        setTemplateLoadError(null);
+        
+        console.log('Fetching email templates from:', EMAIL_TEMPLATES_API_ENDPOINT);
+        
+        // Construct URL with company slug if available
+        let url = EMAIL_TEMPLATES_API_ENDPOINT;
+        if (companySlug) {
+          url += `?company_slug=${companySlug}`;
+        }
+        
+        // Make the request
+        const response = await fetch(url, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        });
+        
+        console.log('Templates GET response status:', response.status);
+        
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error('Error response:', errorText);
+          throw new Error(`Failed to fetch email templates: ${response.status} ${response.statusText}`);
+        }
+        
+        const data: EmailTemplate[] = await response.json();
+        setEmailTemplates(data);
+      } catch (error) {
+        console.error('Error fetching email templates:', error);
+        setTemplateLoadError(error instanceof Error ? error.message : 'Failed to load email templates');
+      } finally {
+        setIsLoadingTemplates(false);
+      }
+    };
+    
+    fetchEmailTemplates();
+  }, [companySlug]);
+  
   useEffect(() => {
     const fetchEmailConfigs = async () => {
       try {
@@ -132,6 +191,25 @@ const Sender = () => {
     }
   };
 
+  // Handle template selection change
+  const handleTemplateChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const templateId = parseInt(e.target.value);
+    setSelectedTemplateId(templateId);
+    
+    if (templateId) {
+      // Find the selected template
+      const selectedTemplate = emailTemplates.find(template => template.id === templateId);
+      if (selectedTemplate) {
+        // Update form data with template content
+        setFormData(prev => ({
+          ...prev,
+          subject: selectedTemplate.subject,
+          body: selectedTemplate.content
+        }));
+      }
+    }
+  };
+  
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({
@@ -264,6 +342,33 @@ const Sender = () => {
               </div>
               
               <div className="space-y-2">
+                <Label htmlFor="emailTemplate">Email Template</Label>
+                <select
+                  id="emailTemplate"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  value={selectedTemplateId || ''}
+                  onChange={handleTemplateChange}
+                  disabled={isLoadingTemplates || emailTemplates.length === 0}
+                >
+                  {isLoadingTemplates ? (
+                    <option value="">Loading templates...</option>
+                  ) : emailTemplates.length === 0 ? (
+                    <option value="">No templates available</option>
+                  ) : (
+                    <>
+                      <option value="">Select email template</option>
+                      {emailTemplates.map(template => (
+                        <option key={template.id} value={template.id}>
+                          {template.subject} {template.is_global ? '(Global)' : template.company_name ? `(${template.company_name})` : ''}
+                        </option>
+                      ))}
+                    </>
+                  )}
+                </select>
+                {templateLoadError && <p className="text-red-500 text-sm mt-1">{templateLoadError}</p>}
+              </div>
+              
+              <div className="space-y-2">
                 <Label htmlFor="from">From</Label>
                 <Input
                   id="from"
@@ -296,13 +401,22 @@ const Sender = () => {
                 <Textarea
                   id="body"
                   name="body"
-                  placeholder="Write your message here..."
+                  placeholder="Write your message here... HTML is supported"
                   rows={8}
                   value={formData.body}
                   onChange={handleChange}
                   required
-                  className="min-h-[200px]"
+                  className="min-h-[200px] font-mono text-sm"
                 />
+                
+                {/* HTML Preview */}
+                <div className="mt-4">
+                  <Label>Message Preview</Label>
+                  <div 
+                    className="p-4 border rounded-md bg-white mt-1 min-h-[200px] overflow-auto"
+                    dangerouslySetInnerHTML={{ __html: formData.body }}
+                  />
+                </div>
               </div>
             </div>
             

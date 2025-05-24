@@ -1,5 +1,7 @@
 from django.contrib import admin
-from .models import CSWordEmailServ
+from django.db import models
+from django.utils.safestring import mark_safe
+from .models import CSWordEmailServ, EmailTemplate
 
 @admin.register(CSWordEmailServ)
 class CSWordEmailServAdmin(admin.ModelAdmin):
@@ -16,3 +18,30 @@ class CSWordEmailServAdmin(admin.ModelAdmin):
             'classes': ('collapse',)
         }),
     )
+
+@admin.register(EmailTemplate)
+class EmailTemplateAdmin(admin.ModelAdmin):
+    list_display = ('subject', 'company', 'is_global', 'created_at', 'updated_at')
+    list_filter = ('is_global',)
+    search_fields = ('subject', 'content', 'company')
+    readonly_fields = ('created_at', 'updated_at', 'content_preview')
+    formfield_overrides = {
+        models.TextField: {'widget': admin.widgets.AdminTextareaWidget(attrs={'rows': 15})},
+    }
+    
+    fieldsets = (
+        (None, {
+            'fields': ('subject', 'content', 'content_preview', 'company', 'is_global')
+        }),
+        ('Timestamps', {
+            'fields': ('created_at', 'updated_at'),
+            'classes': ('collapse',)
+        }),
+    )
+    
+    def content_preview(self, obj):
+        """Display a preview of the HTML content"""
+        if obj.content:
+            return mark_safe(f'<div style="padding: 10px; border: 1px solid #ddd; background-color: #f9f9f9;">{obj.content}</div>')
+        return "No content"
+    content_preview.short_description = 'Content Preview'

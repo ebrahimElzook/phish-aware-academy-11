@@ -1,4 +1,4 @@
-from django.core.mail import send_mail, get_connection
+from django.core.mail import send_mail, get_connection, EmailMultiAlternatives
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
@@ -6,10 +6,11 @@ from django.conf import settings
 from django.views.decorators.csrf import ensure_csrf_cookie
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
-from .models import CSWordEmailServ
-from .serializers import CSWordEmailServSerializer
+from .models import CSWordEmailServ, EmailTemplate
+from .serializers import CSWordEmailServSerializer, EmailTemplateSerializer
 import json
 import logging
+from bs4 import BeautifulSoup
 
 logger = logging.getLogger(__name__)
 
@@ -85,15 +86,24 @@ def send_email(request):
             if not from_email or from_email == 'default':
                 from_email = email_config.host_user
             
-            # Send email using Django's send_mail with our connection
-            send_mail(
+            # Create a plain text version of the message (fallback for email clients that don't support HTML)
+            plain_text_message = body.replace('<br>', '\n').replace('<p>', '').replace('</p>', '\n\n')
+            plain_text_message = ''.join(BeautifulSoup(plain_text_message, 'html.parser').findAll(text=True))
+            
+            # Create email message with both text and HTML versions
+            email = EmailMultiAlternatives(
                 subject=subject,
-                message=body,
+                body=plain_text_message,  # Plain text version
                 from_email=from_email,
-                recipient_list=[to_email],
-                fail_silently=False,
+                to=[to_email],
                 connection=connection,
             )
+            
+            # Attach HTML version
+            email.attach_alternative(body, "text/html")
+            
+            # Send the email
+            email.send(fail_silently=False)
             logger.info(f"Successfully sent email to {to_email}")
             
             return JsonResponseWithCors({
@@ -134,6 +144,41 @@ def get_email_configurations(request):
     try:
         email_configs = CSWordEmailServ.objects.all()
         serializer = CSWordEmailServSerializer(email_configs, many=True)
+        return JsonResponseWithCors(serializer.data, safe=False)
+    except Exception as e:
+        return JsonResponseWithCors({'error': str(e)}, status=500)
+
+@csrf_exempt
+@require_http_methods(['GET', 'OPTIONS'])
+def get_email_templates(request):
+    """
+    API endpoint to get email templates based on global flag and company
+    """
+    # Handle OPTIONS request for CORS preflight
+    if request.method == 'OPTIONS':
+        response = JsonResponseWithCors({}, status=200)
+        return response
+        
+    try:
+        # Get company slug from query parameters
+        company_slug = request.GET.get('company_slug', None)
+        
+        # If company_slug is provided, filter templates by company or global flag
+        if company_slug:
+            # Get templates that are either global or belong to the specified company
+            from accounts.models import Company
+            try:
+                company = Company.objects.get(slug=company_slug)
+                templates = EmailTemplate.objects.filter(is_global=True) | \
+                           EmailTemplate.objects.filter(company=company)
+            except Company.DoesNotExist:
+                # If company doesn't exist, return only global templates
+                templates = EmailTemplate.objects.filter(is_global=True)
+        else:
+            # If no company_slug is provided, return all templates
+            templates = EmailTemplate.objects.all()
+            
+        serializer = EmailTemplateSerializer(templates, many=True)
         return JsonResponseWithCors(serializer.data, safe=False)
     except Exception as e:
         return JsonResponseWithCors({'error': str(e)}, status=500)
