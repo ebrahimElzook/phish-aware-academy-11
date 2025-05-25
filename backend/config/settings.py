@@ -122,18 +122,45 @@ EMAIL_USE_TLS = True
 
 # CORS Settings
 CORS_ALLOW_CREDENTIALS = True
+CORS_ALLOW_ALL_ORIGINS = True  # Allow all origins for testing
+CORS_ALLOW_METHODS = [
+    'DELETE',
+    'GET',
+    'OPTIONS',
+    'PATCH',
+    'POST',
+    'PUT',
+]
+CORS_ALLOW_HEADERS = [
+    'accept',
+    'accept-encoding',
+    'authorization',
+    'content-type',
+    'dnt',
+    'origin',
+    'user-agent',
+    'x-csrftoken',
+    'x-requested-with',
+]
 CORS_ORIGIN_WHITELIST = [
     'http://localhost:3000',  # Default React dev server
     'http://127.0.0.1:3000',  # Alternative localhost
     'http://localhost:8000',  # Django dev server
     'http://127.0.0.1:8000',  # Django dev server alternative
+    'https://phish-aware-academy-frontend-production.up.railway.app',  # Railway frontend
+    'https://phishaware-backend-production.up.railway.app',  # Railway backend
 ]
 
 # Use environment variable if available
 import os
 FRONTEND_URL = os.getenv('FRONTEND_URL', 'http://localhost:3000')
 BACKEND_URL = os.getenv('BACKEND_URL', 'http://localhost:8000')
-CSRF_TRUSTED_ORIGINS = [FRONTEND_URL, BACKEND_URL]
+CSRF_TRUSTED_ORIGINS = [
+    FRONTEND_URL, 
+    BACKEND_URL,
+    'https://phish-aware-academy-frontend-production.up.railway.app',
+    'https://phishaware-backend-production.up.railway.app',
+]
 CORS_ORIGIN_WHITELIST.append(FRONTEND_URL)
 
 # Email tracking settings
