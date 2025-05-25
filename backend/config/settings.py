@@ -10,9 +10,9 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-default-key')
 
-DEBUG = os.getenv('DEBUG', 'False') == 'True'
+DEBUG = os.getenv('DEBUG', 'True') == 'True'
 
-ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',')
+ALLOWED_HOSTS = ['*']  # Allow all hosts for initial deployment
 
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -144,6 +144,12 @@ EMAIL_TRACKING_URL = BACKEND_URL
 SESSION_COOKIE_SAMESITE = 'Lax'
 SESSION_COOKIE_HTTPONLY = True
 SESSION_COOKIE_SECURE = not DEBUG  # True in production
-CSRF_COOKIE_SAMESITE = 'Lax'
+# CSRF settings for cross-origin requests
+CSRF_COOKIE_SAMESITE = 'None' if not DEBUG else 'Lax'
 CSRF_COOKIE_HTTPONLY = False  # Allow JavaScript to read the CSRF token
+CSRF_COOKIE_SECURE = not DEBUG  # Use secure cookies in production
 CSRF_USE_SESSIONS = False
+CSRF_TRUSTED_ORIGINS = [
+    'https://phishaware-backend-production.up.railway.app',
+    'https://*.up.railway.app',
+]
