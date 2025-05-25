@@ -2,6 +2,7 @@ from django.db import models
 from django.contrib.auth.models import AbstractUser
 from django.utils.translation import gettext_lazy as _
 from django.utils.text import slugify
+from django.utils import timezone
 
 class Department(models.Model):
     name = models.CharField(max_length=100)
@@ -19,7 +20,6 @@ class User(AbstractUser):
     class Role(models.TextChoices):
         SUPER_ADMIN = 'SUPER_ADMIN', _('Super Admin')
         COMPANY_ADMIN = 'COMPANY_ADMIN', _('Company Admin')
-        ADMIN = 'ADMIN', _('Admin')
         USER = 'USER', _('User')
     
     role = models.CharField(
@@ -67,3 +67,31 @@ class Company(models.Model):
         if not self.slug:
             self.slug = slugify(self.name)
         super().save(*args, **kwargs)
+
+
+class Email(models.Model):
+    subject = models.CharField(max_length=255)
+    content = models.TextField()
+    sender = models.ForeignKey(User, on_delete=models.CASCADE, related_name='sent_emails')
+    recipient = models.ForeignKey(User, on_delete=models.CASCADE, related_name='received_emails')
+    sent = models.BooleanField(default=False)
+    read = models.BooleanField(default=False)
+    clicked = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+    sent_at = models.DateTimeField(null=True, blank=True)
+    
+    def __str__(self):
+        return f"{self.subject} - From: {self.sender.email} To: {self.recipient.email}"
+    
+    def mark_as_sent(self):
+        self.sent = True
+        self.sent_at = timezone.now()
+        self.save()
+    
+    def mark_as_read(self):
+        self.read = True
+        self.save()
+    
+    def mark_as_clicked(self):
+        self.clicked = True
+        self.save()

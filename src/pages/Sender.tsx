@@ -6,13 +6,13 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/components/ui/use-toast';
-import { EMAIL_API_ENDPOINT, EMAIL_CONFIGS_API_ENDPOINT, EMAIL_TEMPLATES_API_ENDPOINT } from '@/config';
+import { EMAIL_API_ENDPOINT, EMAIL_SAVE_API_ENDPOINT, EMAIL_CONFIGS_API_ENDPOINT, EMAIL_TEMPLATES_API_ENDPOINT } from '@/config';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import { Checkbox } from '@/components/ui/checkbox';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { userService, User, Department } from '@/services/api';
+import { userService, authService, User, Department } from '@/services/api';
 
 // Helper function to get CSRF token from cookies
 function getCookie(name: string) {
@@ -75,6 +75,7 @@ const Sender = () => {
   const [loadingUsers, setLoadingUsers] = useState(true);
   const [userLoadError, setUserLoadError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
   
   // State for departments
   const [departments, setDepartments] = useState<Department[]>([]);
@@ -86,7 +87,7 @@ const Sender = () => {
   // State for all users selection
   const [selectAllUsers, setSelectAllUsers] = useState(false);
 
-  // Fetch users from the current company
+  // Fetch users from the current company and get current user profile
   useEffect(() => {
     const fetchUsers = async () => {
       try {
@@ -95,6 +96,10 @@ const Sender = () => {
         
         const usersData = await userService.getUsers();
         setUsers(usersData);
+        
+        // Get current user profile
+        const profile = await authService.getProfile();
+        setCurrentUser(profile);
       } catch (error) {
         console.error('Error fetching users:', error);
         setUserLoadError(error instanceof Error ? error.message : 'Failed to load users');
@@ -363,7 +368,34 @@ const Sender = () => {
           let personalizedBody = formData.body;
           personalizedBody = personalizedBody.replace(/\{recipient\.name\}/g, recipientName);
           
-          const response = await fetch(EMAIL_API_ENDPOINT, {
+          // First save the email to the database
+          const saveResponse = await fetch(EMAIL_SAVE_API_ENDPOINT, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'X-CSRFToken': csrfToken,
+              'X-Requested-With': 'XMLHttpRequest',
+            },
+            credentials: 'include',
+            body: JSON.stringify({
+              to: recipient,
+              from: formData.from,
+              subject: formData.subject,
+              body: personalizedBody,
+              sender_id: currentUser?.id // Get current user's ID
+            }),
+          });
+          
+          const saveResponseData = await saveResponse.json();
+          
+          if (!saveResponse.ok) {
+            throw new Error(`Failed to save email: ${saveResponseData.error || 'Unknown error'}`);
+          }
+          
+          // After saving, send the email with the saved email ID
+          const emailId = saveResponseData.email_id;
+          
+          const sendResponse = await fetch(EMAIL_API_ENDPOINT, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
@@ -375,14 +407,15 @@ const Sender = () => {
               to: recipient, // Send to one recipient at a time
               from: formData.from,
               subject: formData.subject,
-              body: personalizedBody
+              body: personalizedBody,
+              email_id: emailId // Include the saved email ID
             }),
           });
           
-          const responseData = await response.json();
+          const sendResponseData = await sendResponse.json();
           
-          if (!response.ok) {
-            failedSends.push({ email: recipient, error: responseData.error || 'Unknown error' });
+          if (!sendResponse.ok) {
+            failedSends.push({ email: recipient, error: sendResponseData.error || 'Unknown error' });
           } else {
             successfulSends.push(recipient);
           }

@@ -8,6 +8,7 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from .models import CSWordEmailServ, EmailTemplate
 from .serializers import CSWordEmailServSerializer, EmailTemplateSerializer
+from accounts.models import Email, User
 import json
 import logging
 from bs4 import BeautifulSoup
@@ -48,6 +49,7 @@ def send_email(request):
         from_email = data.get('from')
         subject = data.get('subject')
         body = data.get('body')
+        email_id = data.get('email_id')  # Optional email_id if saved before sending
         
         # Validate required fields
         if not all([to_email, from_email, subject, body]):
@@ -106,12 +108,23 @@ def send_email(request):
             email.send(fail_silently=False)
             logger.info(f"Successfully sent email to {to_email}")
             
+            # If this email was saved in the database, mark it as sent
+            if email_id:
+                try:
+                    from accounts.models import Email
+                    saved_email = Email.objects.get(id=email_id)
+                    saved_email.mark_as_sent()
+                    logger.info(f"Marked email with ID {email_id} as sent")
+                except Exception as e:
+                    logger.error(f"Error marking email as sent: {str(e)}")
+            
             return JsonResponseWithCors({
                 'success': True,
                 'message': 'Email sent successfully',
                 'to': to_email,
                 'from': from_email,
-                'subject': subject
+                'subject': subject,
+                'email_id': email_id
             })
             
         except Exception as e:
