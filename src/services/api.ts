@@ -1,6 +1,6 @@
 // API service for communicating with the Django backend
 
-const API_URL = 'http://localhost:8000/api';
+const API_URL = import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/api` : 'http://localhost:8000/api';
 
 // Get company slug from URL path (e.g., /company-name/dashboard)
 const getCompanySlug = (): string | null => {

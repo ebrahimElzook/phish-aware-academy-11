@@ -19,7 +19,8 @@ def add_tracking_pixel(body, email_id):
     # Log the tracking pixel URL for debugging
     import logging
     logger = logging.getLogger(__name__)
-    logger.info(f"Added tracking pixel for email {email_id}: http://localhost:8000/api/email/mark-read/{email_id}/")
+    tracking_url = getattr(settings, 'EMAIL_TRACKING_URL', 'http://localhost:8000')
+    logger.info(f"Added tracking pixel for email {email_id}: {tracking_url}/api/email/mark-read/{email_id}/")
     
     # Add tracking pixel at the end of the body
     if '</body>' in body:

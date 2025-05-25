@@ -4,13 +4,17 @@ import path from "path";
 import { componentTagger } from "lovable-tagger";
 
 // https://vitejs.dev/config/
-export default defineConfig(({ mode }) => ({
-  server: {
+export default defineConfig(({ mode }) => {
+  // Load environment variables
+  const apiUrl = process.env.VITE_API_URL || 'http://localhost:8000';
+  
+  return {
+    server: {
     host: "::",
     port: 8080,
     proxy: {
       '/api': {
-        target: 'http://localhost:8000',
+        target: apiUrl,
         changeOrigin: true,
         secure: false,
         ws: true,
@@ -28,14 +32,15 @@ export default defineConfig(({ mode }) => ({
       }
     }
   },
-  plugins: [
-    react(),
-    mode === 'development' &&
-    componentTagger(),
-  ].filter(Boolean),
-  resolve: {
-    alias: {
-      "@": path.resolve(__dirname, "./src"),
+    plugins: [
+      react(),
+      mode === 'development' &&
+      componentTagger(),
+    ].filter(Boolean),
+    resolve: {
+      alias: {
+        "@": path.resolve(__dirname, "./src"),
+      },
     },
-  },
-}));
+  };
+});
