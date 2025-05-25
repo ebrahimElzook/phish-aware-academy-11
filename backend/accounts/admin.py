@@ -62,13 +62,13 @@ class DepartmentAdmin(admin.ModelAdmin):
 
 @admin.register(Email)
 class EmailAdmin(admin.ModelAdmin):
-    list_display = ('subject', 'sender', 'recipient', 'sent', 'read', 'clicked', 'created_at', 'sent_at')
+    list_display = ('id', 'subject', 'sender', 'recipient', 'sent', 'read', 'clicked', 'created_at', 'sent_at')
     list_filter = ('sent', 'read', 'clicked')
-    search_fields = ('subject', 'content')
+    search_fields = ('subject', 'content', 'id')
     date_hierarchy = 'created_at'
-    readonly_fields = ('created_at', 'sent_at')
+    readonly_fields = ('id', 'created_at', 'sent_at')
     fieldsets = (
-        (None, {'fields': ('subject', 'content', 'sender', 'recipient')}),
+        (None, {'fields': ('id', 'subject', 'content', 'sender', 'recipient')}),
         (_('Status'), {'fields': ('sent', 'read', 'clicked')}),
         (_('Timestamps'), {'fields': ('created_at', 'sent_at')}),
     )

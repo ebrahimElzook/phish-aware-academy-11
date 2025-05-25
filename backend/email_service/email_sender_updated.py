@@ -3,15 +3,10 @@ from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
 from django.conf import settings
-from django.views.decorators.csrf import ensure_csrf_cookie
-from rest_framework.decorators import api_view, permission_classes
-from rest_framework.permissions import IsAuthenticated
-from .models import CSWordEmailServ, EmailTemplate
-from .serializers import CSWordEmailServSerializer, EmailTemplateSerializer
-from accounts.models import Email, User
+from bs4 import BeautifulSoup
 import json
 import logging
-from bs4 import BeautifulSoup
+from .email_tracker import add_tracking_pixel, add_link_tracking
 
 logger = logging.getLogger(__name__)
 
@@ -66,6 +61,7 @@ def send_email(request):
         
         # Get active email configuration from database
         try:
+            from .models import CSWordEmailServ
             email_config = CSWordEmailServ.objects.filter(is_active=True).first()
             
             if not email_config:
@@ -88,16 +84,13 @@ def send_email(request):
             if not from_email or from_email == 'default':
                 from_email = email_config.host_user
             
-            # Add tracking pixel to HTML content if email_id is provided
+            # Add tracking to HTML content if email_id is provided
             if email_id:
-                # Get the base URL from settings or use a default
-                base_url = getattr(settings, 'FRONTEND_URL', 'http://localhost:8000')
-                tracking_pixel = f'<img src="{base_url}/api/email/mark-read/{email_id}/" width="1" height="1" alt="" style="display:none;">\n'                
-                # Add tracking pixel at the end of the body
-                if '</body>' in body:
-                    body = body.replace('</body>', f'{tracking_pixel}</body>')
-                else:
-                    body = f'{body}{tracking_pixel}'
+                # First add link tracking to track clicks
+                body = add_link_tracking(body, email_id)
+                
+                # Then add a tracking pixel to track opens
+                body = add_tracking_pixel(body, email_id)
             
             # Create a plain text version of the message (fallback for email clients that don't support HTML)
             plain_text_message = body.replace('<br>', '\n').replace('<p>', '').replace('</p>', '\n\n')
@@ -153,56 +146,3 @@ def send_email(request):
             {'error': 'An unexpected error occurred'},
             status=500
         )
-
-@csrf_exempt
-@require_http_methods(['GET', 'OPTIONS'])
-def get_email_configurations(request):
-    """
-    API endpoint to get all email configurations for the frontend dropdown menu
-    """
-    # Handle OPTIONS request for CORS preflight
-    if request.method == 'OPTIONS':
-        response = JsonResponseWithCors({}, status=200)
-        return response
-        
-    try:
-        email_configs = CSWordEmailServ.objects.all()
-        serializer = CSWordEmailServSerializer(email_configs, many=True)
-        return JsonResponseWithCors(serializer.data, safe=False)
-    except Exception as e:
-        return JsonResponseWithCors({'error': str(e)}, status=500)
-
-@csrf_exempt
-@require_http_methods(['GET', 'OPTIONS'])
-def get_email_templates(request):
-    """
-    API endpoint to get email templates based on global flag and company
-    """
-    # Handle OPTIONS request for CORS preflight
-    if request.method == 'OPTIONS':
-        response = JsonResponseWithCors({}, status=200)
-        return response
-        
-    try:
-        # Get company slug from query parameters
-        company_slug = request.GET.get('company_slug', None)
-        
-        # If company_slug is provided, filter templates by company or global flag
-        if company_slug:
-            # Get templates that are either global or belong to the specified company
-            from accounts.models import Company
-            try:
-                company = Company.objects.get(slug=company_slug)
-                templates = EmailTemplate.objects.filter(is_global=True) | \
-                           EmailTemplate.objects.filter(company=company)
-            except Company.DoesNotExist:
-                # If company doesn't exist, return only global templates
-                templates = EmailTemplate.objects.filter(is_global=True)
-        else:
-            # If no company_slug is provided, return all templates
-            templates = EmailTemplate.objects.all()
-            
-        serializer = EmailTemplateSerializer(templates, many=True)
-        return JsonResponseWithCors(serializer.data, safe=False)
-    except Exception as e:
-        return JsonResponseWithCors({'error': str(e)}, status=500)

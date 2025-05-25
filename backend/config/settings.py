@@ -120,13 +120,20 @@ CORS_ALLOW_CREDENTIALS = True
 CORS_ORIGIN_WHITELIST = [
     'http://localhost:3000',  # Default React dev server
     'http://127.0.0.1:3000',  # Alternative localhost
+    'http://localhost:8000',  # Django dev server
+    'http://127.0.0.1:8000',  # Django dev server alternative
 ]
 
 # Use environment variable if available
 import os
 FRONTEND_URL = os.getenv('FRONTEND_URL', 'http://localhost:3000')
-CSRF_TRUSTED_ORIGINS = [FRONTEND_URL]
+BACKEND_URL = os.getenv('BACKEND_URL', 'http://localhost:8000')
+CSRF_TRUSTED_ORIGINS = [FRONTEND_URL, BACKEND_URL]
 CORS_ORIGIN_WHITELIST.append(FRONTEND_URL)
+
+# Email tracking settings
+EMAIL_TRACKING_ENABLED = True
+EMAIL_TRACKING_URL = BACKEND_URL
 
 # Session and CSRF settings for cross-origin requests
 SESSION_COOKIE_SAMESITE = 'Lax'
