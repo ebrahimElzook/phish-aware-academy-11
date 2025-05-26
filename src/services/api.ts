@@ -1,6 +1,15 @@
 // API service for communicating with the Django backend
 
-const API_URL = import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/api` : 'http://localhost:8000/api';
+// For production, always use the backend URL
+const isProduction = window.location.hostname.includes('railway.app');
+
+// Use the hardcoded production URL if we're in production, otherwise use the environment variable or localhost
+const API_URL = isProduction
+  ? 'https://phishaware-backend-production.up.railway.app/api'
+  : (import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/api` : 'http://localhost:8000/api');
+
+// Log the API URL for debugging
+console.log('API URL:', API_URL, 'isProduction:', isProduction);
 
 // Get company slug from URL path (e.g., /company-name/dashboard)
 const getCompanySlug = (): string | null => {
@@ -739,13 +748,24 @@ export const fetchWithAuth = async (url: string, options: RequestInit = {}): Pro
     throw new Error('No authentication token found');
   }
 
+  // Ensure the URL is absolute by checking if it starts with http or https
+  // If it doesn't, prepend the API_URL (without the /api part)
+  const absoluteUrl = url.startsWith('http') 
+    ? url 
+    : url.startsWith('/api') 
+      ? `https://phishaware-backend-production.up.railway.app${url}` 
+      : `${API_URL}${url.startsWith('/') ? '' : '/'}${url}`;
+  
+  console.log('Making authenticated request to:', absoluteUrl);
+
   const headers = {
     ...options.headers,
     'Authorization': `Bearer ${token}`,
+    'Content-Type': options.headers?.['Content-Type'] || 'application/json',
   };
 
   try {
-    const response = await fetch(url, {
+    const response = await fetch(absoluteUrl, {
       ...options,
       headers,
     });
@@ -766,7 +786,7 @@ export const fetchWithAuth = async (url: string, options: RequestInit = {}): Pro
 
     return response;
   } catch (error) {
-    console.error('Fetch with auth error:', error);
+    console.error('Fetch with auth error:', error, 'URL:', absoluteUrl);
     throw error;
   }
 };
