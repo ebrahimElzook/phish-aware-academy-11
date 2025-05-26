@@ -13,6 +13,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { userService, authService, User, Department } from '@/services/api';
+import SentEmailsList from '@/components/email/SentEmailsList';
 
 // Helper function to get CSRF token from cookies
 function getCookie(name: string) {
@@ -743,6 +744,13 @@ const Sender = () => {
           </form>
         </CardContent>
         </Card>
+        
+        {/* Add the SentEmailsList component to automatically check email read status */}
+        {currentUser && (
+          <SentEmailsList 
+            currentUser={currentUser}
+          />
+        )}
       </main>
       <Footer />
     </div>

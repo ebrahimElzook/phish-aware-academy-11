@@ -161,6 +161,13 @@ CSRF_TRUSTED_ORIGINS = [
     'https://phish-aware-academy-frontend-production.up.railway.app',
     'https://phishaware-backend-production.up.railway.app',
 ]
+
+# CSRF settings for cross-origin requests
+CSRF_COOKIE_SECURE = True
+CSRF_COOKIE_HTTPONLY = False  # Set to False to allow JavaScript access
+CSRF_COOKIE_SAMESITE = 'None'  # Allow cross-site requests
+CSRF_USE_SESSIONS = False  # Don't use sessions for CSRF
+CSRF_COOKIE_DOMAIN = '.up.railway.app'  # Allow sharing across Railway subdomains
 CORS_ORIGIN_WHITELIST.append(FRONTEND_URL)
 
 # Email tracking settings

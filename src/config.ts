@@ -1,8 +1,17 @@
 // API Configuration
-// Using relative path since we're using Vite proxy
-const API_BASE_PATH = '/api';
+// Determine if we're in production environment
+const isProduction = window.location.hostname.includes('railway.app');
 
-export const EMAIL_API_ENDPOINT = `${API_BASE_PATH}/email/send/`;
-export const EMAIL_SAVE_API_ENDPOINT = `${API_BASE_PATH}/email/save/`;
-export const EMAIL_CONFIGS_API_ENDPOINT = `${API_BASE_PATH}/email/configurations/`;
-export const EMAIL_TEMPLATES_API_ENDPOINT = `${API_BASE_PATH}/email/templates/`;
+// Use absolute URL for production, relative path for development
+const API_BASE_URL = isProduction 
+  ? 'https://phishaware-backend-production.up.railway.app/api'
+  : '/api';
+
+// Log the base URL for debugging
+console.log('API Base URL:', API_BASE_URL);
+
+export const EMAIL_API_ENDPOINT = `${API_BASE_URL}/email/send/`;
+export const EMAIL_SAVE_API_ENDPOINT = `${API_BASE_URL}/email/save/`;
+export const EMAIL_CONFIGS_API_ENDPOINT = `${API_BASE_URL}/email/configurations/`;
+export const EMAIL_TEMPLATES_API_ENDPOINT = `${API_BASE_URL}/email/templates/`;
+export const EMAIL_SENT_API_ENDPOINT = `${API_BASE_URL}/email/sent-emails/`;
