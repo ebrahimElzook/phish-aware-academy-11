@@ -1,67 +1,85 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
-import { FileVideo, CheckCircle, XCircle } from 'lucide-react';
+import { FileVideo, CheckCircle, XCircle, Loader2 } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
+import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/contexts/AuthContext';
 
-// Mock video data with categories and authorization status
-const mockVideos = [
-  {
-    id: 'v1',
-    title: 'Security Basics Training',
-    category: 'Security',
-    thumbnail: 'https://images.unsplash.com/photo-1506744038136-46273834b3fb',
-    authorized: true
-  },
-  {
-    id: 'v2',
-    title: 'Password Management',
-    category: 'Security',
-    thumbnail: 'https://images.unsplash.com/photo-1500673922987-e212871fec22',
-    authorized: true
-  },
-  {
-    id: 'v3',
-    title: 'Social Engineering Awareness',
-    category: 'Awareness',
-    thumbnail: 'https://images.unsplash.com/photo-1465146344425-f00d5f5c8f07',
-    authorized: false
-  },
-  {
-    id: 'v4',
-    title: 'Data Protection 101',
-    category: 'Compliance',
-    thumbnail: 'https://images.unsplash.com/photo-1506744038136-46273834b3fb',
-    authorized: true
-  },
-  {
-    id: 'v5',
-    title: 'GDPR Training',
-    category: 'Compliance',
-    thumbnail: 'https://images.unsplash.com/photo-1500673922987-e212871fec22',
-    authorized: false
-  },
-  {
-    id: 'v6',
-    title: 'Secure Coding Practices',
-    category: 'Development',
-    thumbnail: 'https://images.unsplash.com/photo-1465146344425-f00d5f5c8f07',
-    authorized: true
-  }
-];
-
-// Get unique categories from video data
-const categories = ['All', ...Array.from(new Set(mockVideos.map(video => video.category)))];
+// Define the Course type
+interface Course {
+  id: number;
+  name: string;
+  type: string;
+  description: string;
+  video_url?: string;
+  thumbnail_url?: string;
+  created_at: string;
+  updated_at: string;
+}
 
 export const VideoLibrary = () => {
+  const [courses, setCourses] = useState<Course[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const { toast } = useToast();
+  useAuth(); // We only need this to ensure user is authenticated
 
-  // Filter videos based on selected category
-  const filteredVideos = selectedCategory === 'All' 
-    ? mockVideos 
-    : mockVideos.filter(video => video.category === selectedCategory);
+  // Fetch courses from the API
+  useEffect(() => {
+    const fetchCourses = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        if (!token) {
+          throw new Error('No authentication token found');
+        }
+        
+        const response = await fetch('http://localhost:8000/api/courses/courses/list_with_videos/', {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to fetch courses');
+        }
+
+        const data = await response.json();
+        setCourses(data);
+      } catch (error) {
+        console.error('Error fetching courses:', error);
+        toast({
+          title: 'Error',
+          description: 'Failed to load courses. Please try again later.',
+          variant: 'destructive',
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchCourses();
+  }, [toast]);
+
+  // Get unique categories from courses
+  const categories = ['All', ...Array.from(new Set(courses.map(course => course.type)))];
+
+  // Filter courses based on selected category
+  const filteredCourses = selectedCategory === 'All' 
+    ? courses 
+    : courses.filter(course => course.type === selectedCategory);
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <Loader2 className="h-8 w-8 animate-spin text-[#907527]" />
+        <span className="ml-2">Loading courses...</span>
+      </div>
+    );
+  }
 
   return (
     <Card className="w-full">
@@ -91,40 +109,53 @@ export const VideoLibrary = () => {
           
           <div className="flex gap-4">
             <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 flex items-center gap-1">
-              <CheckCircle className="h-3 w-3" /> Authorized
-            </Badge>
-            <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200 flex items-center gap-1">
-              <XCircle className="h-3 w-3" /> Not Authorized
+              <CheckCircle className="h-3 w-3" /> Available
             </Badge>
           </div>
         </div>
         
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredVideos.map(video => (
-            <div key={video.id} className="relative group overflow-hidden rounded-lg border hover:shadow-md transition-shadow">
-              <div className="aspect-video relative overflow-hidden bg-gray-100">
-                <img 
-                  src={video.thumbnail} 
-                  alt={video.title} 
-                  className="w-full h-full object-cover"
-                />
-                <div className="absolute top-2 right-2">
-                  {video.authorized ? (
-                    <Badge className="bg-green-500 hover:bg-green-600 text-white">Authorized</Badge>
+        {filteredCourses.length > 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {filteredCourses.map(course => (
+              <div key={course.id} className="relative group overflow-hidden rounded-lg border hover:shadow-md transition-shadow">
+                <div className="aspect-video relative overflow-hidden bg-gray-100">
+                  {course.thumbnail_url ? (
+                    <img 
+                      src={course.thumbnail_url} 
+                      alt={course.name} 
+                      className="w-full h-full object-cover"
+                    />
                   ) : (
-                    <Badge className="bg-red-500 hover:bg-red-600 text-white">Not Authorized</Badge>
+                    <div className="w-full h-full bg-gray-200 flex items-center justify-center">
+                      <FileVideo className="h-12 w-12 text-gray-400" />
+                    </div>
                   )}
                 </div>
-              </div>
-              <div className="p-3">
-                <h3 className="font-medium truncate">{video.title}</h3>
-                <div className="flex items-center justify-between mt-2">
-                  <Badge variant="outline">{video.category}</Badge>
+                <div className="p-3">
+                  <h3 className="font-medium truncate">{course.name}</h3>
+                  <div className="flex items-center justify-between mt-2">
+                    <Badge variant="outline">{course.type}</Badge>
+                    {course.video_url && (
+                      <a 
+                        href={course.video_url} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="text-sm text-blue-600 hover:underline"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        Watch Video
+                      </a>
+                    )}
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        ) : (
+          <div className="text-center py-12">
+            <p className="text-gray-500">No courses found. Please check back later.</p>
+          </div>
+        )}
       </CardContent>
     </Card>
   );
