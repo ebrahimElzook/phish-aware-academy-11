@@ -103,6 +103,13 @@ export interface NewUserData {
   role: string;
 }
 
+export interface BulkUploadResponse {
+  created_users: User[];
+  errors: string[];
+  total_created: number;
+  total_errors: number;
+}
+
 export const companyService = {
   getCompanies: async (): Promise<Company[]> => {
     try {
@@ -524,7 +531,7 @@ export const userService = {
   },
 
   // Upload users in bulk via Excel/CSV file
-  uploadUsersBulk: async (formData: FormData): Promise<User[]> => {
+  uploadUsersBulk: async (formData: FormData): Promise<BulkUploadResponse> => {
     const token = localStorage.getItem('token');
     
     if (!token) {
@@ -546,6 +553,9 @@ export const userService = {
         throw new Error('Company context is required to upload users');
       }
       
+      console.log('Uploading users to endpoint:', endpoint);
+      console.log('Form data contains file:', formData.has('file'));
+      
       const response = await fetch(endpoint, {
         method: 'POST',
         headers: {
@@ -556,9 +566,18 @@ export const userService = {
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.detail || 'Failed to upload users');
+        console.error('Upload response not OK:', response.status, response.statusText);
+        try {
+          const errorData = await response.json();
+          console.error('Error data:', errorData);
+          throw new Error(errorData.detail || 'Failed to upload users');
+        } catch (e) {
+          console.error('Could not parse error response as JSON');
+          throw new Error(`Failed to upload users: ${response.status} ${response.statusText}`);
+        }
       }
+      
+      console.log('Upload successful, parsing response...');
 
       return await response.json();
     } catch (error) {
