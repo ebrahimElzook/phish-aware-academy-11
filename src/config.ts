@@ -3,12 +3,9 @@
 const isProduction = window.location.hostname.includes('railway.app');
 
 // Use absolute URL for production, relative path for development
-const API_BASE_URL = isProduction 
+export const API_BASE_URL = isProduction 
   ? 'https://phishaware-backend-production.up.railway.app/api'
   : '/api';
-
-// Log the base URL for debugging
-console.log('API Base URL:', API_BASE_URL);
 
 export const EMAIL_API_ENDPOINT = `${API_BASE_URL}/email/send/`;
 export const EMAIL_SAVE_API_ENDPOINT = `${API_BASE_URL}/email/save/`;

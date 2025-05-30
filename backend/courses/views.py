@@ -12,11 +12,15 @@ class CourseViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
-        # Temporarily returning all courses for testing
-        # TODO: Re-enable company filtering after testing
-        # company = self.request.user.company
-        # return Course.objects.filter(companies=company)
-        return Course.objects.all()
+        # Get the current company from the request
+        company = getattr(self.request.user, 'company', None)
+        
+        if company:
+            # Return only courses associated with the user's company
+            return Course.objects.filter(companies=company)
+        else:
+            # If no company is associated with the user, return an empty queryset
+            return Course.objects.none()
 
     @action(detail=False, methods=['get'])
     def list_with_videos(self, request):
@@ -24,7 +28,20 @@ class CourseViewSet(viewsets.ModelViewSet):
         List all courses with their video URLs
         """
         try:
+            # Debug information
+            print(f"User: {request.user.email if hasattr(request.user, 'email') else 'Anonymous'}") 
+            print(f"Company: {request.user.company.name if hasattr(request.user, 'company') else 'No company'}") 
+            
+            # Get all courses for debugging
+            all_courses = Course.objects.all()
+            print(f"Total courses in database: {all_courses.count()}")
+            for course in all_courses:
+                print(f"Course: {course.name}, Companies: {[c.name for c in course.companies.all()]}")
+            
+            # Get filtered courses
             courses = self.get_queryset()
+            print(f"Filtered courses count: {courses.count()}")
+            
             serializer = self.get_serializer(courses, many=True)
             
             # Add full video and thumbnail URLs to the response

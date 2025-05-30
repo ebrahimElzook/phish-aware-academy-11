@@ -46,3 +46,7 @@ class Course(models.Model):
     
     def __str__(self):
         return self.name
+        
+    def is_available_for_company(self, company):
+        """Check if this course is available for a specific company"""
+        return self.companies.filter(id=company.id).exists()

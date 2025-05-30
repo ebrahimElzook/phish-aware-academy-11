@@ -8,9 +8,6 @@ const API_URL = isProduction
   ? 'https://phishaware-backend-production.up.railway.app/api'
   : (import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/api` : 'http://localhost:8000/api');
 
-// Log the API URL for debugging
-console.log('API URL:', API_URL, 'isProduction:', isProduction);
-
 // Get company slug from URL path (e.g., /company-name/dashboard)
 const getCompanySlug = (): string | null => {
   // Special case: if we're on the unauthorized route, don't treat it as a company

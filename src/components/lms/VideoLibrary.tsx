@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
+import { API_BASE_URL } from '@/config';
 
 // Define the Course type
 interface Course {
@@ -36,7 +37,7 @@ export const VideoLibrary = () => {
           throw new Error('No authentication token found');
         }
         
-        const response = await fetch('http://localhost:8000/api/courses/courses/list_with_videos/', {
+        const response = await fetch(`${API_BASE_URL}/courses/courses/list_with_videos/`, {
           headers: {
             'Authorization': `Bearer ${token}`,
             'Content-Type': 'application/json',
@@ -106,12 +107,6 @@ export const VideoLibrary = () => {
               </SelectContent>
             </Select>
           </div>
-          
-          <div className="flex gap-4">
-            <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 flex items-center gap-1">
-              <CheckCircle className="h-3 w-3" /> Available
-            </Badge>
-          </div>
         </div>
         
         {filteredCourses.length > 0 ? (
@@ -152,8 +147,10 @@ export const VideoLibrary = () => {
             ))}
           </div>
         ) : (
-          <div className="text-center py-12">
-            <p className="text-gray-500">No courses found. Please check back later.</p>
+          <div className="text-center py-12 space-y-4">
+            <FileVideo className="h-12 w-12 text-gray-400 mx-auto" />
+            <p className="text-gray-500">No courses are available for your company.</p>
+            <p className="text-sm text-gray-400">Courses need to be assigned to your company by an administrator.</p>
           </div>
         )}
       </CardContent>
