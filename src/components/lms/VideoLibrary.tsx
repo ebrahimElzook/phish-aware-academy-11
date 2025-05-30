@@ -52,8 +52,6 @@ export const VideoLibrary = () => {
           `${API_BASE_URL}/courses/courses/list_with_videos/?company_slug=${companySlug}` : 
           `${API_BASE_URL}/courses/courses/list_with_videos/`;
         
-        console.log(`Fetching courses with URL: ${url}`);
-        
         const response = await fetch(url, {
           headers: {
             'Authorization': `Bearer ${token}`,
