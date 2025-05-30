@@ -37,7 +37,24 @@ export const VideoLibrary = () => {
           throw new Error('No authentication token found');
         }
         
-        const response = await fetch(`${API_BASE_URL}/courses/courses/list_with_videos/`, {
+        // Extract company slug from URL path
+        const pathParts = window.location.pathname.split('/');
+        let companySlug = '';
+        
+        // If the path starts with a company slug (not admin, api, static, media)
+        if (pathParts.length > 1 && pathParts[1] && 
+            !['admin', 'api', 'static', 'media'].includes(pathParts[1])) {
+          companySlug = pathParts[1];
+        }
+        
+        // Add company_slug as query parameter if available
+        const url = companySlug ? 
+          `${API_BASE_URL}/courses/courses/list_with_videos/?company_slug=${companySlug}` : 
+          `${API_BASE_URL}/courses/courses/list_with_videos/`;
+        
+        console.log(`Fetching courses with URL: ${url}`);
+        
+        const response = await fetch(url, {
           headers: {
             'Authorization': `Bearer ${token}`,
             'Content-Type': 'application/json',

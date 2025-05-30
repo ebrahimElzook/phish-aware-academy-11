@@ -13,13 +13,43 @@ class CourseViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         # Get the current company from the request
-        company = getattr(self.request.user, 'company', None)
+        user = self.request.user
         
+        # For super admins
+        if user.role == 'SUPER_ADMIN':
+            # Priority 1: Check for company_slug in query parameters (from frontend)
+            if 'company_slug' in self.request.query_params:
+                company_slug = self.request.query_params.get('company_slug')
+                print(f"Super admin using company_slug from query params: {company_slug}")
+                from accounts.models import Company
+                try:
+                    company = Company.objects.get(slug=company_slug)
+                    print(f"Found company: {company.name}")
+                    return Course.objects.filter(companies=company)
+                except Company.DoesNotExist:
+                    print(f"Company with slug {company_slug} not found")
+                    # If company not found, return empty queryset
+                    return Course.objects.none()
+            
+            # Priority 2: Check if there's a company in the request (set by middleware)
+            if hasattr(self.request, 'company') and self.request.company:
+                print(f"Super admin using company from request: {self.request.company.name}")
+                return Course.objects.filter(companies=self.request.company)
+            
+            # If no specific company context is found, return empty queryset
+            # This ensures super admins only see courses in a specific company context
+            print("No company context found for super admin, returning empty queryset")
+            return Course.objects.none()
+        
+        # For regular users, use their assigned company
+        company = getattr(user, 'company', None)
         if company:
             # Return only courses associated with the user's company
+            print(f"Regular user viewing company: {company.name}")
             return Course.objects.filter(companies=company)
         else:
             # If no company is associated with the user, return an empty queryset
+            print("No company found for user, returning empty queryset")
             return Course.objects.none()
 
     @action(detail=False, methods=['get'])
@@ -30,7 +60,18 @@ class CourseViewSet(viewsets.ModelViewSet):
         try:
             # Debug information
             print(f"User: {request.user.email if hasattr(request.user, 'email') else 'Anonymous'}") 
-            print(f"Company: {request.user.company.name if hasattr(request.user, 'company') else 'No company'}") 
+            print(f"User role: {request.user.role}")
+            print(f"Request path: {request.path}")
+            print(f"Query params: {request.query_params}")
+            
+            # Safely get company information
+            company_name = "No company"
+            if hasattr(request.user, 'company') and request.user.company:
+                company_name = request.user.company.name
+            elif hasattr(request, 'company') and request.company:
+                company_name = request.company.name
+                
+            print(f"Company: {company_name}")
             
             # Get all courses for debugging
             all_courses = Course.objects.all()
