@@ -166,7 +166,7 @@ CORS_ORIGIN_WHITELIST = [
 
 # Use environment variable if available
 import os
-FRONTEND_URL = os.getenv('FRONTEND_URL', 'http://localhost:3000')
+FRONTEND_URL = os.getenv('FRONTEND_URL', 'http://localhost:8080')
 BACKEND_URL = os.getenv('BACKEND_URL', 'http://localhost:8000')
 CSRF_TRUSTED_ORIGINS = [
     FRONTEND_URL, 

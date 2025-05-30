@@ -11,6 +11,7 @@ from .serializers import UserSerializer
 import io
 import csv
 import uuid
+from email_service.password_reset import send_password_reset_email, generate_random_password
 
 User = get_user_model()
 
@@ -129,9 +130,10 @@ class UserManagementView(APIView):
                     data['username'] = f"{base_username}{counter}"
                     counter += 1
             
-            # Generate a default password if not provided
-            if 'password' not in data or not data['password']:
-                data['password'] = 'ChangeMe123!'
+            # Generate a random password regardless of whether one was provided
+            # This ensures security by always using a strong random password
+            original_password = generate_random_password(12)
+            data['password'] = original_password
             
             # Set the company
             data['company'] = company.id
@@ -171,11 +173,27 @@ class UserManagementView(APIView):
                     
                     user.company_email_id = temp_id
                     
+                    # We've already generated a random password earlier
+                    # original_password = data['password']
+                    
                     # Set the password and save
-                    user.set_password(data['password'])
+                    user.set_password(original_password)
                     user.save()
                     
-                    return Response(UserSerializer(user).data, status=status.HTTP_201_CREATED)
+                    # Send password reset email
+                    try:
+                        email_sent = send_password_reset_email(user, original_password, company_slug)
+                        response_data = UserSerializer(user).data
+                        response_data['email_sent'] = email_sent
+                        
+                        if not email_sent:
+                            response_data['email_error'] = "Password reset email could not be sent, but user was created successfully."
+                    except Exception as e:
+                        response_data = UserSerializer(user).data
+                        response_data['email_sent'] = False
+                        response_data['email_error'] = f"Error sending email: {str(e)}"
+                    
+                    return Response(response_data, status=status.HTTP_201_CREATED)
                 except Exception as e:
                     return Response(
                         {"detail": f"Error creating user: {str(e)}"},
@@ -258,8 +276,9 @@ class UserManagementView(APIView):
                             results['errors'].append(f"User with email {row['email']} already exists in this company")
                             continue
                         
-                        # Generate default password if not provided
-                        password = row.get('password', 'ChangeMe123!')
+                        # Generate a random secure password regardless of what was provided
+                        # This ensures security by always using a strong random password
+                        password = generate_random_password(12)
                         
                         # Get or create department
                         department_name = row.get('department', 'IT')
@@ -301,6 +320,14 @@ class UserManagementView(APIView):
                             # Set the password and save
                             user.set_password(password)
                             user.save()
+                            
+                            # Send password reset email
+                            try:
+                                email_sent = send_password_reset_email(user, password, company_slug)
+                                if not email_sent:
+                                    results['errors'].append(f"User {row['email']} created but password reset email could not be sent.")
+                            except Exception as e:
+                                results['errors'].append(f"User {row['email']} created but error sending email: {str(e)}")
                             
                             results['created'] += 1
                         except Exception as e:
