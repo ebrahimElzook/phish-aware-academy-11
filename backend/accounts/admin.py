@@ -9,17 +9,43 @@ class CompanyAdmin(admin.ModelAdmin):
     list_display = ('name', 'created_at', 'updated_at')
     search_fields = ('name',)
 
-# Simple form without dynamic filtering to avoid 500 errors in production
+# Custom form to enforce email uniqueness within a company
 class UserAdminForm(forms.ModelForm):
     class Meta:
         model = User
         fields = '__all__'
+        
+    def clean(self):
+        cleaned_data = super().clean()
+        email = cleaned_data.get('email')
+        company = cleaned_data.get('company')
+        
+        # Check if a user with this email already exists in this company
+        if email and company:
+            # Get the current user's ID if it exists (for edit operations)
+            instance_id = self.instance.id if self.instance and self.instance.pk else None
+            
+            # Query for users with the same email and company, excluding the current user
+            existing_users = User.objects.filter(email=email, company=company)
+            if instance_id:
+                existing_users = existing_users.exclude(id=instance_id)
+                
+            if existing_users.exists():
+                self.add_error('email', f'A user with this email already exists in the company {company.name}')
+                
+        return cleaned_data
 
 # Simplified UserAdmin without custom Media class to avoid 500 errors
 class UserAdmin(BaseUserAdmin):
     form = UserAdminForm
     model = User
-    list_display = ('email', 'username', 'first_name', 'last_name', 'role', 'is_staff')
+    list_display = ('email_with_company', 'username', 'first_name', 'last_name', 'role', 'is_staff')
+    
+    def email_with_company(self, obj):
+        if obj.company:
+            return f"{obj.email} ({obj.company.name})"
+        return obj.email
+    email_with_company.short_description = 'Email (Company)'
     list_filter = ('is_staff', 'is_superuser', 'role')
     fieldsets = (
         (None, {'fields': ('email', 'password')}),

@@ -35,39 +35,80 @@ class CustomTokenObtainPairView(TokenObtainPairView):
         # Check if we're in a company-specific context
         company_slug = kwargs.get('company_slug')
         
-        response = super().post(request, *args, **kwargs)
+        # Get the email from the request data
+        email = request.data.get('email')
+        password = request.data.get('password')
         
-        # If we have a company slug, verify the user has access to this company
-        if company_slug and response.status_code == 200:
+        if company_slug and email and password:
             try:
                 # Get the company
                 company = Company.objects.get(slug=company_slug)
                 
-                # Get the user from the token response
-                user_id = response.data.get('user', {}).get('id')
-                user = User.objects.get(id=user_id)
+                # Find user with this email and company
+                user = User.objects.filter(email=email, company=company).first()
                 
-                # Check if user belongs to this company or is a super admin
-                if user.role != 'SUPER_ADMIN' and (not user.company or user.company.slug != company_slug):
+                if not user:
+                    # Check if user is a super admin (they can log in to any company)
+                    super_admin = User.objects.filter(email=email, role='SUPER_ADMIN').first()
+                    if super_admin:
+                        user = super_admin
+                    else:
+                        return Response(
+                            {"detail": "No account found with this email for this company."},
+                            status=status.HTTP_401_UNAUTHORIZED
+                        )
+                
+                # Authenticate with username and password
+                auth_user = authenticate(username=user.username, password=password)
+                
+                if not auth_user:
                     return Response(
-                        {"detail": "You don't have access to this company portal."},
-                        status=status.HTTP_403_FORBIDDEN
+                        {"detail": "Invalid credentials."},
+                        status=status.HTTP_401_UNAUTHORIZED
                     )
                 
-                # Add company info to the response
-                response.data['company'] = {
-                    'id': company.id,
-                    'name': company.name,
-                    'slug': company.slug
-                }
+                # Create a mutable copy of the request data
+                mutable_data = request.data.copy()
+                mutable_data['username'] = user.username
+                
+                # Create a new request with the updated data
+                request._full_data = mutable_data
                 
             except Company.DoesNotExist:
                 return Response(
                     {"detail": "Company not found."},
                     status=status.HTTP_404_NOT_FOUND
                 )
+            except Exception as e:
+                return Response(
+                    {"detail": f"Authentication error: {str(e)}"},
+                    status=status.HTTP_500_INTERNAL_SERVER_ERROR
+                )
         
-        return response
+        try:
+            response = super().post(request, *args, **kwargs)
+            
+            # If we have a company slug, add company info to the response
+            if company_slug and response.status_code == 200:
+                try:
+                    company = Company.objects.get(slug=company_slug)
+                    
+                    # Add company info to the response
+                    response.data['company'] = {
+                        'id': company.id,
+                        'name': company.name,
+                        'slug': company.slug
+                    }
+                    
+                except Company.DoesNotExist:
+                    pass
+            
+            return response
+        except Exception as e:
+            return Response(
+                {"detail": f"Authentication error: {str(e)}"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
 
 class UserProfileView(APIView):
     permission_classes = [permissions.IsAuthenticated]

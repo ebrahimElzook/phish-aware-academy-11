@@ -166,21 +166,32 @@ export const authService = {
         body: JSON.stringify({ email, password }),
       });
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.detail || 'Login failed');
+      // Handle non-JSON responses (like 500 errors that return HTML)
+      const contentType = response.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        console.error('Server returned non-JSON response:', await response.text());
+        throw new Error('Server error. Please try again later.');
       }
 
       const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.detail || 'Login failed');
+      }
       
       // Store the token in localStorage
       localStorage.setItem('token', data.access);
       localStorage.setItem('refreshToken', data.refresh);
       
       return data;
-    } catch (error) {
+    } catch (error: any) {
       console.error('Login error:', error);
-      throw error;
+      // Make sure we always throw an Error object with a message
+      if (error instanceof Error) {
+        throw error;
+      } else {
+        throw new Error(error?.toString() || 'Login failed');
+      }
     }
   },
 
@@ -515,12 +526,20 @@ export const userService = {
         body: JSON.stringify(userData),
       });
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.detail || 'Failed to add user');
+      // Handle non-JSON responses (like 500 errors that return HTML)
+      const contentType = response.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        console.error('Server returned non-JSON response:', await response.text());
+        throw new Error('Server error. Please try again later.');
       }
 
-      return await response.json();
+      const data = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(data.detail || 'Failed to add user');
+      }
+
+      return data;
     } catch (error) {
       console.error('Add user error:', error);
       throw error;

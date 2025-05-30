@@ -15,8 +15,8 @@ class UserSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = User
-        fields = ('id', 'username', 'email', 'first_name', 'last_name', 'role', 'company', 'department', 'department_name', 'is_active')
-        read_only_fields = ('id', 'role', 'company')
+        fields = ('id', 'uuid', 'username', 'email', 'company_email_id', 'first_name', 'last_name', 'role', 'company', 'department', 'department_name', 'is_active')
+        read_only_fields = ('id', 'uuid', 'company_email_id', 'role', 'company')
     
     def get_department_name(self, obj):
         if obj.department:
@@ -29,7 +29,25 @@ class CompanySerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['username'].required = False
+        self.fields['email'] = serializers.EmailField(required=False)
+
     def validate(self, attrs):
+        # If email is provided but username is not, try to find the user by email
+        if 'email' in attrs and not attrs.get('username'):
+            email = attrs.pop('email')
+            try:
+                user = User.objects.get(email=email)
+                attrs['username'] = user.username
+            except User.DoesNotExist:
+                pass
+            except User.MultipleObjectsReturned:
+                # If multiple users have the same email, we need the company context
+                # This will be handled in the view
+                pass
+                
         data = super().validate(attrs)
         data['user'] = UserSerializer(self.user).data
         return data

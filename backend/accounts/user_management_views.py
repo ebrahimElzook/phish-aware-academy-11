@@ -10,6 +10,7 @@ from .serializers import UserSerializer
 # import pandas as pd
 import io
 import csv
+import uuid
 
 User = get_user_model()
 
@@ -109,6 +110,13 @@ class UserManagementView(APIView):
                     defaults={'name': 'IT', 'company': company}
                 )
             
+            # Check if user with this email already exists in this company
+            if User.objects.filter(email=data['email'], company=company).exists():
+                return Response(
+                    {"detail": f"A user with email {data['email']} already exists in this company."},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+                
             # Generate a username if not provided
             if 'username' not in data or not data['username']:
                 # Create username from email
@@ -134,17 +142,45 @@ class UserManagementView(APIView):
             # Create the user
             serializer = UserSerializer(data=data)
             if serializer.is_valid():
-                user = User.objects.create_user(
-                    username=data['username'],
-                    email=data['email'],
-                    password=data['password'],
-                    first_name=data['first_name'],
-                    last_name=data['last_name'],
-                    role=data['role'],
-                    company=company,
-                    department=department
-                )
-                return Response(UserSerializer(user).data, status=status.HTTP_201_CREATED)
+                try:
+                    # Create user object but don't save it yet
+                    user = User(
+                        username=data['username'],
+                        email=data['email'],
+                        first_name=data['first_name'],
+                        last_name=data['last_name'],
+                        role=data['role'],
+                        company=company,
+                        department=department
+                    )
+                    
+                    # Generate UUID and company_email_id before saving
+                    if not user.uuid:
+                        user.uuid = uuid.uuid4()
+                    
+                    # Generate a unique company_email_id
+                    company_slug = company.slug if company.slug else str(company.id)
+                    base_id = f"{user.email}:{company_slug}"
+                    
+                    # Add a unique suffix if needed
+                    counter = 0
+                    temp_id = base_id
+                    while User.objects.filter(company_email_id=temp_id).exists():
+                        counter += 1
+                        temp_id = f"{base_id}:{counter}"
+                    
+                    user.company_email_id = temp_id
+                    
+                    # Set the password and save
+                    user.set_password(data['password'])
+                    user.save()
+                    
+                    return Response(UserSerializer(user).data, status=status.HTTP_201_CREATED)
+                except Exception as e:
+                    return Response(
+                        {"detail": f"Error creating user: {str(e)}"},
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
         
         return Response(
@@ -215,6 +251,12 @@ class UserManagementView(APIView):
                             while User.objects.filter(username=username).exists():
                                 username = f"{base_username}{counter}"
                                 counter += 1
+                                
+                        # Check if user with this email already exists in this company
+                        if User.objects.filter(email=row['email'], company=company).exists():
+                            results['failed'] += 1
+                            results['errors'].append(f"User with email {row['email']} already exists in this company")
+                            continue
                         
                         # Generate default password if not provided
                         password = row.get('password', 'ChangeMe123!')
@@ -227,19 +269,44 @@ class UserManagementView(APIView):
                             defaults={'name': department_name, 'company': company}
                         )
                         
-                        # Create the user
-                        user = User.objects.create_user(
-                            username=username,
-                            email=row['email'],
-                            password=password,
-                            first_name=row['first_name'],
-                            last_name=row['last_name'],
-                            role=row['role'],
-                            company=company,
-                            department=department
-                        )
-                        
-                        results['created'] += 1
+                        try:
+                            # Create user object but don't save it yet
+                            user = User(
+                                username=username,
+                                email=row['email'],
+                                first_name=row['first_name'],
+                                last_name=row['last_name'],
+                                role=row['role'],
+                                company=company,
+                                department=department
+                            )
+                            
+                            # Generate UUID and company_email_id before saving
+                            if not user.uuid:
+                                user.uuid = uuid.uuid4()
+                            
+                            # Generate a unique company_email_id
+                            company_slug = company.slug if company.slug else str(company.id)
+                            base_id = f"{user.email}:{company_slug}"
+                            
+                            # Add a unique suffix if needed
+                            counter = 0
+                            temp_id = base_id
+                            while User.objects.filter(company_email_id=temp_id).exists():
+                                counter += 1
+                                temp_id = f"{base_id}:{counter}"
+                            
+                            user.company_email_id = temp_id
+                            
+                            # Set the password and save
+                            user.set_password(password)
+                            user.save()
+                            
+                            results['created'] += 1
+                        except Exception as e:
+                            results['failed'] += 1
+                            results['errors'].append(f"Error creating user {row['email']}: {str(e)}")
+                            continue
                         
                     except Exception as e:
                         results['failed'] += 1
