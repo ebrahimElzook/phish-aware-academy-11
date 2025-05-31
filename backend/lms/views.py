@@ -1,8 +1,15 @@
 from django.shortcuts import render
 from django.http import JsonResponse
 from django.contrib.admin.views.decorators import staff_member_required
-from courses.models import Course
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
+from rest_framework import status
+from courses.models import Course, Question
 from accounts.models import Company, User
+from .models import LMSCampaign, LMSCampaignUser
+from django.utils import timezone
+import json
 
 
 @staff_member_required
@@ -41,3 +48,127 @@ def get_users_for_company(request):
         return JsonResponse(data, safe=False)
     except Company.DoesNotExist:
         return JsonResponse([], safe=False)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_lms_campaigns(request):
+    """API endpoint to get LMS campaigns for the current user's company"""
+    user = request.user
+    print(f"[DEBUG] User requesting campaigns: {user.username} (ID: {user.id})")
+    
+    # Get the user's company
+    company = user.company
+    print(f"[DEBUG] User's company: {company}")
+    if not company:
+        print(f"[DEBUG] User does not belong to any company")
+        return Response({"error": "User does not belong to any company"}, status=status.HTTP_400_BAD_REQUEST)
+    
+    # Get campaigns for this company
+    campaigns = LMSCampaign.objects.filter(company=company)
+    print(f"[DEBUG] Found {campaigns.count()} campaigns for company {company}")
+    for c in campaigns:
+        print(f"[DEBUG] Campaign: {c.id} - {c.name}")
+    
+    # Format data for response
+    data = []
+    print(f"[DEBUG] Formatting {campaigns.count()} campaigns for response")
+    for campaign in campaigns:
+        # Get stats for this campaign
+        total_users = LMSCampaignUser.objects.filter(campaign=campaign).count()
+        completed_users = LMSCampaignUser.objects.filter(campaign=campaign, completed=True).count()
+        in_progress_users = LMSCampaignUser.objects.filter(campaign=campaign, started=True, completed=False).count()
+        not_started_users = total_users - completed_users - in_progress_users
+        
+        # Calculate average completion percentage
+        avg_completion = "0%"
+        if total_users > 0:
+            avg_completion = f"{int((completed_users / total_users) * 100)}%"
+        
+        # Format campaign data
+        campaign_data = {
+            "id": campaign.id,
+            "title": campaign.name,
+            "course": campaign.course.name if campaign.course else "",
+            "audience": "All Employees",  # This could be more specific based on your requirements
+            "videoCount": 1,  # This could be calculated based on course content
+            "startDate": campaign.start_date.strftime("%Y-%m-%d") if campaign.start_date else "",
+            "endDate": campaign.end_date.strftime("%Y-%m-%d") if campaign.end_date else "",
+            "stats": {
+                "totalEnrolled": total_users,
+                "completed": completed_users,
+                "inProgress": in_progress_users,
+                "notStarted": not_started_users,
+                "averageCompletion": avg_completion
+            }
+        }
+        data.append(campaign_data)
+    
+    return Response(data)
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def create_lms_campaign(request):
+    """API endpoint to create a new LMS campaign"""
+    user = request.user
+    
+    # Check if user has permission to create campaigns
+    if not user.is_staff:
+        return Response({"error": "You do not have permission to create campaigns"}, status=status.HTTP_403_FORBIDDEN)
+    
+    # Get the user's company
+    company = user.company
+    if not company:
+        return Response({"error": "User does not belong to any company"}, status=status.HTTP_400_BAD_REQUEST)
+    
+    # Get request data
+    try:
+        data = request.data
+        name = data.get('name')
+        course_id = data.get('course_id')
+        start_date = data.get('start_date')
+        end_date = data.get('end_date')
+        selected_users = data.get('selected_users', [])
+        
+        # Validate required fields
+        if not name or not course_id:
+            return Response({"error": "Name and course are required"}, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Get the course
+        try:
+            course = Course.objects.get(id=course_id)
+            # Verify course belongs to company
+            if not course.companies.filter(id=company.id).exists():
+                return Response({"error": "Course does not belong to your company"}, status=status.HTTP_400_BAD_REQUEST)
+        except Course.DoesNotExist:
+            return Response({"error": "Course not found"}, status=status.HTTP_404_NOT_FOUND)
+        
+        # Create the campaign
+        campaign = LMSCampaign.objects.create(
+            name=name,
+            course=course,
+            company=company,
+            created_by=user,
+            start_date=start_date,
+            end_date=end_date
+        )
+        
+        # Add selected users to the campaign
+        for user_id in selected_users:
+            try:
+                user = User.objects.get(id=user_id, company=company)
+                LMSCampaignUser.objects.create(campaign=campaign, user=user)
+            except User.DoesNotExist:
+                # Skip users that don't exist or don't belong to the company
+                continue
+        
+        # Return success response
+        return Response({
+            "success": True,
+            "campaign_id": campaign.id,
+            "message": "Campaign created successfully"
+        }, status=status.HTTP_201_CREATED)
+    
+    except Exception as e:
+        return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

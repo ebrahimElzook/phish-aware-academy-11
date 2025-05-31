@@ -30,7 +30,6 @@ import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { Checkbox } from '@/components/ui/checkbox';
 import axios from 'axios';
-import { useAuth } from '@/contexts/AuthContext';
 
 // Interface for courses from API
 interface Course {
@@ -46,7 +45,6 @@ interface User {
 
 export const CampaignCreator = () => {
   const { toast } = useToast();
-  const { isAuthenticated } = useAuth();
   const [open, setOpen] = React.useState<boolean>(false);
   const [campaignName, setCampaignName] = React.useState<string>("");
   const [startDate, setStartDate] = React.useState<Date>();
@@ -87,12 +85,7 @@ export const CampaignCreator = () => {
     try {
       setLoadingCourses(true);
       setError(null);
-      const token = localStorage.getItem('token');
-      const response = await axios.get('http://127.0.0.1:8000/get_courses_for_company/', {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
+      const response = await axios.get('/lms/get_courses_for_company/');
       setCourses(response.data);
     } catch (err) {
       console.error('Error fetching courses:', err);
@@ -112,12 +105,7 @@ export const CampaignCreator = () => {
     try {
       setLoadingUsers(true);
       setError(null);
-      const token = localStorage.getItem('token');
-      const response = await axios.get('http://127.0.0.1:8000/get_users_for_company/', {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
+      const response = await axios.get('/lms/get_users_for_company/');
       setUsers(response.data);
     } catch (err) {
       console.error('Error fetching users:', err);
@@ -182,12 +170,7 @@ export const CampaignCreator = () => {
     // Submit to API
     try {
       setIsSubmitting(true);
-      const token = localStorage.getItem('token');
-      await axios.post('http://127.0.0.1:8000/api/campaigns/create/', formData, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
+      await axios.post('/lms/api/campaigns/create/', formData);
       
       toast({
         title: "Campaign Created",
