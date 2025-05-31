@@ -57,15 +57,42 @@ def get_lms_campaigns(request):
     user = request.user
     print(f"[DEBUG] User requesting campaigns: {user.username} (ID: {user.id})")
     
+    # Check if user is a Super Admin
+    print(f"[DEBUG] User role: {getattr(user, 'role', 'No role attribute found')}")
+    print(f"[DEBUG] User object attributes: {dir(user)}")
+    
+    # Try to determine if user is a Super Admin
+    is_super_admin = False
+    if hasattr(user, 'role'):
+        # Check for 'SUPER_ADMIN' (correct case from User model)
+        is_super_admin = user.role == 'SUPER_ADMIN'
+        print(f"[DEBUG] Is super admin based on role: {is_super_admin}")
+    elif hasattr(user, 'is_superuser'):
+        is_super_admin = user.is_superuser
+        print(f"[DEBUG] Is super admin based on is_superuser: {is_super_admin}")
+    
+    print(f"[DEBUG] Final is_super_admin determination: {is_super_admin}")
+    
     # Get the user's company
     company = user.company
     print(f"[DEBUG] User's company: {company}")
-    if not company:
-        print(f"[DEBUG] User does not belong to any company")
-        return Response({"error": "User does not belong to any company"}, status=status.HTTP_400_BAD_REQUEST)
     
-    # Get campaigns for this company
-    campaigns = LMSCampaign.objects.filter(company=company)
+    # Handle Super Admins differently
+    if is_super_admin:
+        # For Super Admins, return all campaigns or an empty list
+        if not company:
+            # Return all campaigns for Super Admins without a company
+            campaigns = LMSCampaign.objects.all()
+        else:
+            # Return campaigns for the Super Admin's company if they have one
+            campaigns = LMSCampaign.objects.filter(company=company)
+    else:
+        # For regular users, require a company
+        if not company:
+            return Response({"error": "User does not belong to any company"}, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Get campaigns for this company
+        campaigns = LMSCampaign.objects.filter(company=company)
     print(f"[DEBUG] Found {campaigns.count()} campaigns for company {company}")
     for c in campaigns:
         print(f"[DEBUG] Campaign: {c.id} - {c.name}")
