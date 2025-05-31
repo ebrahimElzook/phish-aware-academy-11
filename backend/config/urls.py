@@ -8,6 +8,7 @@ urlpatterns = [
     path('api/auth/', include('accounts.urls')),
     path('api/email/', include('email_service.urls')),
     path('api/courses/', include('courses.urls')),  # Add courses API endpoints
+    path('', include('lms.urls')),  # Include lms URLs
 ]
 
 # Serve static and media files in development

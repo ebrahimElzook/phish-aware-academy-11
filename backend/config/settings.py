@@ -27,6 +27,7 @@ INSTALLED_APPS = [
     'accounts',
     'email_service',
     'courses',
+    'lms',
 ]
 
 MIDDLEWARE = [
