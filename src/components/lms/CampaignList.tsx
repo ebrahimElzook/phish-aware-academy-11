@@ -11,6 +11,7 @@ import {
 } from '@/components/ui/dialog';
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from '@/components/ui/table';
 import axios from 'axios';
+import API_ENDPOINTS, { getAuthHeaders } from '../../config/api';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -46,12 +47,9 @@ export const CampaignList = () => {
     const fetchCampaigns = async () => {
       try {
         setLoading(true);
-        // The correct URL based on Django's URL configuration
-        const token = localStorage.getItem('token');
-        const response = await axios.get('http://127.0.0.1:8000/api/campaigns/', {
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
+        // Use the centralized API configuration
+        const response = await axios.get(API_ENDPOINTS.CAMPAIGNS, {
+          headers: getAuthHeaders()
         });
         
         // Ensure campaigns is always an array

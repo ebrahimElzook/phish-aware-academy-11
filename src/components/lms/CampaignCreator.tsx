@@ -30,6 +30,7 @@ import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { Checkbox } from '@/components/ui/checkbox';
 import axios from 'axios';
+import API_ENDPOINTS, { getAuthHeaders } from '../../config/api';
 import { useAuth } from '@/contexts/AuthContext';
 
 // Interface for courses from API
@@ -87,11 +88,8 @@ export const CampaignCreator = () => {
     try {
       setLoadingCourses(true);
       setError(null);
-      const token = localStorage.getItem('token');
-      const response = await axios.get('http://127.0.0.1:8000/get_courses_for_company/', {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
+      const response = await axios.get(API_ENDPOINTS.COURSES, {
+        headers: getAuthHeaders()
       });
       setCourses(response.data);
     } catch (err) {
@@ -112,11 +110,8 @@ export const CampaignCreator = () => {
     try {
       setLoadingUsers(true);
       setError(null);
-      const token = localStorage.getItem('token');
-      const response = await axios.get('http://127.0.0.1:8000/get_users_for_company/', {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
+      const response = await axios.get(API_ENDPOINTS.USERS, {
+        headers: getAuthHeaders()
       });
       setUsers(response.data);
     } catch (err) {
@@ -182,11 +177,8 @@ export const CampaignCreator = () => {
     // Submit to API
     try {
       setIsSubmitting(true);
-      const token = localStorage.getItem('token');
-      await axios.post('http://127.0.0.1:8000/api/campaigns/create/', formData, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
+      await axios.post(API_ENDPOINTS.CREATE_CAMPAIGN, formData, {
+        headers: getAuthHeaders()
       });
       
       toast({
