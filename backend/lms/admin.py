@@ -68,7 +68,7 @@ class LMSCampaignAdminForm(forms.ModelForm):
 @admin.register(LMSCampaign)
 class LMSCampaignAdmin(admin.ModelAdmin):
     form = LMSCampaignAdminForm
-    list_display = ('name', 'course', 'company', 'created_by', 'created_at')
+    list_display = ('name', 'course', 'company', 'start_date', 'end_date', 'created_by', 'created_at')
     list_filter = ('company', 'course', 'created_at')
     search_fields = ('name', 'course__name', 'company__name')
     inlines = [QuestionSelectInline, LMSCampaignUserInline]
@@ -76,6 +76,11 @@ class LMSCampaignAdmin(admin.ModelAdmin):
     fieldsets = (
         (None, {
             'fields': ('name', 'company', 'course', 'created_by')
+        }),
+        ('Schedule', {
+            'fields': ('start_date', 'end_date'),
+            'classes': ('collapse',),
+            'description': 'Set the campaign schedule (optional)'
         }),
     )
     
