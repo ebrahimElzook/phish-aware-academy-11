@@ -66,10 +66,11 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   if (restrictUserRole && user.role?.toLowerCase() === 'user' && !adminRoles.includes(user.role?.toLowerCase())) {
     const currentPath = location.pathname.toLowerCase();
     
-    // Allow access only to training and profile pages
+    // Allow access only to employee-courses and profile pages
     const allowedPaths = [
-      '/lms-campaigns',
+      '/employee-courses',
       '/profile-settings'
+      // lms-campaigns is now restricted to admin users only
     ];
     
     // Check if the current path contains any of the allowed paths
@@ -80,8 +81,8 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
       const validCompanySlug = companySlug || localStorage.getItem('companySlug');
       
       if (validCompanySlug) {
-        // Redirect to training page if trying to access restricted path
-        return <Navigate to={`/${validCompanySlug}/lms-campaigns`} replace />;
+        // Redirect to employee-courses page if trying to access restricted path
+        return <Navigate to={`/${validCompanySlug}/employee-courses`} replace />;
       } else {
         // If no valid company slug, redirect to company selection
         return <Navigate to="/select-company" replace />;

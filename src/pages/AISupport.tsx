@@ -93,7 +93,7 @@ const AISupport = () => {
                     
                     <div className="mt-6">
                       <Button asChild className="bg-purple-600 hover:bg-purple-700">
-                        <Link to="/lms-campaigns">Create Training Video</Link>
+                        <Link to="/employee-courses">View My Courses</Link>
                       </Button>
                     </div>
                   </CardContent>

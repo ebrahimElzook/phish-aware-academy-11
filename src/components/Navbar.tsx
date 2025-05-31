@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { Link, useLocation, useParams } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
-import { Menu, BookOpen, FileText, BarChart, Users, Mail, LogOut, User, Send } from 'lucide-react';
+import { Menu, Book, BookOpen, FileText, BarChart, Users, Mail, LogOut, User, Send } from 'lucide-react';
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useAuth } from '@/contexts/AuthContext';
@@ -103,11 +103,21 @@ const Navbar = () => {
             </>
           )}
           
-          {/* Training link is shown to all users */}
-          <Link to={getLink("/lms-campaigns")} className={`transition-colors ${isActive("/lms-campaigns") ? "text-[#907527]" : "text-gray-700 hover:text-[#907527]"}`}>
+          {/* Training link is shown only to admin users */}
+          {hasAdminPrivileges && (
+            <Link to={getLink("/lms-campaigns")} className={`transition-colors ${isActive("/lms-campaigns") ? "text-[#907527]" : "text-gray-700 hover:text-[#907527]"}`}>
+              <div className="flex items-center gap-1">
+                <BookOpen className="h-4 w-4" />
+                <span>Training</span>
+              </div>
+            </Link>
+          )}
+          
+          {/* Employee Courses link is shown to all users */}
+          <Link to={getLink("/employee-courses")} className={`transition-colors ${isActive("/employee-courses") ? "text-[#907527]" : "text-gray-700 hover:text-[#907527]"}`}>
             <div className="flex items-center gap-1">
-              <BookOpen className="h-4 w-4" />
-              <span>Training</span>
+              <Book className="h-4 w-4" />
+              <span>My Courses</span>
             </div>
           </Link>
           
@@ -198,11 +208,21 @@ const Navbar = () => {
               </>
             )}
             
-            {/* Training link is shown to all users */}
-            <Link to={getLink("/lms-campaigns")} className={`transition-colors py-2 ${isActive("/lms-campaigns") ? "text-[#907527]" : "text-gray-700 hover:text-[#907527]"}`}>
+            {/* Training link is shown only to admin users */}
+            {hasAdminPrivileges && (
+              <Link to={getLink("/lms-campaigns")} className={`transition-colors py-2 ${isActive("/lms-campaigns") ? "text-[#907527]" : "text-gray-700 hover:text-[#907527]"}`}>
+                <div className="flex items-center gap-1">
+                  <BookOpen className="h-4 w-4" />
+                  <span>Training</span>
+                </div>
+              </Link>
+            )}
+            
+            {/* Employee Courses link is shown to all users */}
+            <Link to={getLink("/employee-courses")} className={`transition-colors py-2 ${isActive("/employee-courses") ? "text-[#907527]" : "text-gray-700 hover:text-[#907527]"}`}>
               <div className="flex items-center gap-1">
-                <BookOpen className="h-4 w-4" />
-                <span>Training</span>
+                <Book className="h-4 w-4" />
+                <span>My Courses</span>
               </div>
             </Link>
             

@@ -123,9 +123,9 @@ export const CompanyRoute = () => {
       const storedCompanySlug = localStorage.getItem('companySlug');
       
       if (storedCompanySlug) {
-        // If user is a regular user, redirect to training page
+        // If user is a regular user, redirect to employee-courses page
         if (user.role?.toLowerCase() === 'user') {
-          return <Navigate to={`/${storedCompanySlug}/lms-campaigns`} replace />;
+          return <Navigate to={`/${storedCompanySlug}/employee-courses`} replace />;
         } else {
           // For admins and other roles, redirect to dashboard
           return <Navigate to={`/${storedCompanySlug}/dashboard`} replace />;
