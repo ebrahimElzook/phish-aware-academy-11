@@ -5,6 +5,7 @@ from .email_tracking import mark_email_read, mark_email_clicked
 from .email_sender_updated import send_email
 from .test_tracking import test_mark_read
 from .email_status import get_sent_emails
+from .browser_view import view_email_in_browser
 
 urlpatterns = [
     path('send/', send_email, name='send_email'),
@@ -15,4 +16,5 @@ urlpatterns = [
     path('configurations/', views.get_email_configurations, name='get_email_configurations'),
     path('templates/', views.get_email_templates, name='get_email_templates'),
     path('sent-emails/', get_sent_emails, name='get_sent_emails'),
+    path('view-in-browser/<int:email_id>/', view_email_in_browser, name='view_email_in_browser'),
 ]

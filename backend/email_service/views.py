@@ -90,8 +90,8 @@ def send_email(request):
             
             # Add tracking pixel to HTML content if email_id is provided
             if email_id:
-                # Get the base URL from settings or use a default
-                base_url = getattr(settings, 'FRONTEND_URL', 'http://localhost:8000')
+                # Get the base URL from settings
+                base_url = settings.BACKEND_URL
                 tracking_pixel = f'<img src="{base_url}/api/email/mark-read/{email_id}/" width="1" height="1" alt="" style="display:none;">\n'                
                 # Add tracking pixel at the end of the body
                 if '</body>' in body:
