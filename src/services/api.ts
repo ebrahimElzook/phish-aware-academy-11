@@ -837,12 +837,11 @@ export const lmsService = {
         throw new Error('No authentication token found');
       }
       
-      // Check if user is a super admin or has no company
+      // Only check if user is a super admin
       const userRole = localStorage.getItem('userRole');
-      const userCompany = localStorage.getItem('userCompany');
       
-      if (userRole === 'super_admin' || !userCompany) {
-        // For super admins or users without company, return empty array
+      if (userRole === 'super_admin') {
+        // For super admins, return empty array
         return [];
       }
       
@@ -867,17 +866,22 @@ export const lmsService = {
             return [];
           }
           
-          return [];
+          // For other errors, throw so we can debug
+          throw new Error(errorData.detail || errorData.error || `Failed to fetch user campaigns: ${response.status}`);
         } catch (jsonError) {
-          // If we can't parse the error as JSON, just return empty array
-          return [];
+          // If we can't parse the error as JSON, throw with status
+          throw new Error(`Failed to fetch user campaigns: ${response.status} ${response.statusText}`);
         }
       }
       
       return await response.json();
     } catch (error) {
-      // Return empty array for any errors
-      return [];
+      // Only return empty array for super admins, otherwise throw
+      const userRole = localStorage.getItem('userRole');
+      if (userRole === 'super_admin') {
+        return [];
+      }
+      throw error;
     }
   }
 };

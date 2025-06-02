@@ -103,13 +103,18 @@ const EmployeeCourses = () => {
         
         const campaignData = await lmsService.getUserCampaigns();
         
-        if (campaignData && campaignData.length > 0) {
+        if (campaignData && Array.isArray(campaignData) && campaignData.length > 0) {
           // Transform campaign data to match the Course interface
           const transformedCourses: Course[] = campaignData.map((campaign: any) => {
+            // Make sure we have the course data
+            if (!campaign.course) {
+              return null;
+            }
+            
             // Create a video object from the course data
             const video: Video = {
               id: campaign.course.id,
-              title: campaign.course.title,
+              title: campaign.course.title || campaign.title,
               duration: '10:00', // Default duration if not provided by API
               completed: campaign.completed,
               thumbnail: campaign.course.thumbnail || '/placeholder.svg',
@@ -126,7 +131,7 @@ const EmployeeCourses = () => {
               certificateAvailable: campaign.certificateAvailable || false,
               videos: [video] // For now, assuming one video per course
             };
-          });
+          }).filter(Boolean);
           
           setCourses(transformedCourses);
           toast({
