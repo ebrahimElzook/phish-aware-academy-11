@@ -837,12 +837,17 @@ export const lmsService = {
         throw new Error('No authentication token found');
       }
       
-      // Get the company slug for the API path
-      const companySlug = getCompanySlug();
+      // Check if user is a super admin or has no company
+      const userRole = localStorage.getItem('userRole');
+      const userCompany = localStorage.getItem('userCompany');
       
-      if (!companySlug) {
-        throw new Error('Company context is required to fetch user campaigns');
+      if (userRole === 'super_admin' || !userCompany) {
+        // For super admins or users without company, return empty array
+        return [];
       }
+      
+      const companySlug = getCompanySlug();
+      if (!companySlug) throw new Error('Company context is required to fetch user campaigns');
       
       // Make the API request to get user-specific campaigns
       const response = await fetch(`${API_URL}/user-campaigns/`, {
@@ -856,18 +861,23 @@ export const lmsService = {
       if (!response.ok) {
         try {
           const errorData = await response.json();
-          console.error('API Error Response:', errorData);
-          throw new Error(errorData.detail || errorData.error || `Failed to fetch user campaigns: ${response.status}`);
+          
+          // Special handling for the "User does not belong to any company" error
+          if (errorData.error === "User does not belong to any company") {
+            return [];
+          }
+          
+          return [];
         } catch (jsonError) {
-          // If we can't parse the error as JSON, just throw the status
-          throw new Error(`Failed to fetch user campaigns: ${response.status} ${response.statusText}`);
+          // If we can't parse the error as JSON, just return empty array
+          return [];
         }
       }
       
       return await response.json();
     } catch (error) {
-      console.error('Fetch user campaigns error:', error);
-      throw error;
+      // Return empty array for any errors
+      return [];
     }
   }
 };

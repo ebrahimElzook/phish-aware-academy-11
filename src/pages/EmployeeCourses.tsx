@@ -94,25 +94,14 @@ const EmployeeCourses = () => {
       try {
         setLoading(true);
         
-        // Check authentication and company context
+        // Check authentication
         const token = localStorage.getItem('token');
-        const companySlug = localStorage.getItem('companySlug');
-        
-        console.log('Auth Token exists:', !!token);
-        console.log('Company Slug:', companySlug);
         
         if (!token) {
-          console.warn('No authentication token found');
           throw new Error('Authentication required. Please log in again.');
         }
         
-        if (!companySlug) {
-          console.warn('No company context found');
-          throw new Error('Company context required. Please select a company.');
-        }
-        
         const campaignData = await lmsService.getUserCampaigns();
-        console.log('API Response:', campaignData);
         
         if (campaignData && campaignData.length > 0) {
           // Transform campaign data to match the Course interface
@@ -145,24 +134,29 @@ const EmployeeCourses = () => {
             description: `Loaded ${transformedCourses.length} courses from the server.`,
           });
         } else {
-          // No campaigns returned, use mock data
-          console.log('No campaigns returned from API, using mock data');
-          setCourses(mockCourses);
+          // No campaigns returned
+          setCourses([]);
           toast({
             title: "Notice",
-            description: "No courses found. Using sample data for demonstration.",
+            description: "No courses found for your account.",
           });
         }
       } catch (err) {
-        console.error('Error fetching user campaigns:', err);
-        toast({
-          title: "Error",
-          description: "Failed to load your courses. Using sample data instead.",
-          variant: "destructive"
-        });
-        
-        // Fallback to mock data
-        setCourses(mockCourses);
+        // Check if this is a super admin without company error
+        const errorMessage = err instanceof Error ? err.message : String(err);
+        if (errorMessage.includes('User does not belong to any company') || 
+            errorMessage.includes('Company context required')) {
+          toast({
+            title: "Super Admin Notice",
+            description: "Courses are only available for company users. Super admins don't have assigned courses.",
+          });
+        } else {
+          toast({
+            title: "Notice",
+            description: "No courses found for your account.",
+          });
+        }
+        setCourses([]);
       } finally {
         setLoading(false);
       }
