@@ -1,25 +1,58 @@
 
-import React, { useState } from 'react';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Progress } from '@/components/ui/progress';
-import { Dialog, DialogContent, DialogHeader, DialogFooter, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Award, Book, BookOpen, Check, Clock, Play, Video } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Label } from '@/components/ui/label';
+import React, { useState, useEffect } from 'react';
+import { useToast } from "@/components/ui/use-toast";
+import { Button } from "@/components/ui/button";
+import { Progress } from "@/components/ui/progress";
+import { lmsService } from '@/services/api';
+import { CourseCard } from "@/components/CourseCard";
+import { VideoPlayer } from "@/components/VideoPlayer";
+import { Quiz } from "@/components/Quiz";
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
+import { 
+  Card, 
+  CardContent, 
+  CardDescription, 
+  CardFooter, 
+  CardHeader, 
+  CardTitle 
+} from '@/components/ui/card';
+import { 
+  Dialog, 
+  DialogContent, 
+  DialogFooter, 
+  DialogHeader, 
+  DialogTitle 
+} from '@/components/ui/dialog';
+import { 
+  Tabs, 
+  TabsContent, 
+  TabsList, 
+  TabsTrigger 
+} from '@/components/ui/tabs';
+import { 
+  RadioGroup, 
+  RadioGroupItem 
+} from '@/components/ui/radio-group';
+import { Label } from '@/components/ui/label';
+import { 
+  Award, 
+  Check, 
+  Clock, 
+  Video, 
+  BookOpen 
+} from 'lucide-react';
+
+interface QuizOption {
+  id: string;
+  text: string;
+  isCorrect: boolean;
+}
 
 interface Question {
   id: string;
   text: string;
-  options: {
-    id: string;
-    text: string;
-    isCorrect: boolean;
-  }[];
+  options: QuizOption[];
 }
 
 interface Video {
@@ -37,9 +70,9 @@ interface Course {
   description: string;
   dueDate: string;
   progress: number;
-  videos: Video[];
   completed: boolean;
   certificateAvailable: boolean;
+  videos: Video[];
 }
 
 const EmployeeCourses = () => {
@@ -51,9 +84,95 @@ const EmployeeCourses = () => {
   const [selectedAnswers, setSelectedAnswers] = useState<{[key: string]: string}>({});
   const [quizCompleted, setQuizCompleted] = useState(false);
   const [score, setScore] = useState(0);
-  
-  // Mock courses data for demonstration
-  const courses: Course[] = [
+  const [courses, setCourses] = useState<Course[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  // Fetch user's assigned campaigns
+  useEffect(() => {
+    const fetchUserCampaigns = async () => {
+      try {
+        setLoading(true);
+        
+        // Check authentication and company context
+        const token = localStorage.getItem('token');
+        const companySlug = localStorage.getItem('companySlug');
+        
+        console.log('Auth Token exists:', !!token);
+        console.log('Company Slug:', companySlug);
+        
+        if (!token) {
+          console.warn('No authentication token found');
+          throw new Error('Authentication required. Please log in again.');
+        }
+        
+        if (!companySlug) {
+          console.warn('No company context found');
+          throw new Error('Company context required. Please select a company.');
+        }
+        
+        const campaignData = await lmsService.getUserCampaigns();
+        console.log('API Response:', campaignData);
+        
+        if (campaignData && campaignData.length > 0) {
+          // Transform campaign data to match the Course interface
+          const transformedCourses: Course[] = campaignData.map((campaign: any) => {
+            // Create a video object from the course data
+            const video: Video = {
+              id: campaign.course.id,
+              title: campaign.course.title,
+              duration: '10:00', // Default duration if not provided by API
+              completed: campaign.completed,
+              thumbnail: campaign.course.thumbnail || '/placeholder.svg',
+              questions: [] // We'll need to fetch questions separately if needed
+            };
+            
+            return {
+              id: campaign.id,
+              title: campaign.title,
+              description: campaign.description,
+              dueDate: campaign.dueDate || 'No due date',
+              progress: campaign.progress || 0,
+              completed: campaign.completed || false,
+              certificateAvailable: campaign.certificateAvailable || false,
+              videos: [video] // For now, assuming one video per course
+            };
+          });
+          
+          setCourses(transformedCourses);
+          toast({
+            title: "Success",
+            description: `Loaded ${transformedCourses.length} courses from the server.`,
+          });
+        } else {
+          // No campaigns returned, use mock data
+          console.log('No campaigns returned from API, using mock data');
+          setCourses(mockCourses);
+          toast({
+            title: "Notice",
+            description: "No courses found. Using sample data for demonstration.",
+          });
+        }
+      } catch (err) {
+        console.error('Error fetching user campaigns:', err);
+        toast({
+          title: "Error",
+          description: "Failed to load your courses. Using sample data instead.",
+          variant: "destructive"
+        });
+        
+        // Fallback to mock data
+        setCourses(mockCourses);
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    fetchUserCampaigns();
+  }, [toast]);
+
+  // Mock courses data as fallback
+  const mockCourses: Course[] = [
     {
       id: '1',
       title: 'Security Awareness Basics',
@@ -198,17 +317,66 @@ const EmployeeCourses = () => {
     setQuizCompleted(false);
   };
   
-  const handleVideoComplete = () => {
+  const markVideoAsCompleted = () => {
     if (!activeVideo || !activeCourse) return;
     
-    if (activeVideo.questions.length > 0) {
-      setShowQuiz(true);
-      setCurrentQuestionIndex(0);
-      setSelectedAnswers({});
-      setQuizCompleted(false);
-    } else {
-      // No questions for this video, mark as completed
-      markVideoAsCompleted();
+    // In a real app, this would save to the backend
+    // For now, we just update the mock data
+    const updatedCourses = courses.map(course => {
+      if (course.id === activeCourse.id) {
+        const updatedVideos = course.videos.map(video => {
+          if (video.id === activeVideo.id) {
+            return { ...video, completed: true };
+          }
+          return video;
+        });
+        
+        const completedCount = updatedVideos.filter(v => v.completed).length;
+        const newProgress = Math.round((completedCount / updatedVideos.length) * 100);
+        const allCompleted = completedCount === updatedVideos.length;
+        
+        return { 
+          ...course, 
+          videos: updatedVideos, 
+          progress: newProgress,
+          completed: allCompleted,
+          certificateAvailable: allCompleted
+        };
+      }
+      return course;
+    });
+    
+    setCourses(updatedCourses);
+    
+    // Update active course with new data
+    const updatedCourse = updatedCourses.find(c => c.id === activeCourse.id);
+    if (updatedCourse) {
+      setActiveCourse(updatedCourse);
+    }
+    
+    toast({
+      title: "Video Completed",
+      description: "This video has been marked as completed.",
+    });
+  };
+  
+  const handleVideoComplete = () => {
+    if (activeVideo) {
+      // Check if the video has questions
+      if (activeVideo.questions && activeVideo.questions.length > 0) {
+        // After video is complete, show quiz if available
+        setShowQuiz(true);
+        setCurrentQuestionIndex(0);
+        setSelectedAnswers({});
+        setQuizCompleted(false);
+      } else {
+        // If no questions, mark the video as completed immediately
+        markVideoAsCompleted();
+        toast({
+          title: "Video Completed",
+          description: "You've successfully completed this video.",
+        });
+      }
     }
   };
   
@@ -271,47 +439,6 @@ const EmployeeCourses = () => {
     }
   };
   
-  const markVideoAsCompleted = () => {
-    if (!activeVideo || !activeCourse) return;
-    
-    // In a real app, this would save to the backend
-    // For now, we just update the mock data
-    const updatedCourses = courses.map(course => {
-      if (course.id === activeCourse.id) {
-        const updatedVideos = course.videos.map(video => {
-          if (video.id === activeVideo.id) {
-            return { ...video, completed: true };
-          }
-          return video;
-        });
-        
-        const completedCount = updatedVideos.filter(v => v.completed).length;
-        const newProgress = Math.round((completedCount / updatedVideos.length) * 100);
-        const allCompleted = completedCount === updatedVideos.length;
-        
-        return { 
-          ...course, 
-          videos: updatedVideos, 
-          progress: newProgress,
-          completed: allCompleted,
-          certificateAvailable: allCompleted
-        };
-      }
-      return course;
-    });
-    
-    // Update active course with new data
-    const updatedCourse = updatedCourses.find(c => c.id === activeCourse.id);
-    if (updatedCourse) {
-      setActiveCourse(updatedCourse);
-    }
-    
-    toast({
-      title: "Video Completed",
-      description: "This video has been marked as completed.",
-    });
-  };
-  
   const restartQuiz = () => {
     setCurrentQuestionIndex(0);
     setSelectedAnswers({});
@@ -343,81 +470,34 @@ const EmployeeCourses = () => {
             <TabsContent value="active">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {courses.filter(course => !course.completed).map(course => (
-                  <Card key={course.id} className="overflow-hidden">
-                    <CardHeader className="bg-gray-50">
-                      <CardTitle>{course.title}</CardTitle>
-                      <CardDescription>{course.description}</CardDescription>
-                    </CardHeader>
-                    <CardContent className="pt-4">
-                      <div className="flex justify-between items-center mb-2">
-                        <span className="text-sm font-medium">Progress</span>
-                        <span className="text-sm">{course.progress}%</span>
-                      </div>
-                      <Progress value={course.progress} className="h-2 mb-4" />
-                      
-                      <div className="text-sm text-muted-foreground mb-4 flex items-center">
-                        <Clock className="h-4 w-4 mr-1" />
-                        Due: {new Date(course.dueDate).toLocaleDateString()}
-                      </div>
-                      
-                      <div className="space-y-2">
-                        <h4 className="text-sm font-medium">Videos:</h4>
-                        {course.videos.map((video) => (
-                          <div key={video.id} className="flex justify-between items-center p-2 border rounded-md">
-                            <div className="flex items-center gap-2">
-                              <Video className="h-4 w-4 text-blue-500" />
-                              <span className="text-sm">{video.title}</span>
-                              {video.completed && (
-                                <Check className="h-4 w-4 text-green-500" />
-                              )}
-                            </div>
-                            <Button 
-                              variant="ghost" 
-                              size="sm"
-                              onClick={() => handleStartVideo(course, video)}
-                            >
-                              {video.completed ? 'Review' : 'Start'}
-                            </Button>
-                          </div>
-                        ))}
-                      </div>
-                    </CardContent>
-                  </Card>
+                  <CourseCard 
+                    key={course.id}
+                    course={course}
+                    onStartVideo={(video) => handleStartVideo(course, video)}
+                  />
                 ))}
+                
+                {courses.filter(course => !course.completed).length === 0 && (
+                  <div className="col-span-2 text-center p-8">
+                    <BookOpen className="h-12 w-12 mx-auto text-gray-300 mb-2" />
+                    <h3 className="text-lg font-medium">No Active Courses</h3>
+                    <p className="text-muted-foreground">
+                      You don't have any active courses assigned to you at the moment.
+                    </p>
+                  </div>
+                )}
               </div>
             </TabsContent>
             
             <TabsContent value="completed">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {courses.filter(course => course.completed).map(course => (
-                  <Card key={course.id}>
-                    <CardHeader>
-                      <div className="flex justify-between items-start">
-                        <CardTitle>{course.title}</CardTitle>
-                        <div className="bg-green-100 text-green-700 text-xs px-2 py-1 rounded-full flex items-center">
-                          <Check className="h-3 w-3 mr-1" />
-                          Completed
-                        </div>
-                      </div>
-                      <CardDescription>{course.description}</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="flex justify-between items-center">
-                        <span className="text-sm">Completed on: {new Date().toLocaleDateString()}</span>
-                        {course.certificateAvailable && (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="flex items-center gap-1"
-                            onClick={() => downloadCertificate(course.id)}
-                          >
-                            <Award className="h-4 w-4" />
-                            Certificate
-                          </Button>
-                        )}
-                      </div>
-                    </CardContent>
-                  </Card>
+                  <CourseCard 
+                    key={course.id}
+                    course={course}
+                    onStartVideo={(video) => handleStartVideo(course, video)}
+                    onDownloadCertificate={course.certificateAvailable ? () => downloadCertificate(course.id) : undefined}
+                  />
                 ))}
                 
                 {courses.filter(course => course.completed).length === 0 && (
@@ -473,119 +553,47 @@ const EmployeeCourses = () => {
           </Tabs>
         </div>
       </div>
-      
-      {/* Video Player Dialog */}
-      <Dialog open={!!activeVideo && !showQuiz} onOpenChange={(open) => !open && setActiveVideo(null)}>
-        <DialogContent className="sm:max-w-[700px]">
-          <DialogHeader>
-            <DialogTitle>{activeVideo?.title}</DialogTitle>
-          </DialogHeader>
-          
-          <div className="aspect-video bg-gray-100 flex items-center justify-center">
-            {/* This would be a real video player in production */}
-            <div className="text-center">
-              <Video className="h-12 w-12 mx-auto text-gray-400 mb-2" />
-              <p className="text-sm text-muted-foreground">Video placeholder</p>
-              <p className="text-xs text-muted-foreground">Duration: {activeVideo?.duration}</p>
-            </div>
-          </div>
-          
-          <DialogFooter>
-            <Button onClick={handleVideoComplete}>
-              Complete and Continue
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-      
-      {/* Quiz Dialog */}
-      <Dialog 
-        open={!!activeVideo && showQuiz} 
-        onOpenChange={(open) => !open && setShowQuiz(false)}
-      >
-        <DialogContent className="sm:max-w-[600px]">
-          <DialogHeader>
-            <DialogTitle>
-              {quizCompleted ? 'Quiz Results' : `Question ${currentQuestionIndex + 1} of ${activeVideo?.questions.length}`}
-            </DialogTitle>
-          </DialogHeader>
-          
-          {!quizCompleted ? (
-            activeVideo?.questions[currentQuestionIndex] && (
-              <div className="py-4">
-                <p className="font-medium mb-4">{activeVideo.questions[currentQuestionIndex].text}</p>
-                
-                <RadioGroup 
-                  value={selectedAnswers[activeVideo.questions[currentQuestionIndex].id]} 
-                  onValueChange={(value) => handleAnswerSelect(
-                    activeVideo.questions[currentQuestionIndex].id, 
-                    value
-                  )}
-                >
-                  <div className="space-y-3">
-                    {activeVideo.questions[currentQuestionIndex].options.map(option => (
-                      <div key={option.id} className="flex items-center space-x-2">
-                        <RadioGroupItem value={option.id} id={option.id} />
-                        <Label htmlFor={option.id}>{option.text}</Label>
-                      </div>
-                    ))}
-                  </div>
-                </RadioGroup>
-              </div>
-            )
-          ) : (
-            <div className="py-4 text-center">
-              <div className="mb-4">
-                <div className={`text-2xl font-bold ${score >= 70 ? 'text-green-600' : 'text-red-600'}`}>
-                  {score}%
-                </div>
-                <p className="text-muted-foreground">
-                  {score >= 70 
-                    ? 'Congratulations! You passed the quiz.' 
-                    : 'You did not pass. 70% is required.'}
-                </p>
-              </div>
-              
-              <div className="flex flex-col gap-3">
-                <p>
-                  <span className="font-medium">Correct answers:</span> {activeVideo?.questions.filter(
-                    q => q.options.find(o => o.isCorrect)?.id === selectedAnswers[q.id]
-                  ).length} of {activeVideo?.questions.length}
-                </p>
-              </div>
-            </div>
-          )}
-          
-          <DialogFooter>
-            {!quizCompleted ? (
-              <Button onClick={handleNextQuestion}>
-                Next Question
-              </Button>
-            ) : (
-              <div className="flex gap-2 w-full">
-                {score < 70 && (
-                  <Button variant="outline" onClick={restartQuiz}>
-                    Retry Quiz
-                  </Button>
-                )}
-                <Button 
-                  variant={score >= 70 ? 'default' : 'outline'}
-                  className="ml-auto"
-                  onClick={() => {
-                    setShowQuiz(false);
-                    setActiveVideo(null);
-                  }}
-                >
-                  {score >= 70 ? 'Continue' : 'Close'}
-                </Button>
-              </div>
-            )}
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-      
-      <Footer />
-    </div>
+    
+    {/* Video Player Dialog */}
+    <Dialog open={!!activeVideo && !showQuiz} onOpenChange={(open) => !open && setActiveVideo(null)}>
+      <DialogContent className="sm:max-w-[700px]">
+        <DialogHeader>
+          <DialogTitle>{activeVideo?.title}</DialogTitle>
+        </DialogHeader>
+        
+        {activeVideo && (
+          <VideoPlayer 
+            title={activeVideo.title}
+            thumbnail={activeVideo.thumbnail}
+            onComplete={handleVideoComplete}
+          />
+        )}
+      </DialogContent>
+    </Dialog>
+    
+    {/* Quiz Dialog */}
+    <Dialog 
+      open={!!activeVideo && showQuiz} 
+      onOpenChange={(open) => !open && setShowQuiz(false)}
+    >
+      <DialogContent className="sm:max-w-[600px]">
+        {activeVideo && activeVideo.questions.length > 0 && (
+          <Quiz 
+            questions={activeVideo.questions}
+            onComplete={(quizScore) => {
+              setScore(quizScore);
+              if (quizScore >= 70) {
+                // Pass threshold
+                markVideoAsCompleted();
+              }
+            }}
+          />
+        )}
+      </DialogContent>
+    </Dialog>
+    
+    <Footer />
+  </div>
   );
 };
 

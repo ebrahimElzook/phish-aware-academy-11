@@ -826,4 +826,50 @@ export const fetchWithAuth = async (url: string, options: RequestInit = {}): Pro
   }
 };
 
+// LMS Campaign service
+export const lmsService = {
+  // Get campaigns assigned to the current user
+  getUserCampaigns: async () => {
+    try {
+      const token = localStorage.getItem('token');
+      
+      if (!token) {
+        throw new Error('No authentication token found');
+      }
+      
+      // Get the company slug for the API path
+      const companySlug = getCompanySlug();
+      
+      if (!companySlug) {
+        throw new Error('Company context is required to fetch user campaigns');
+      }
+      
+      // Make the API request to get user-specific campaigns
+      const response = await fetch(`${API_URL}/user-campaigns/`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+      
+      if (!response.ok) {
+        try {
+          const errorData = await response.json();
+          console.error('API Error Response:', errorData);
+          throw new Error(errorData.detail || errorData.error || `Failed to fetch user campaigns: ${response.status}`);
+        } catch (jsonError) {
+          // If we can't parse the error as JSON, just throw the status
+          throw new Error(`Failed to fetch user campaigns: ${response.status} ${response.statusText}`);
+        }
+      }
+      
+      return await response.json();
+    } catch (error) {
+      console.error('Fetch user campaigns error:', error);
+      throw error;
+    }
+  }
+};
+
 export default authService;

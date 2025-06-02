@@ -9,6 +9,7 @@ from courses.models import Course, Question
 from accounts.models import Company, User
 from .models import LMSCampaign, LMSCampaignUser
 from django.utils import timezone
+from django.db.models import Q
 import json
 
 
@@ -197,5 +198,75 @@ def create_lms_campaign(request):
             "message": "Campaign created successfully"
         }, status=status.HTTP_201_CREATED)
     
+    except Exception as e:
+        return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_user_campaigns(request):
+    """API endpoint to get LMS campaigns assigned to the current user"""
+    user = request.user
+    
+    # Get the user's company
+    company = user.company
+    if not company:
+        return Response({"error": "User does not belong to any company"}, status=status.HTTP_400_BAD_REQUEST)
+    
+    # Get current date for filtering campaigns
+    current_date = timezone.now().date()
+    
+    try:
+        # Get campaigns assigned to this user that are in the same company
+        # and where current date is between start_date and end_date
+        user_campaign_relations = LMSCampaignUser.objects.filter(
+            user=user,
+            campaign__company=company
+        ).select_related('campaign', 'campaign__course')
+        
+        # Filter campaigns by date if start_date and end_date are set
+        active_campaigns = []
+        for relation in user_campaign_relations:
+            campaign = relation.campaign
+            # Only include campaigns where current date is between start_date and end_date
+            # If dates are not set, include the campaign
+            if (campaign.start_date is None or campaign.start_date <= current_date) and \
+               (campaign.end_date is None or campaign.end_date >= current_date):
+                active_campaigns.append({
+                    "relation": relation,
+                    "campaign": campaign
+                })
+        
+        # Format data for response
+        data = []
+        for item in active_campaigns:
+            campaign = item["campaign"]
+            relation = item["relation"]
+            
+            # Get course details
+            course = campaign.course
+            course_data = {
+                "id": str(course.id),
+                "title": course.name,
+                "description": course.description,
+                "thumbnail": request.build_absolute_uri(course.thumbnail.url) if course.thumbnail else "",
+                "video": request.build_absolute_uri(course.video.url) if course.video else ""
+            }
+            
+            # Format campaign data
+            campaign_data = {
+                "id": str(campaign.id),
+                "title": campaign.name,
+                "description": course.description,  # Using course description for now
+                "dueDate": campaign.end_date.strftime("%Y-%m-%d") if campaign.end_date else "",
+                "progress": 100 if relation.completed else (50 if relation.started else 0),
+                "completed": relation.completed,
+                "certificateAvailable": relation.completed,  # Only if completed
+                "course": course_data,
+                # Add any other fields needed for the frontend
+            }
+            data.append(campaign_data)
+        
+        return Response(data)
     except Exception as e:
         return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
