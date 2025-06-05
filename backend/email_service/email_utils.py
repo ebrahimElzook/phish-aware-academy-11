@@ -46,6 +46,7 @@ def save_email(request):
         subject = data.get('subject')
         body = data.get('body')
         sender_id = data.get('sender_id')
+        phishing_campaign_id = data.get('phishing_campaign_id')
         
         # Validate required fields
         if not all([to_email, from_email, subject, body, sender_id]):
@@ -80,16 +81,28 @@ def save_email(request):
                 )
                 logger.info(f"Created placeholder user for external recipient: {to_email}")
             
+            # Create email data dictionary
+            email_data = {
+                'subject': subject,
+                'content': body,
+                'sender': sender,
+                'recipient': recipient,
+                'sent': False,
+                'read': False,
+                'clicked': False
+            }
+            
+            # Add phishing campaign if provided
+            if phishing_campaign_id:
+                from .models import PhishingCampaign
+                try:
+                    campaign = PhishingCampaign.objects.get(id=phishing_campaign_id)
+                    email_data['phishing_campaign'] = campaign
+                except PhishingCampaign.DoesNotExist:
+                    logger.warning(f"Phishing campaign with ID {phishing_campaign_id} not found")
+            
             # Create a new Email object
-            email = Email.objects.create(
-                subject=subject,
-                content=body,
-                sender=sender,
-                recipient=recipient,
-                sent=False,
-                read=False,
-                clicked=False
-            )
+            email = Email.objects.create(**email_data)
             
             logger.info(f"Successfully saved email with ID {email.id}")
             

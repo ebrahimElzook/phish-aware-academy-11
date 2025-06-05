@@ -12,3 +12,4 @@ export const EMAIL_SAVE_API_ENDPOINT = `${API_BASE_URL}/email/save/`;
 export const EMAIL_CONFIGS_API_ENDPOINT = `${API_BASE_URL}/email/configurations/`;
 export const EMAIL_TEMPLATES_API_ENDPOINT = `${API_BASE_URL}/email/templates/`;
 export const EMAIL_SENT_API_ENDPOINT = `${API_BASE_URL}/email/sent-emails/`;
+export const PHISHING_CAMPAIGN_CREATE_API_ENDPOINT = `${API_BASE_URL}/email/campaigns/create/`;

@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/components/ui/use-toast';
-import { EMAIL_API_ENDPOINT, EMAIL_SAVE_API_ENDPOINT, EMAIL_CONFIGS_API_ENDPOINT, EMAIL_TEMPLATES_API_ENDPOINT } from '@/config';
+import { EMAIL_API_ENDPOINT, EMAIL_SAVE_API_ENDPOINT, EMAIL_CONFIGS_API_ENDPOINT, EMAIL_TEMPLATES_API_ENDPOINT, PHISHING_CAMPAIGN_CREATE_API_ENDPOINT } from '@/config';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -70,6 +70,7 @@ const Sender = () => {
   });
   const [selectedRecipients, setSelectedRecipients] = useState<string[]>([]);
   const [isSending, setIsSending] = useState(false);
+  const [campaignName, setCampaignName] = useState(''); // State for campaign name input
   
   // State for company users
   const [users, setUsers] = useState<User[]>([]);
@@ -183,7 +184,7 @@ const Sender = () => {
     
     fetchEmailTemplates();
   }, [companySlug]);
-  
+
   useEffect(() => {
     const fetchEmailConfigs = async () => {
       try {
@@ -330,144 +331,209 @@ const Sender = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSending(true);
-    
+    let currentCampaignId: number | null = null;
+
     try {
+      if (!campaignName.trim()) {
+        toast({
+        variant: 'destructive',
+        title: 'Campaign Name Required',
+        description: 'Please enter a campaign name to proceed.',
+      });
+        return;
+      }
+
+      // 1. Create Campaign if campaignName (from state) is provided
+      if (campaignName.trim() && companySlug) {
+        const csrfToken = getCookie('csrftoken');
+        const accessToken = localStorage.getItem('token');
+        if (!accessToken) {
+            toast({
+            variant: 'destructive',
+            title: 'Authentication Error',
+            description: 'Authentication token not found. Please log in again.',
+          });
+            setIsLoading(false);
+            return;
+        }
+        if (!csrfToken) {
+          // Attempt to fetch CSRF via OPTIONS if not present
+          const optionsCsrfResponse = await fetch(PHISHING_CAMPAIGN_CREATE_API_ENDPOINT, { method: 'OPTIONS', credentials: 'include' });
+          if (!optionsCsrfResponse.ok) {
+            toast({
+              title: 'CSRF Token Error',
+              description: 'Failed to establish secure connection for campaign creation.',
+              variant: 'destructive',
+            });
+          } // Do not throw, let getCookie try again
+        }
+        
+        const finalCsrfToken = getCookie('csrftoken');
+        if (!finalCsrfToken) {
+            toast({
+                title: 'CSRF Token Missing',
+                description: 'Cannot create campaign. Please refresh and try again.',
+                variant: 'destructive',
+            });
+        } else {
+          try {
+            const campaignResponse = await fetch(PHISHING_CAMPAIGN_CREATE_API_ENDPOINT, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': finalCsrfToken,
+                'Authorization': `Bearer ${accessToken}`,
+                'X-Requested-With': 'XMLHttpRequest',
+              },
+              credentials: 'include',
+              body: JSON.stringify({
+                campaign_name: campaignName.trim(),
+                company_slug: companySlug,
+              }),
+            });
+            const campaignData = await campaignResponse.json();
+            if (!campaignResponse.ok) {
+              throw new Error(campaignData.detail || campaignData.error || 'Failed to create campaign');
+            }
+            currentCampaignId = campaignData.id;
+            toast({
+              title: 'Campaign Created',
+              description: `Campaign "${campaignData.campaign_name}" created successfully.`,
+            });
+          } catch (campaignError) {
+            console.error('Error creating campaign:', campaignError);
+            toast({
+              title: 'Campaign Creation Failed',
+              description: campaignError instanceof Error ? campaignError.message : 'An unknown error occurred during campaign creation.',
+              variant: 'destructive',
+            });
+            // Email sending will proceed even if campaign creation fails for now
+          }
+        }
+      }
+
+      // 2. Prepare and send emails
       let allRecipients: string[] = [];
-      
       if (selectAllUsers) {
-        // If all users are selected, use all user emails
         allRecipients = getAllUserEmails();
       } else {
-        // Get all recipients from individual selections and departments
         const departmentUsers = getDepartmentUsers(selectedDepartments);
         const departmentEmails = departmentUsers.map(user => user.email);
-        
-        // Combine individual recipients and department recipients, removing duplicates
         allRecipients = [...new Set([...selectedRecipients, ...departmentEmails])];
       }
-      
+
       if (allRecipients.length === 0) {
         throw new Error('Please select at least one recipient, department, or all users');
       }
 
-      // First, ensure we have a CSRF token by making an OPTIONS request
-      const csrfResponse = await fetch(EMAIL_API_ENDPOINT, {
-        method: 'OPTIONS',
-        credentials: 'include',
-      });
-      
-      if (!csrfResponse.ok) {
-        throw new Error('Failed to establish secure connection');
+      let csrfTokenForEmail = getCookie('csrftoken');
+      if (!csrfTokenForEmail) {
+        const optionsCsrfResponse = await fetch(EMAIL_API_ENDPOINT, { method: 'OPTIONS', credentials: 'include' });
+        if (!optionsCsrfResponse.ok) throw new Error('Failed to establish secure connection for sending emails.');
+        csrfTokenForEmail = getCookie('csrftoken'); 
       }
-      
-      // Get CSRF token from cookies
-      const csrfToken = getCookie('csrftoken');
-      if (!csrfToken) {
-        throw new Error('CSRF token not found. Please refresh the page and try again.');
+      if (!csrfTokenForEmail) {
+        throw new Error('CSRF token not found for sending emails. Please refresh and try again.');
       }
-      
-      // Send to each recipient individually
-      const successfulSends = [];
-      const failedSends = [];
-      
+
+      const successfulSends: string[] = [];
+      const failedSends: { email: string; error: string }[] = [];
+
       for (const recipient of allRecipients) {
         try {
-          // Find the recipient's user data to get their name
           const recipientUser = users.find(user => user.email === recipient);
           const recipientName = recipientUser ? `${recipientUser.first_name} ${recipientUser.last_name}` : 'User';
-          
-          // Replace template variables with actual values
-          let personalizedBody = formData.body;
-          personalizedBody = personalizedBody.replace(/\{recipient\.name\}/g, recipientName);
-          
-          // First save the email to the database
+          let personalizedBody = formData.body.replace(/\{recipient\.name\}/g, recipientName);
+
+          const savePayload: any = {
+            to: recipient,
+            from: formData.from,
+            subject: formData.subject,
+            body: personalizedBody,
+            sender_id: currentUser?.id,
+          };
+          if (currentCampaignId) {
+            savePayload.phishing_campaign_id = currentCampaignId;
+          }
+
           const saveResponse = await fetch(EMAIL_SAVE_API_ENDPOINT, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
-              'X-CSRFToken': csrfToken,
+              'X-CSRFToken': csrfTokenForEmail,
               'X-Requested-With': 'XMLHttpRequest',
             },
             credentials: 'include',
-            body: JSON.stringify({
-              to: recipient,
-              from: formData.from,
-              subject: formData.subject,
-              body: personalizedBody,
-              sender_id: currentUser?.id // Get current user's ID
-            }),
+            body: JSON.stringify(savePayload),
           });
-          
           const saveResponseData = await saveResponse.json();
-          
           if (!saveResponse.ok) {
-            throw new Error(`Failed to save email: ${saveResponseData.error || 'Unknown error'}`);
+            throw new Error(`Failed to save email: ${saveResponseData.error || saveResponseData.detail || 'Unknown error'}`);
           }
-          
-          // After saving, send the email with the saved email ID
+
           const emailId = saveResponseData.email_id;
+          const sendPayload: any = {
+            to: recipient,
+            from: formData.from,
+            subject: formData.subject,
+            body: personalizedBody,
+            email_id: emailId,
+          };
+          
+          // Include campaign ID in both save and send payloads
+          if (currentCampaignId) {
+            sendPayload.phishing_campaign_id = currentCampaignId;
+          }
           
           const sendResponse = await fetch(EMAIL_API_ENDPOINT, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
-              'X-CSRFToken': csrfToken,
+              'X-CSRFToken': csrfTokenForEmail,
               'X-Requested-With': 'XMLHttpRequest',
             },
             credentials: 'include',
-            body: JSON.stringify({
-              to: recipient, // Send to one recipient at a time
-              from: formData.from,
-              subject: formData.subject,
-              body: personalizedBody,
-              email_id: emailId // Include the saved email ID
-            }),
+            body: JSON.stringify(sendPayload),
           });
-          
           const sendResponseData = await sendResponse.json();
-          
           if (!sendResponse.ok) {
-            failedSends.push({ email: recipient, error: sendResponseData.error || 'Unknown error' });
+            failedSends.push({ email: recipient, error: sendResponseData.error || sendResponseData.detail || 'Unknown error' });
           } else {
             successfulSends.push(recipient);
           }
         } catch (error) {
-          failedSends.push({ email: recipient, error: error instanceof Error ? error.message : 'Unknown error' });
+          failedSends.push({ email: recipient, error: error instanceof Error ? error.message : 'Unknown error during individual email processing' });
         }
       }
-      
-      // Show appropriate toast based on results
-      if (failedSends.length === 0) {
+
+      // 3. Show results and reset form
+      if (failedSends.length === 0 && successfulSends.length > 0) {
         toast({
-          title: 'Email sent successfully!',
-          description: `Email to ${successfulSends.length} recipient(s) has been queued for sending.`,
+          title: 'Email(s) Sent Successfully!',
+          description: `Email to ${successfulSends.length} recipient(s) has been queued.`,
         });
-      } else if (successfulSends.length === 0) {
+      } else if (successfulSends.length === 0 && failedSends.length > 0) {
         throw new Error(`Failed to send email to any recipients. First error: ${failedSends[0].error}`);
-      } else {
+      } else if (failedSends.length > 0) {
         toast({
-          title: 'Partial success',
-          description: `Successfully sent to ${successfulSends.length} recipient(s). Failed to send to ${failedSends.length} recipient(s).`,
+          title: 'Partial Success',
+          description: `Sent to ${successfulSends.length}, failed for ${failedSends.length}. Check console for details.`,
           variant: 'destructive',
         });
       }
-      
-      // Reset form but keep the from email
-      setFormData(prev => ({
-        ...prev,
-        subject: '',
-        body: ''
-      }));
+
+      setFormData(prev => ({ ...prev, subject: '', body: '' }));
       setSelectedRecipients([]);
       setSelectedDepartments([]);
       setSelectAllUsers(false);
+      if (campaignName.trim()) { // Access campaignName from state
+        setCampaignName('');    // Reset campaignName state
+      }
     } catch (error) {
       console.error('Error sending email:', error);
       toast({
-        title: 'Error sending email',
-        description: error instanceof Error ? 
-          error.message : 
-          'There was an error sending your email. Please try again.',
+        title: 'Error Sending Email Process',
+        description: error instanceof Error ? error.message : 'An overall error occurred. Please try again.',
         variant: 'destructive',
       });
     } finally {
@@ -679,6 +745,8 @@ const Sender = () => {
                       )}
                     </div>
                   </TabsContent>
+
+
                 </Tabs>
               </div>
               
@@ -709,6 +777,18 @@ const Sender = () => {
                 </select>
                 {loadError && <p className="text-red-500 text-sm mt-1">{loadError}</p>}
               </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="campaignName">Campaign Name</Label>
+                <Input
+                  id="campaignName"
+                  type="text"
+                  placeholder="e.g., Q3 Security Awareness Training"
+                  value={campaignName}
+                  onChange={(e) => setCampaignName(e.target.value)}
+                  required
+                />
+              </div>
               
               <div className="space-y-2">
                 <Label htmlFor="emailTemplate">Email Template</Label>
@@ -737,20 +817,21 @@ const Sender = () => {
                 {templateLoadError && <p className="text-red-500 text-sm mt-1">{templateLoadError}</p>}
               </div>
               
+              {/*
               <div className="space-y-2">
                 <Label htmlFor="from">From</Label>
                 <Input
                   id="from"
-                  name="from"
                   type="email"
                   placeholder="sender@example.com"
+                  name="from" // Added name attribute for consistency
                   value={formData.from}
                   onChange={handleChange}
-                  required
-                  disabled
-                  className="bg-gray-100"
+                  disabled // This field is derived from config
+                  // required // Not required if disabled and auto-filled
                 />
               </div>
+              */}
               
               <div className="space-y-2">
                 <Label htmlFor="subject">Subject</Label>

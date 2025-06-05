@@ -17,4 +17,5 @@ urlpatterns = [
     path('templates/', views.get_email_templates, name='get_email_templates'),
     path('sent-emails/', get_sent_emails, name='get_sent_emails'),
     path('view-in-browser/<int:email_id>/', view_email_in_browser, name='view_email_in_browser'),
+    path('campaigns/create/', views.create_phishing_campaign_by_slug, name='create_phishing_campaign_by_slug'),
 ]
