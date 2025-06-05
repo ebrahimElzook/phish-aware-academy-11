@@ -6,8 +6,12 @@ from django.contrib.auth import get_user_model
 from django.shortcuts import get_object_or_404
 from .models import Company, Department
 from .serializers import UserSerializer
-import pandas as pd
+# Temporarily commenting out pandas for deployment
+# import pandas as pd
 import io
+import csv
+import uuid
+from email_service.password_reset import send_password_reset_email, generate_random_password
 
 User = get_user_model()
 
@@ -107,6 +111,13 @@ class UserManagementView(APIView):
                     defaults={'name': 'IT', 'company': company}
                 )
             
+            # Check if user with this email already exists in this company
+            if User.objects.filter(email=data['email'], company=company).exists():
+                return Response(
+                    {"detail": f"A user with email {data['email']} already exists in this company."},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+                
             # Generate a username if not provided
             if 'username' not in data or not data['username']:
                 # Create username from email
@@ -119,9 +130,10 @@ class UserManagementView(APIView):
                     data['username'] = f"{base_username}{counter}"
                     counter += 1
             
-            # Generate a default password if not provided
-            if 'password' not in data or not data['password']:
-                data['password'] = 'ChangeMe123!'
+            # Generate a random password regardless of whether one was provided
+            # This ensures security by always using a strong random password
+            original_password = generate_random_password(12)
+            data['password'] = original_password
             
             # Set the company
             data['company'] = company.id
@@ -132,17 +144,61 @@ class UserManagementView(APIView):
             # Create the user
             serializer = UserSerializer(data=data)
             if serializer.is_valid():
-                user = User.objects.create_user(
-                    username=data['username'],
-                    email=data['email'],
-                    password=data['password'],
-                    first_name=data['first_name'],
-                    last_name=data['last_name'],
-                    role=data['role'],
-                    company=company,
-                    department=department
-                )
-                return Response(UserSerializer(user).data, status=status.HTTP_201_CREATED)
+                try:
+                    # Create user object but don't save it yet
+                    user = User(
+                        username=data['username'],
+                        email=data['email'],
+                        first_name=data['first_name'],
+                        last_name=data['last_name'],
+                        role=data['role'],
+                        company=company,
+                        department=department
+                    )
+                    
+                    # Generate UUID and company_email_id before saving
+                    if not user.uuid:
+                        user.uuid = uuid.uuid4()
+                    
+                    # Generate a unique company_email_id
+                    company_slug = company.slug if company.slug else str(company.id)
+                    base_id = f"{user.email}:{company_slug}"
+                    
+                    # Add a unique suffix if needed
+                    counter = 0
+                    temp_id = base_id
+                    while User.objects.filter(company_email_id=temp_id).exists():
+                        counter += 1
+                        temp_id = f"{base_id}:{counter}"
+                    
+                    user.company_email_id = temp_id
+                    
+                    # We've already generated a random password earlier
+                    # original_password = data['password']
+                    
+                    # Set the password and save
+                    user.set_password(original_password)
+                    user.save()
+                    
+                    # Send password reset email
+                    try:
+                        email_sent = send_password_reset_email(user, original_password, company_slug)
+                        response_data = UserSerializer(user).data
+                        response_data['email_sent'] = email_sent
+                        
+                        if not email_sent:
+                            response_data['email_error'] = "Password reset email could not be sent, but user was created successfully."
+                    except Exception as e:
+                        response_data = UserSerializer(user).data
+                        response_data['email_sent'] = False
+                        response_data['email_error'] = f"Error sending email: {str(e)}"
+                    
+                    return Response(response_data, status=status.HTTP_201_CREATED)
+                except Exception as e:
+                    return Response(
+                        {"detail": f"Error creating user: {str(e)}"},
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
         
         return Response(
@@ -152,7 +208,7 @@ class UserManagementView(APIView):
     
     def bulk_upload(self, request, company_slug=None):
         """
-        Bulk upload users from a CSV or Excel file
+        Bulk upload users from a CSV file (Excel support temporarily disabled)
         """
         if not company_slug:
             return Response(
@@ -176,28 +232,129 @@ class UserManagementView(APIView):
         # Get the file from the request
         file = request.FILES['file']
         
-        # Check file extension
+        # Check file extension - only supporting CSV for now
         if file.name.endswith('.csv'):
             # Read CSV file
             try:
-                df = pd.read_csv(file)
+                # Simple CSV parsing without pandas
+                decoded_file = file.read().decode('utf-8').splitlines()
+                reader = csv.DictReader(decoded_file)
+                
+                # Process the CSV data
+                results = {
+                    'created': 0,
+                    'failed': 0,
+                    'errors': []
+                }
+                
+                for row in reader:
+                    try:
+                        # Validate required fields
+                        required_fields = ['first_name', 'last_name', 'email', 'role']
+                        missing_fields = [field for field in required_fields if field not in row or not row[field]]
+                        
+                        if missing_fields:
+                            results['failed'] += 1
+                            results['errors'].append(f"Row missing required fields: {', '.join(missing_fields)}")
+                            continue
+                            
+                        # Generate username from email if not provided
+                        username = row.get('username', '')
+                        if not username:
+                            username = row['email'].split('@')[0]
+                            
+                            # Check if username exists and append numbers if needed
+                            base_username = username
+                            counter = 1
+                            while User.objects.filter(username=username).exists():
+                                username = f"{base_username}{counter}"
+                                counter += 1
+                                
+                        # Check if user with this email already exists in this company
+                        if User.objects.filter(email=row['email'], company=company).exists():
+                            results['failed'] += 1
+                            results['errors'].append(f"User with email {row['email']} already exists in this company")
+                            continue
+                        
+                        # Generate a random secure password regardless of what was provided
+                        # This ensures security by always using a strong random password
+                        password = generate_random_password(12)
+                        
+                        # Get or create department
+                        department_name = row.get('department', 'IT')
+                        department, created = Department.objects.get_or_create(
+                            name=department_name,
+                            company=company,
+                            defaults={'name': department_name, 'company': company}
+                        )
+                        
+                        try:
+                            # Create user object but don't save it yet
+                            user = User(
+                                username=username,
+                                email=row['email'],
+                                first_name=row['first_name'],
+                                last_name=row['last_name'],
+                                role=row['role'],
+                                company=company,
+                                department=department
+                            )
+                            
+                            # Generate UUID and company_email_id before saving
+                            if not user.uuid:
+                                user.uuid = uuid.uuid4()
+                            
+                            # Generate a unique company_email_id
+                            company_slug = company.slug if company.slug else str(company.id)
+                            base_id = f"{user.email}:{company_slug}"
+                            
+                            # Add a unique suffix if needed
+                            counter = 0
+                            temp_id = base_id
+                            while User.objects.filter(company_email_id=temp_id).exists():
+                                counter += 1
+                                temp_id = f"{base_id}:{counter}"
+                            
+                            user.company_email_id = temp_id
+                            
+                            # Set the password and save
+                            user.set_password(password)
+                            user.save()
+                            
+                            # Send password reset email
+                            try:
+                                email_sent = send_password_reset_email(user, password, company_slug)
+                                if not email_sent:
+                                    results['errors'].append(f"User {row['email']} created but password reset email could not be sent.")
+                            except Exception as e:
+                                results['errors'].append(f"User {row['email']} created but error sending email: {str(e)}")
+                            
+                            results['created'] += 1
+                        except Exception as e:
+                            results['failed'] += 1
+                            results['errors'].append(f"Error creating user {row['email']}: {str(e)}")
+                            continue
+                        
+                    except Exception as e:
+                        results['failed'] += 1
+                        results['errors'].append(f"Error processing row: {str(e)}")
+                
+                return Response(results, status=status.HTTP_201_CREATED)
+                
             except Exception as e:
                 return Response(
                     {"detail": f"Error reading CSV file: {str(e)}"},
                     status=status.HTTP_400_BAD_REQUEST
                 )
         elif file.name.endswith(('.xls', '.xlsx')):
-            # Read Excel file
-            try:
-                df = pd.read_excel(file)
-            except Exception as e:
-                return Response(
-                    {"detail": f"Error reading Excel file: {str(e)}"},
-                    status=status.HTTP_400_BAD_REQUEST
-                )
+            # Excel support temporarily disabled
+            return Response(
+                {"detail": "Excel file support is temporarily disabled. Please upload a CSV file instead."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
         else:
             return Response(
-                {"detail": "Unsupported file format. Please upload a CSV or Excel file."},
+                {"detail": "Unsupported file format. Please upload a CSV file."},
                 status=status.HTTP_400_BAD_REQUEST
             )
         

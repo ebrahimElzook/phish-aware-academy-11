@@ -1,6 +1,12 @@
 // API service for communicating with the Django backend
 
-const API_URL = import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/api` : 'http://localhost:8000/api';
+// For production, always use the backend URL
+const isProduction = window.location.hostname.includes('railway.app');
+
+// Use the hardcoded production URL if we're in production, otherwise use the environment variable or localhost
+const API_URL = isProduction
+  ? 'https://phishaware-backend-production.up.railway.app/api'
+  : (import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/api` : 'http://localhost:8000/api');
 
 // Get company slug from URL path (e.g., /company-name/dashboard)
 const getCompanySlug = (): string | null => {
@@ -94,6 +100,13 @@ export interface NewUserData {
   role: string;
 }
 
+export interface BulkUploadResponse {
+  created_users: User[];
+  errors: string[];
+  total_created: number;
+  total_errors: number;
+}
+
 export const companyService = {
   getCompanies: async (): Promise<Company[]> => {
     try {
@@ -153,21 +166,32 @@ export const authService = {
         body: JSON.stringify({ email, password }),
       });
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.detail || 'Login failed');
+      // Handle non-JSON responses (like 500 errors that return HTML)
+      const contentType = response.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        console.error('Server returned non-JSON response:', await response.text());
+        throw new Error('Server error. Please try again later.');
       }
 
       const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.detail || 'Login failed');
+      }
       
       // Store the token in localStorage
       localStorage.setItem('token', data.access);
       localStorage.setItem('refreshToken', data.refresh);
       
       return data;
-    } catch (error) {
+    } catch (error: any) {
       console.error('Login error:', error);
-      throw error;
+      // Make sure we always throw an Error object with a message
+      if (error instanceof Error) {
+        throw error;
+      } else {
+        throw new Error(error?.toString() || 'Login failed');
+      }
     }
   },
 
@@ -502,12 +526,20 @@ export const userService = {
         body: JSON.stringify(userData),
       });
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.detail || 'Failed to add user');
+      // Handle non-JSON responses (like 500 errors that return HTML)
+      const contentType = response.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        console.error('Server returned non-JSON response:', await response.text());
+        throw new Error('Server error. Please try again later.');
       }
 
-      return await response.json();
+      const data = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(data.detail || 'Failed to add user');
+      }
+
+      return data;
     } catch (error) {
       console.error('Add user error:', error);
       throw error;
@@ -515,7 +547,7 @@ export const userService = {
   },
 
   // Upload users in bulk via Excel/CSV file
-  uploadUsersBulk: async (formData: FormData): Promise<User[]> => {
+  uploadUsersBulk: async (formData: FormData): Promise<BulkUploadResponse> => {
     const token = localStorage.getItem('token');
     
     if (!token) {
@@ -537,6 +569,9 @@ export const userService = {
         throw new Error('Company context is required to upload users');
       }
       
+      console.log('Uploading users to endpoint:', endpoint);
+      console.log('Form data contains file:', formData.has('file'));
+      
       const response = await fetch(endpoint, {
         method: 'POST',
         headers: {
@@ -547,9 +582,18 @@ export const userService = {
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.detail || 'Failed to upload users');
+        console.error('Upload response not OK:', response.status, response.statusText);
+        try {
+          const errorData = await response.json();
+          console.error('Error data:', errorData);
+          throw new Error(errorData.detail || 'Failed to upload users');
+        } catch (e) {
+          console.error('Could not parse error response as JSON');
+          throw new Error(`Failed to upload users: ${response.status} ${response.statusText}`);
+        }
       }
+      
+      console.log('Upload successful, parsing response...');
 
       return await response.json();
     } catch (error) {
@@ -739,13 +783,24 @@ export const fetchWithAuth = async (url: string, options: RequestInit = {}): Pro
     throw new Error('No authentication token found');
   }
 
+  // Ensure the URL is absolute by checking if it starts with http or https
+  // If it doesn't, prepend the API_URL (without the /api part)
+  const absoluteUrl = url.startsWith('http') 
+    ? url 
+    : url.startsWith('/api') 
+      ? `https://phishaware-backend-production.up.railway.app${url}` 
+      : `${API_URL}${url.startsWith('/') ? '' : '/'}${url}`;
+  
+  console.log('Making authenticated request to:', absoluteUrl);
+
   const headers = {
     ...options.headers,
     'Authorization': `Bearer ${token}`,
+    'Content-Type': options.headers?.['Content-Type'] || 'application/json',
   };
 
   try {
-    const response = await fetch(url, {
+    const response = await fetch(absoluteUrl, {
       ...options,
       headers,
     });
@@ -766,8 +821,68 @@ export const fetchWithAuth = async (url: string, options: RequestInit = {}): Pro
 
     return response;
   } catch (error) {
-    console.error('Fetch with auth error:', error);
+    console.error('Fetch with auth error:', error, 'URL:', absoluteUrl);
     throw error;
+  }
+};
+
+// LMS Campaign service
+export const lmsService = {
+  // Get campaigns assigned to the current user
+  getUserCampaigns: async () => {
+    try {
+      const token = localStorage.getItem('token');
+      
+      if (!token) {
+        throw new Error('No authentication token found');
+      }
+      
+      // Only check if user is a super admin
+      const userRole = localStorage.getItem('userRole');
+      
+      if (userRole === 'super_admin') {
+        // For super admins, return empty array
+        return [];
+      }
+      
+      const companySlug = getCompanySlug();
+      if (!companySlug) throw new Error('Company context is required to fetch user campaigns');
+      
+      // Make the API request to get user-specific campaigns
+      const response = await fetch(`${API_URL}/user-campaigns/`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+      
+      if (!response.ok) {
+        try {
+          const errorData = await response.json();
+          
+          // Special handling for the "User does not belong to any company" error
+          if (errorData.error === "User does not belong to any company") {
+            return [];
+          }
+          
+          // For other errors, throw so we can debug
+          throw new Error(errorData.detail || errorData.error || `Failed to fetch user campaigns: ${response.status}`);
+        } catch (jsonError) {
+          // If we can't parse the error as JSON, throw with status
+          throw new Error(`Failed to fetch user campaigns: ${response.status} ${response.statusText}`);
+        }
+      }
+      
+      return await response.json();
+    } catch (error) {
+      // Only return empty array for super admins, otherwise throw
+      const userRole = localStorage.getItem('userRole');
+      if (userRole === 'super_admin') {
+        return [];
+      }
+      throw error;
+    }
   }
 };
 

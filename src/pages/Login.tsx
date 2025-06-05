@@ -42,8 +42,8 @@ const Login = () => {
         
         // Redirect based on role
         if (userRole === 'user') {
-          // Regular users go to training
-          navigate(`/${validCompanySlug}/lms-campaigns`, { replace: true });
+          // Regular users go to employee-courses
+          navigate(`/${validCompanySlug}/employee-courses`, { replace: true });
         } else if (adminRoles.some(role => userRole === role || userRole.includes(role))) {
           // Admins go to dashboard
           navigate(`/${validCompanySlug}/dashboard`, { replace: true });
@@ -84,13 +84,13 @@ const Login = () => {
       let redirectPath;
       
       if (validCompanySlug) {
-        // For regular users, redirect to training page
+        // For regular users, redirect to employee-courses page
         if (userRole === 'user') {
-          redirectPath = `/${validCompanySlug}/lms-campaigns`;
+          redirectPath = `/${validCompanySlug}/employee-courses`;
           
           toast({
             title: "Login successful",
-            description: "Welcome to your training portal",
+            description: "Welcome to your courses portal",
           });
         } else {
           // For admins and other roles, redirect to dashboard

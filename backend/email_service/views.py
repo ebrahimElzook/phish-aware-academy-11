@@ -6,9 +6,9 @@ from django.conf import settings
 from django.views.decorators.csrf import ensure_csrf_cookie
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
-from .models import CSWordEmailServ, EmailTemplate
-from .serializers import CSWordEmailServSerializer, EmailTemplateSerializer
-from accounts.models import Email, User
+from .models import CSWordEmailServ, EmailTemplate, PhishingCampaign
+from .serializers import CSWordEmailServSerializer, EmailTemplateSerializer, PhishingCampaignSerializer
+from accounts.models import Email, User, Company # Added Company import
 import json
 import logging
 from bs4 import BeautifulSoup
@@ -90,8 +90,8 @@ def send_email(request):
             
             # Add tracking pixel to HTML content if email_id is provided
             if email_id:
-                # Get the base URL from settings or use a default
-                base_url = getattr(settings, 'FRONTEND_URL', 'http://localhost:8000')
+                # Get the base URL from settings
+                base_url = settings.BACKEND_URL
                 tracking_pixel = f'<img src="{base_url}/api/email/mark-read/{email_id}/" width="1" height="1" alt="" style="display:none;">\n'                
                 # Add tracking pixel at the end of the body
                 if '</body>' in body:
@@ -206,3 +206,48 @@ def get_email_templates(request):
         return JsonResponseWithCors(serializer.data, safe=False)
     except Exception as e:
         return JsonResponseWithCors({'error': str(e)}, status=500)
+
+
+@api_view(['POST', 'OPTIONS'])
+@permission_classes([IsAuthenticated])
+def create_phishing_campaign_by_slug(request):
+    if request.method == 'OPTIONS':
+        return JsonResponseWithCors({}, status=200)
+
+    try:
+        data = request.data
+        campaign_name = data.get('campaign_name')
+        company_slug = data.get('company_slug')
+
+        if not campaign_name or not company_slug:
+            missing_fields = []
+            if not campaign_name: missing_fields.append('campaign_name')
+            if not company_slug: missing_fields.append('company_slug')
+            return JsonResponseWithCors(
+                {'error': f'Missing required fields: {", ".join(missing_fields)}'},
+                status=400
+            )
+
+        try:
+            company = Company.objects.get(slug=company_slug)
+        except Company.DoesNotExist:
+            logger.error(f"Company with slug '{company_slug}' not found.")
+            return JsonResponseWithCors(
+                {'error': f'Company with slug "{company_slug}" not found.'},
+                status=404
+            )
+
+        campaign = PhishingCampaign.objects.create(
+            campaign_name=campaign_name,
+            company=company
+        )
+        serializer = PhishingCampaignSerializer(campaign)
+        logger.info(f"Successfully created phishing campaign '{campaign_name}' for company '{company.name}'.")
+        return JsonResponseWithCors(serializer.data, status=201)
+
+    except json.JSONDecodeError:
+        logger.error("Invalid JSON format for creating campaign.")
+        return JsonResponseWithCors({'error': 'Invalid JSON format'}, status=400)
+    except Exception as e:
+        logger.error(f"Error creating phishing campaign: {str(e)}", exc_info=True)
+        return JsonResponseWithCors({'error': f'Error creating phishing campaign: {str(e)}'}, status=500)

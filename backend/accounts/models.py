@@ -3,6 +3,8 @@ from django.contrib.auth.models import AbstractUser
 from django.utils.translation import gettext_lazy as _
 from django.utils.text import slugify
 from django.utils import timezone
+import uuid
+
 
 class Department(models.Model):
     name = models.CharField(max_length=100)
@@ -41,7 +43,10 @@ class User(AbstractUser):
         blank=True,
         related_name='users'
     )
-    email = models.EmailField(_('email address'), unique=True)
+    email = models.EmailField(_('email address'))
+    # Use a non-callable default for the migration, we'll handle UUID generation in save method
+    uuid = models.UUIDField(unique=True, null=True, blank=True)
+    company_email_id = models.CharField(max_length=255, unique=True, null=True, blank=True)
     is_active = models.BooleanField(
         _('active'),
         default=True,
@@ -49,8 +54,32 @@ class User(AbstractUser):
                     'Unselect this instead of deleting accounts.')
     )
     
-    USERNAME_FIELD = 'email'
-    REQUIRED_FIELDS = ['username']
+    USERNAME_FIELD = 'username'
+    REQUIRED_FIELDS = ['email']
+    
+    class Meta:
+        unique_together = ['email', 'company']
+        
+    def save(self, *args, **kwargs):
+        # Generate UUID if not provided
+        if not self.uuid:
+            self.uuid = uuid.uuid4()
+            
+        # Generate a unique company_email_id if not provided
+        if not self.company_email_id and self.company and self.email:
+            company_slug = self.company.slug if self.company.slug else str(self.company.id)
+            base_id = f"{self.email}:{company_slug}"
+            
+            # Add a unique suffix if needed
+            counter = 0
+            temp_id = base_id
+            while User.objects.filter(company_email_id=temp_id).exists():
+                counter += 1
+                temp_id = f"{base_id}:{counter}"
+            
+            self.company_email_id = temp_id
+            
+        super().save(*args, **kwargs)
 
 class Company(models.Model):
     name = models.CharField(max_length=255, unique=True)
@@ -79,6 +108,7 @@ class Email(models.Model):
     clicked = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
     sent_at = models.DateTimeField(null=True, blank=True)
+    phishing_campaign = models.ForeignKey('email_service.PhishingCampaign', on_delete=models.SET_NULL, null=True, blank=True, related_name='emails', help_text="Associated phishing campaign")
     
     def __str__(self):
         return f"{self.subject} - From: {self.sender.email} To: {self.recipient.email}"

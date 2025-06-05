@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import CSWordEmailServ, EmailTemplate
+from .models import CSWordEmailServ, EmailTemplate, PhishingCampaign
 from accounts.models import Company
 
 class CSWordEmailServSerializer(serializers.ModelSerializer):
@@ -22,3 +22,15 @@ class EmailTemplateSerializer(serializers.ModelSerializer):
     
     def get_company_name(self, obj):
         return obj.company.name if obj.company else None
+
+
+class PhishingCampaignSerializer(serializers.ModelSerializer):
+    company = CompanySerializer(read_only=True) # Use existing CompanySerializer for nested representation
+    company_id = serializers.PrimaryKeyRelatedField(
+        queryset=Company.objects.all(), source='company', write_only=True
+    )
+
+    class Meta:
+        model = PhishingCampaign
+        fields = ['id', 'campaign_name', 'company', 'company_id', 'created_at', 'updated_at']
+        read_only_fields = ['created_at', 'updated_at']

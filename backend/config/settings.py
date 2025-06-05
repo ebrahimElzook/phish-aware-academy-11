@@ -10,9 +10,21 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-default-key')
 
-DEBUG = os.getenv('DEBUG', 'False') == 'True'
+DEBUG = os.getenv('DEBUG', 'True') == 'True'
 
-ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',')
+ALLOWED_HOSTS = ['*']  # Allow all hosts for initial deployment
+
+# CORS settings
+CORS_ALLOW_ALL_ORIGINS = True  # For development only
+CORS_ALLOW_CREDENTIALS = True
+CORS_ALLOW_METHODS = [
+    'DELETE',
+    'GET',
+    'OPTIONS',
+    'PATCH',
+    'POST',
+    'PUT',
+]
 
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -26,6 +38,8 @@ INSTALLED_APPS = [
     'rest_framework_simplejwt',
     'accounts',
     'email_service',
+    'courses',
+    'lms',
 ]
 
 MIDDLEWARE = [
@@ -90,8 +104,20 @@ USE_I18N = True
 USE_TZ = True
 
 STATIC_URL = 'static/'
-STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+STATIC_ROOT = BASE_DIR / 'staticfiles'
+STATICFILES_DIRS = [
+    BASE_DIR / 'static',
+]
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+
+# Media files (uploads)
+MEDIA_URL = '/media/'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+
+# File upload permissions
+FILE_UPLOAD_PERMISSIONS = 0o644
+FILE_UPLOAD_DIRECTORY_PERMISSIONS = 0o755
+
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 AUTH_USER_MODEL = 'accounts.User'
@@ -122,18 +148,52 @@ EMAIL_USE_TLS = True
 
 # CORS Settings
 CORS_ALLOW_CREDENTIALS = True
+CORS_ALLOW_ALL_ORIGINS = True  # Allow all origins for testing
+CORS_ALLOW_METHODS = [
+    'DELETE',
+    'GET',
+    'OPTIONS',
+    'PATCH',
+    'POST',
+    'PUT',
+]
+CORS_ALLOW_HEADERS = [
+    'accept',
+    'accept-encoding',
+    'authorization',
+    'content-type',
+    'dnt',
+    'origin',
+    'user-agent',
+    'x-csrftoken',
+    'x-requested-with',
+]
 CORS_ORIGIN_WHITELIST = [
     'http://localhost:3000',  # Default React dev server
     'http://127.0.0.1:3000',  # Alternative localhost
     'http://localhost:8000',  # Django dev server
     'http://127.0.0.1:8000',  # Django dev server alternative
+    'https://phish-aware-academy-frontend-production.up.railway.app',  # Railway frontend
+    'https://phishaware-backend-production.up.railway.app',  # Railway backend
 ]
 
 # Use environment variable if available
 import os
-FRONTEND_URL = os.getenv('FRONTEND_URL', 'http://localhost:3000')
+FRONTEND_URL = os.getenv('FRONTEND_URL', 'http://localhost:8080')
 BACKEND_URL = os.getenv('BACKEND_URL', 'http://localhost:8000')
-CSRF_TRUSTED_ORIGINS = [FRONTEND_URL, BACKEND_URL]
+CSRF_TRUSTED_ORIGINS = [
+    FRONTEND_URL, 
+    BACKEND_URL,
+    'https://phish-aware-academy-frontend-production.up.railway.app',
+    'https://phishaware-backend-production.up.railway.app',
+]
+
+# CSRF settings for cross-origin requests
+CSRF_COOKIE_SECURE = True
+CSRF_COOKIE_HTTPONLY = False  # Set to False to allow JavaScript access
+CSRF_COOKIE_SAMESITE = 'None'  # Allow cross-site requests
+CSRF_USE_SESSIONS = False  # Don't use sessions for CSRF
+CSRF_COOKIE_DOMAIN = '.up.railway.app'  # Allow sharing across Railway subdomains
 CORS_ORIGIN_WHITELIST.append(FRONTEND_URL)
 
 # Email tracking settings
@@ -144,6 +204,12 @@ EMAIL_TRACKING_URL = BACKEND_URL
 SESSION_COOKIE_SAMESITE = 'Lax'
 SESSION_COOKIE_HTTPONLY = True
 SESSION_COOKIE_SECURE = not DEBUG  # True in production
-CSRF_COOKIE_SAMESITE = 'Lax'
+# CSRF settings for cross-origin requests
+CSRF_COOKIE_SAMESITE = 'None' if not DEBUG else 'Lax'
 CSRF_COOKIE_HTTPONLY = False  # Allow JavaScript to read the CSRF token
+CSRF_COOKIE_SECURE = not DEBUG  # Use secure cookies in production
 CSRF_USE_SESSIONS = False
+CSRF_TRUSTED_ORIGINS = [
+    'https://phishaware-backend-production.up.railway.app',
+    'https://*.up.railway.app',
+]

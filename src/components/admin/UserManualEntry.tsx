@@ -82,6 +82,8 @@ export const UserManualEntry = () => {
       });
       return;
     }
+    
+    console.log('Uploading file:', file.name, 'Type:', file.type, 'Size:', file.size);
 
     toast({
       title: "File upload started",
@@ -92,8 +94,34 @@ export const UserManualEntry = () => {
       const formData = new FormData();
       formData.append('file', file);
       
-      const newUsers = await userService.uploadUsersBulk(formData);
-      setUsers([...users, ...newUsers]);
+      // Log form data contents
+      console.log('Form data created with file:', file.name);
+      
+      const response = await userService.uploadUsersBulk(formData);
+      console.log('Upload successful, received response:', response);
+      
+      // Check if response has the expected format
+      if (response && response.created_users && Array.isArray(response.created_users)) {
+        setUsers([...users, ...response.created_users]);
+        
+        // Show any errors in the toast if there are any
+        if (response.errors && response.errors.length > 0) {
+          toast({
+            title: `Upload partially successful (${response.total_created} users added)`,
+            description: `There were ${response.total_errors} errors: ${response.errors.slice(0, 3).join(', ')}${response.errors.length > 3 ? '...' : ''}`,
+            variant: "destructive", // Using destructive instead of warning as it's a supported variant
+          });
+          return;
+        }
+      } else {
+        console.error('Unexpected response format:', response);
+        // If the response is an array, use it directly (backward compatibility)
+        if (Array.isArray(response)) {
+          setUsers([...users, ...response]);
+        } else {
+          throw new Error('Invalid response format from server');
+        }
+      }
       
       toast({
         title: "Upload successful",
@@ -105,9 +133,10 @@ export const UserManualEntry = () => {
       const fileInput = document.getElementById('excel-upload') as HTMLInputElement;
       if (fileInput) fileInput.value = '';
     } catch (error) {
+      console.error('File upload error:', error);
       toast({
         title: "Upload failed",
-        description: "There was an error uploading the file. Please try again.",
+        description: error instanceof Error ? error.message : "There was an error uploading the file. Please try again.",
         variant: "destructive",
       });
     }
@@ -253,7 +282,6 @@ export const UserManualEntry = () => {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="USER">User</SelectItem>
-                    <SelectItem value="ADMIN">Admin</SelectItem>
                     <SelectItem value="COMPANY_ADMIN">Company Admin</SelectItem>
                   </SelectContent>
                 </Select>

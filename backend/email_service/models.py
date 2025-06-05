@@ -1,5 +1,8 @@
 from django.db import models
-from accounts.models import Company
+from django.db import models
+
+
+# Existing models (CSWordEmailServ, EmailTemplate) remain here...
 
 class CSWordEmailServ(models.Model):
     host = models.CharField(max_length=255, help_text="SMTP server host")
@@ -27,7 +30,7 @@ class EmailTemplate(models.Model):
     
     subject = models.CharField(max_length=255, help_text="Email subject line")
     content = models.TextField(help_text="Email content/body")
-    company = models.ForeignKey(Company, on_delete=models.CASCADE, blank=True, null=True, help_text="Company associated with this template")
+    company = models.ForeignKey('accounts.Company', on_delete=models.CASCADE, blank=True, null=True, help_text="Company associated with this template")
     is_global = models.BooleanField(default=False, help_text="Whether this template is available globally to all companies")
     difficulty = models.CharField(max_length=10, choices=DIFFICULTY_CHOICES, default='medium', help_text="Difficulty level of the phishing template")
     category = models.CharField(max_length=100, blank=True, null=True, help_text="Category of the email template (e.g., Financial, HR, IT Support)")
@@ -40,3 +43,18 @@ class EmailTemplate(models.Model):
 
     def __str__(self):
         return f"{self.subject} ({'Global' if self.is_global else self.company.name if self.company else 'No company'})"
+
+
+class PhishingCampaign(models.Model):
+    campaign_name = models.CharField(max_length=255, help_text="Name of the phishing campaign")
+    company = models.ForeignKey('accounts.Company', on_delete=models.CASCADE, related_name='phishing_campaigns', help_text="Company running this campaign")
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Phishing Campaign"
+        verbose_name_plural = "Phishing Campaigns"
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"{self.campaign_name} ({self.company.name})"

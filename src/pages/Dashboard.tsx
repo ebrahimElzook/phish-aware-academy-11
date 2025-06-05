@@ -337,9 +337,9 @@ const Dashboard = () => {
                 </Card>
 
                 <Button asChild className="h-full bg-phish-50 hover:bg-phish-100 text-phish-600">
-                  <Link to="/lms-campaigns" className="flex flex-col items-center justify-center gap-2">
+                  <Link to="/employee-courses" className="flex flex-col items-center justify-center gap-2">
                     <Video className="h-6 w-6" />
-                    <span>View All Videos</span>
+                    <span>View All Courses</span>
                   </Link>
                 </Button>
               </div>

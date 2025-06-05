@@ -5,7 +5,7 @@ import { useToast } from '@/hooks/use-toast';
 
 /**
  * Component that redirects users to different pages based on their role
- * - Regular users (role='user') are redirected to the training page
+ * - Regular users (role='user') are redirected to the employee-courses page
  * - All other users are redirected to the dashboard
  */
 const UserRoleRedirect: React.FC = () => {
@@ -41,9 +41,9 @@ const UserRoleRedirect: React.FC = () => {
   // Define admin roles that should be redirected to dashboard
   const adminRoles = ['admin', 'super_admin', 'company_admin'];
   
-  // If the user is a regular user, redirect to training
+  // If the user is a regular user, redirect to employee-courses
   if (userRole === 'user') {
-    return <Navigate to={`/${validCompanySlug}/lms-campaigns`} replace />;
+    return <Navigate to={`/${validCompanySlug}/employee-courses`} replace />;
   }
   
   // For admin roles, redirect to dashboard

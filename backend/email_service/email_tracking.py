@@ -3,6 +3,8 @@ from django.views.decorators.http import require_http_methods
 from django.http import HttpResponse, JsonResponse
 import logging
 import base64
+import uuid
+from datetime import datetime
 
 logger = logging.getLogger(__name__)
 
@@ -15,8 +17,10 @@ class JsonResponseWithCors(JsonResponse):
         self['Access-Control-Allow-Headers'] = 'Content-Type, X-CSRFToken'
         self['Access-Control-Allow-Credentials'] = 'true'
 
-# 1x1 transparent pixel in base64 format
+# Different tracking pixels for different content types
 TRANSPARENT_PIXEL = base64.b64decode('R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7')
+SVG_PIXEL = b'<svg xmlns="http://www.w3.org/2000/svg" width="1" height="1"></svg>'
+PNG_PIXEL = base64.b64decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=')
 
 @csrf_exempt
 @require_http_methods(['GET', 'OPTIONS'])
@@ -26,7 +30,14 @@ def mark_email_read(request, email_id):
     This is triggered automatically when the email is opened in most email clients
     """
     # Log all incoming requests for debugging
-    logger.info(f"Received read tracking request for email_id: {email_id}, request: {request.method} {request.path}")
+    uid = request.GET.get('uid', 'no-uid')
+    method = request.GET.get('method', 'pixel')
+    user_agent = request.META.get('HTTP_USER_AGENT', 'Unknown')
+    referer = request.META.get('HTTP_REFERER', 'Unknown')
+    ip_address = request.META.get('REMOTE_ADDR', 'Unknown')
+    
+    logger.info(f"Received read tracking request for email_id: {email_id}, uid: {uid}, method: {method}")
+    logger.info(f"Tracking request details - User-Agent: {user_agent}, Referer: {referer}, IP: {ip_address}")
     
     # Handle OPTIONS request for CORS preflight
     if request.method == 'OPTIONS':
@@ -64,20 +75,64 @@ def mark_email_read(request, email_id):
         except Exception as e:
             logger.error(f"Error marking email {email_id} as read: {str(e)}", exc_info=True)
         
-        # Always return the tracking pixel image, even if there was an error
-        # This ensures the email client doesn't show a broken image
-        logger.info(f"Returning tracking pixel for email {email_id}")
-        response = HttpResponse(TRANSPARENT_PIXEL, content_type='image/gif')
-        response['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+        # Always return the appropriate response based on the tracking method
+        method = request.GET.get('method', 'pixel')
+        
+        if method == 'link':
+            # If it's a link click, redirect to a success page or back to the site
+            logger.info(f"Returning redirect for email {email_id} (link method)")
+            response = HttpResponse('<html><body><h1>Email Opened</h1><p>You can close this window.</p></body></html>')
+        elif method == 'svg':
+            # For SVG tracking, return an SVG image
+            logger.info(f"Returning SVG tracking pixel for email {email_id}")
+            response = HttpResponse(SVG_PIXEL, content_type='image/svg+xml')
+        elif method == 'css':
+            # For CSS tracking, return a PNG image
+            logger.info(f"Returning PNG tracking pixel for email {email_id} (CSS method)")
+            response = HttpResponse(PNG_PIXEL, content_type='image/png')
+        else:
+            # For standard pixel tracking, return the transparent GIF
+            logger.info(f"Returning GIF tracking pixel for email {email_id}")
+            response = HttpResponse(TRANSPARENT_PIXEL, content_type='image/gif')
+        
+        # Set cache-busting headers
+        response['Cache-Control'] = 'no-cache, no-store, must-revalidate, max-age=0'
         response['Pragma'] = 'no-cache'
         response['Expires'] = '0'
+        
+        # Add random ETag to prevent caching
+        response['ETag'] = f'"{uuid.uuid4()}"'
+        
+        # Add a unique Last-Modified timestamp to prevent caching
+        response['Last-Modified'] = datetime.now().strftime('%a, %d %b %Y %H:%M:%S GMT')
+        
         return response
         
     except Exception as e:
         logger.error(f"Unexpected error in mark_email_read: {str(e)}", exc_info=True)
-        # Still return a pixel to avoid broken images in the email
-        response = HttpResponse(TRANSPARENT_PIXEL, content_type='image/gif')
-        response['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+        # Return appropriate response based on tracking method
+        method = request.GET.get('method', 'pixel')
+        
+        if method == 'link':
+            # If it's a link click, return a simple HTML page
+            response = HttpResponse('<html><body><h1>Email Opened</h1><p>You can close this window.</p></body></html>')
+        elif method == 'svg':
+            # For SVG tracking, return an SVG image
+            response = HttpResponse(SVG_PIXEL, content_type='image/svg+xml')
+        elif method == 'css':
+            # For CSS tracking, return a PNG image
+            response = HttpResponse(PNG_PIXEL, content_type='image/png')
+        else:
+            # For standard pixel tracking, return the transparent GIF
+            response = HttpResponse(TRANSPARENT_PIXEL, content_type='image/gif')
+        
+        # Set cache-busting headers
+        response['Cache-Control'] = 'no-cache, no-store, must-revalidate, max-age=0'
+        response['Pragma'] = 'no-cache'
+        response['Expires'] = '0'
+        response['ETag'] = f'"{uuid.uuid4()}"'
+        response['Last-Modified'] = datetime.now().strftime('%a, %d %b %Y %H:%M:%S GMT')
+        
         return response
 
 @csrf_exempt

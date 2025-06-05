@@ -74,11 +74,11 @@ const App = () => (
               <Route path="analytics" element={<Analytics />} />
               <Route path="user-management" element={<UserManagement />} />
               <Route path="sender" element={<Sender />} />
+              <Route path="lms-campaigns" element={<LMSCampaigns />} />
             </Route>
             
             {/* Routes accessible to all authenticated users */}
             <Route element={<ProtectedRoute restrictUserRole={false} />}>
-              <Route path="lms-campaigns" element={<LMSCampaigns />} />
               <Route path="template-editor/:id?" element={<TemplateEditor />} />
               <Route path="employee-courses" element={<EmployeeCourses />} />
               <Route path="profile-settings" element={<ProfileSettings />} />
