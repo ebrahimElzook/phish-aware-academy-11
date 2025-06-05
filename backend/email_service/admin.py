@@ -1,7 +1,7 @@
 from django.contrib import admin
 from django.db import models
 from django.utils.safestring import mark_safe
-from .models import CSWordEmailServ, EmailTemplate
+from .models import CSWordEmailServ, EmailTemplate, PhishingCampaign
 
 @admin.register(CSWordEmailServ)
 class CSWordEmailServAdmin(admin.ModelAdmin):
@@ -51,3 +51,20 @@ class EmailTemplateAdmin(admin.ModelAdmin):
             return mark_safe(f'<div style="padding: 10px; border: 1px solid #ddd; background-color: #f9f9f9;">{obj.content}</div>')
         return "No content"
     content_preview.short_description = 'Content Preview'
+
+
+@admin.register(PhishingCampaign)
+class PhishingCampaignAdmin(admin.ModelAdmin):
+    list_display = ('campaign_name', 'company', 'created_at', 'updated_at')
+    list_filter = ('company',)
+    search_fields = ('campaign_name', 'company__name')
+    readonly_fields = ('created_at', 'updated_at')
+    fieldsets = (
+        (None, {
+            'fields': ('campaign_name', 'company')
+        }),
+        ('Timestamps', {
+            'fields': ('created_at', 'updated_at'),
+            'classes': ('collapse',)
+        }),
+    )

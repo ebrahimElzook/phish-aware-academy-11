@@ -5,6 +5,7 @@ from django.utils.text import slugify
 from django.utils import timezone
 import uuid
 
+
 class Department(models.Model):
     name = models.CharField(max_length=100)
     company = models.ForeignKey('Company', on_delete=models.CASCADE, related_name='departments')
@@ -107,6 +108,7 @@ class Email(models.Model):
     clicked = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
     sent_at = models.DateTimeField(null=True, blank=True)
+    phishing_campaign = models.ForeignKey('email_service.PhishingCampaign', on_delete=models.SET_NULL, null=True, blank=True, related_name='emails', help_text="Associated phishing campaign")
     
     def __str__(self):
         return f"{self.subject} - From: {self.sender.email} To: {self.recipient.email}"

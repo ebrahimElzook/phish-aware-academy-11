@@ -3,6 +3,7 @@ from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django.utils.translation import gettext_lazy as _
 from django import forms
 from .models import User, Company, Department, Email
+from email_service.models import PhishingCampaign  # Import PhishingCampaign
 
 @admin.register(Company)
 class CompanyAdmin(admin.ModelAdmin):
@@ -75,13 +76,13 @@ class DepartmentAdmin(admin.ModelAdmin):
 
 @admin.register(Email)
 class EmailAdmin(admin.ModelAdmin):
-    list_display = ('id', 'subject', 'sender', 'recipient', 'sent', 'read', 'clicked', 'created_at', 'sent_at')
-    list_filter = ('sent', 'read', 'clicked')
+    list_display = ('id', 'subject', 'sender', 'recipient', 'phishing_campaign', 'sent', 'read', 'clicked', 'created_at', 'sent_at')
+    list_filter = ('sent', 'read', 'clicked', 'phishing_campaign')
     search_fields = ('subject', 'content', 'id')
     date_hierarchy = 'created_at'
     readonly_fields = ('id', 'created_at', 'sent_at')
     fieldsets = (
-        (None, {'fields': ('id', 'subject', 'content', 'sender', 'recipient')}),
+        (None, {'fields': ('id', 'subject', 'content', 'sender', 'recipient', 'phishing_campaign')}),
         (_('Status'), {'fields': ('sent', 'read', 'clicked')}),
         (_('Timestamps'), {'fields': ('created_at', 'sent_at')}),
     )
