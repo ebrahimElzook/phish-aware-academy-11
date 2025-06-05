@@ -18,4 +18,8 @@ urlpatterns = [
     path('sent-emails/', get_sent_emails, name='get_sent_emails'),
     path('view-in-browser/<int:email_id>/', view_email_in_browser, name='view_email_in_browser'),
     path('campaigns/create/', views.create_phishing_campaign_by_slug, name='create_phishing_campaign_by_slug'),
+    # Phishing Analytics URLs
+    path('analytics/summary/', views.phishing_analytics_summary, name='phishing_analytics_summary'),
+    path('analytics/department-performance/', views.department_performance_analytics, name='department_performance_analytics'),
+    path('analytics/temporal-trend/', views.phishing_temporal_trend_analytics, name='phishing_temporal_trend_analytics'),
 ]

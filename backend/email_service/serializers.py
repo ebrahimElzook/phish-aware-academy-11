@@ -34,3 +34,41 @@ class PhishingCampaignSerializer(serializers.ModelSerializer):
         model = PhishingCampaign
         fields = ['id', 'campaign_name', 'company', 'company_id', 'created_at', 'updated_at']
         read_only_fields = ['created_at', 'updated_at']
+
+
+class PhishingSummaryStatsSerializer(serializers.Serializer):
+    total_campaigns = serializers.IntegerField()
+    total_emails_sent = serializers.IntegerField()
+    total_emails_clicked = serializers.IntegerField()
+    total_emails_read = serializers.IntegerField()
+    average_click_rate = serializers.FloatField()
+    average_read_rate = serializers.FloatField()
+
+    class Meta:
+        fields = [
+            'total_campaigns', 'total_emails_sent', 'total_emails_clicked', 
+            'total_emails_read', 'average_click_rate', 'average_read_rate'
+        ]
+
+class DepartmentPerformanceSerializer(serializers.Serializer):
+    department_id = serializers.IntegerField(allow_null=True)
+    department_name = serializers.CharField(allow_null=True)
+    emails_sent = serializers.IntegerField()
+    emails_clicked = serializers.IntegerField()
+    emails_read = serializers.IntegerField()
+    click_rate = serializers.FloatField()
+    read_rate = serializers.FloatField()
+
+    class Meta:
+        fields = [
+            'department_id', 'department_name', 'emails_sent', 'emails_clicked', 
+            'emails_read', 'click_rate', 'read_rate'
+        ]
+
+class TemporalTrendPointSerializer(serializers.Serializer):
+    period = serializers.CharField() # e.g., 'YYYY-MM'
+    click_rate = serializers.FloatField()
+    read_rate = serializers.FloatField()
+
+    class Meta:
+        fields = ['period', 'click_rate', 'read_rate']

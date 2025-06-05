@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -30,19 +30,8 @@ import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import LMSAnalytics from '@/components/analytics/LMSAnalytics';
 
-const monthlyData = [
-  { name: 'Jan', clickRate: 38, reportRate: 14 },
-  { name: 'Feb', clickRate: 35, reportRate: 18 },
-  { name: 'Mar', clickRate: 32, reportRate: 22 },
-  { name: 'Apr', clickRate: 28, reportRate: 28 },
-  { name: 'May', clickRate: 24, reportRate: 32 },
-  { name: 'Jun', clickRate: 19, reportRate: 38 },
-  { name: 'Jul', clickRate: 15, reportRate: 42 },
-  { name: 'Aug', clickRate: 12, reportRate: 48 },
-];
-
 const departmentData = [
-  { name: 'IT', clickRate: 11, reportRate: 55 },
+  { name: 'IT', clickRate: 11, reportRate: 55 }, // This will be replaced later
   { name: 'Marketing', clickRate: 28, reportRate: 39 },
   { name: 'Sales', clickRate: 24, reportRate: 42 },
   { name: 'HR', clickRate: 19, reportRate: 45 },
@@ -50,26 +39,135 @@ const departmentData = [
   { name: 'Operations', clickRate: 22, reportRate: 40 },
 ];
 
-const campaignPerformanceData = [
-  { name: 'Password Reset', clickRate: 32 },
-  { name: 'Security Alert', clickRate: 28 },
-  { name: 'Document Share', clickRate: 38 },
-  { name: 'Invoice', clickRate: 25 },
-  { name: 'Bonus Offer', clickRate: 42 },
-];
-
-const responseTimeData = [
-  { name: 'Within 1 min', value: 15 },
-  { name: '1-5 mins', value: 25 },
-  { name: '5-15 mins', value: 35 },
-  { name: '15-60 mins', value: 15 },
-  { name: '1+ hour', value: 10 },
-];
-
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8'];
+
+interface SummaryStats {
+  total_campaigns: number;
+  total_emails_sent: number;
+  total_emails_clicked: number;
+  total_emails_read: number;
+  average_click_rate: number;
+  average_read_rate: number;
+}
+
+interface DepartmentPerformance {
+  department_id: string | null;
+  department_name: string;
+  emails_sent: number;
+  emails_clicked: number;
+  emails_read: number;
+  click_rate: number;
+  read_rate: number;
+}
+
+interface TemporalTrendPoint {
+  period: string;
+  click_rate: number;
+  read_rate: number;
+}
 
 const Analytics = () => {
   const [timeRange, setTimeRange] = useState('6months');
+  const [summaryStats, setSummaryStats] = useState<SummaryStats | null>(null);
+  const [departmentPerformance, setDepartmentPerformance] = useState<DepartmentPerformance[]>([]);
+  const [temporalTrend, setTemporalTrend] = useState<TemporalTrendPoint[]>([]);
+
+  const [loadingSummary, setLoadingSummary] = useState(true);
+  const [loadingDeptPerf, setLoadingDeptPerf] = useState(true);
+  const [loadingTemporal, setLoadingTemporal] = useState(true);
+
+  const [errorSummary, setErrorSummary] = useState<string | null>(null);
+  const [errorDeptPerf, setErrorDeptPerf] = useState<string | null>(null);
+  const [errorTemporal, setErrorTemporal] = useState<string | null>(null);
+
+  const [mostVulnerableDept, setMostVulnerableDept] = useState<DepartmentPerformance | null>(null);
+  const [mostEffectiveDept, setMostEffectiveDept] = useState<DepartmentPerformance | null>(null);
+
+  const API_BASE_URL = import.meta.env.VITE_BACKEND_URL || 'http://127.0.0.1:8000';
+
+  useEffect(() => {
+    const fetchData = async (endpoint: string, setData: Function, setLoading: Function, setError: Function) => {
+      setLoading(true);
+      setError(null);
+      try {
+        const token = localStorage.getItem('token');
+        const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        });
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        const data = await response.json();
+        setData(data);
+      } catch (e) {
+        console.error(`Failed to fetch ${endpoint}`, e);
+        setError(e instanceof Error ? e.message : String(e));
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData('/api/email/analytics/summary/', setSummaryStats, setLoadingSummary, setErrorSummary);
+    fetchData('/api/email/analytics/department-performance/', setDepartmentPerformance, setLoadingDeptPerf, setErrorDeptPerf);
+  }, [API_BASE_URL]);
+
+  useEffect(() => {
+    const fetchTemporalData = async () => {
+      setLoadingTemporal(true);
+      setErrorTemporal(null);
+      try {
+        const token = localStorage.getItem('token');
+        const response = await fetch(`${API_BASE_URL}/api/email/analytics/temporal-trend/?range=${timeRange}`, {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        });
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        const data = await response.json();
+        setTemporalTrend(data);
+      } catch (e) {
+        console.error('Failed to fetch temporal trend data', e);
+        setErrorTemporal(e instanceof Error ? e.message : String(e));
+      } finally {
+        setLoadingTemporal(false);
+      }
+    };
+
+    fetchTemporalData();
+  }, [timeRange, API_BASE_URL]);
+
+  useEffect(() => {
+    if (departmentPerformance && departmentPerformance.length > 0) {
+      const actualDepartments = departmentPerformance.filter(
+        (dept) => dept.department_id !== null
+      );
+
+      if (actualDepartments.length > 0) {
+        setMostVulnerableDept(
+          actualDepartments.reduce((prev, current) => 
+            (prev.click_rate > current.click_rate) ? prev : current
+          )
+        );
+        setMostEffectiveDept(
+          actualDepartments.reduce((prev, current) => 
+            (prev.click_rate < current.click_rate) ? prev : current
+          )
+        );
+      } else {
+        setMostVulnerableDept(null);
+        setMostEffectiveDept(null);
+      }
+    } else {
+      setMostVulnerableDept(null);
+      setMostEffectiveDept(null);
+    }
+  }, [departmentPerformance]);
   
   return (
     <div className="min-h-screen flex flex-col">
@@ -90,7 +188,7 @@ const Analytics = () => {
                   onChange={(e) => setTimeRange(e.target.value)}
                   className="bg-transparent border-0 text-sm focus:ring-0 focus:outline-none"
                 >
-                  <option value="30days">Last 30 Days</option>
+                  {/* <option value="30days">Last 30 Days</option> TODO: Add if supported by backend */}
                   <option value="3months">Last 3 Months</option>
                   <option value="6months">Last 6 Months</option>
                   <option value="1year">Last Year</option>
@@ -115,78 +213,89 @@ const Analytics = () => {
             </TabsList>
 
             <TabsContent value="phishing">
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
                 <Card className="border-gray-100">
                   <CardContent className="p-6">
                     <div className="flex items-center justify-between mb-2">
                       <p className="text-sm font-medium text-gray-500">Average Click Rate</p>
-                      <div className="flex items-center text-red-500 text-xs font-medium">
-                        <TrendingDown className="h-3 w-3 mr-1" />
-                        <span>-12%</span>
-                      </div>
+                      {/* Trend indicator can be dynamic later */}
                     </div>
-                    <div className="flex items-baseline">
-                      <p className="text-3xl font-bold">24.8%</p>
-                      <span className="ml-2 text-sm text-gray-500">vs 36.5% last period</span>
-                    </div>
-                    <div className="mt-4 h-2 bg-gray-100 rounded-full overflow-hidden">
-                      <div className="bg-red-500 h-2 rounded-full" style={{ width: '25%' }}></div>
-                    </div>
+                    {loadingSummary ? <p>Loading...</p> : errorSummary ? <p className="text-red-500 text-xs">Error: {errorSummary}</p> : summaryStats ? (
+                      <>
+                        <h2 className="text-3xl font-bold">{summaryStats.average_click_rate.toFixed(2)}%</h2>
+                        <p className="text-xs text-gray-500">
+                          {summaryStats.total_emails_clicked} clicked out of {summaryStats.total_emails_sent} emails
+                        </p>
+                      </>
+                    ) : <p className="text-sm text-gray-500">N/A</p>}
                   </CardContent>
                 </Card>
-                
+
                 <Card className="border-gray-100">
                   <CardContent className="p-6">
                     <div className="flex items-center justify-between mb-2">
-                      <p className="text-sm font-medium text-gray-500">Average Report Rate</p>
-                      <div className="flex items-center text-green-500 text-xs font-medium">
-                        <TrendingUp className="h-3 w-3 mr-1" />
-                        <span>+16%</span>
-                      </div>
+                      <p className="text-sm font-medium text-gray-500">Average Read Rate</p>
+                      {/* Trend indicator can be dynamic later */}
                     </div>
-                    <div className="flex items-baseline">
-                      <p className="text-3xl font-bold">38.2%</p>
-                      <span className="ml-2 text-sm text-gray-500">vs 22.5% last period</span>
-                    </div>
-                    <div className="mt-4 h-2 bg-gray-100 rounded-full overflow-hidden">
-                      <div className="bg-green-500 h-2 rounded-full" style={{ width: '38%' }}></div>
-                    </div>
+                    {loadingSummary ? <p>Loading...</p> : errorSummary ? <p className="text-red-500 text-xs">Error: {errorSummary}</p> : summaryStats ? (
+                      <>
+                        <h2 className="text-3xl font-bold">{summaryStats.average_read_rate.toFixed(2)}%</h2>
+                        <p className="text-xs text-gray-500">
+                          {summaryStats.total_emails_read} read out of {summaryStats.total_emails_sent} emails
+                        </p>
+                      </>
+                    ) : <p className="text-sm text-gray-500">N/A</p>}
                   </CardContent>
                 </Card>
-                
+
+                <Card className="border-gray-100">
+                  <CardContent className="p-6">
+                    <p className="text-sm font-medium text-gray-500 mb-2">Total Campaigns</p>
+                    {loadingSummary ? <p>Loading...</p> : errorSummary ? <p className="text-red-500 text-xs">Error: {errorSummary}</p> : summaryStats ? (
+                      <h2 className="text-3xl font-bold">{summaryStats.total_campaigns}</h2>
+                    ) : <p className="text-sm text-gray-500">N/A</p>}
+                  </CardContent>
+                </Card>
+
+                <Card className="border-gray-100">
+                  <CardContent className="p-6">
+                    <p className="text-sm font-medium text-gray-500 mb-2">Total Emails Sent</p>
+                    {loadingSummary ? <p>Loading...</p> : errorSummary ? <p className="text-red-500 text-xs">Error: {errorSummary}</p> : summaryStats ? (
+                      <h2 className="text-3xl font-bold">{summaryStats.total_emails_sent}</h2>
+                    ) : <p className="text-sm text-gray-500">N/A</p>}
+                  </CardContent>
+                </Card>
+
                 <Card className="border-gray-100">
                   <CardContent className="p-6">
                     <div className="flex items-center justify-between mb-2">
                       <p className="text-sm font-medium text-gray-500">Most Vulnerable Dept.</p>
-                      <div className="flex items-center text-amber-500 text-xs font-medium">
-                        <span>High Risk</span>
-                      </div>
                     </div>
-                    <div className="flex items-baseline">
-                      <p className="text-3xl font-bold">Marketing</p>
-                    </div>
-                    <div className="mt-2">
-                      <p className="text-sm text-gray-500">28% click rate</p>
-                      <p className="text-xs text-amber-600 mt-1">Needs additional training</p>
-                    </div>
+                    {loadingDeptPerf ? <p>Loading...</p> : errorDeptPerf ? <p className="text-red-500 text-xs">Error: {errorDeptPerf}</p> : mostVulnerableDept ? (
+                      <>
+                        <h2 className="text-2xl font-bold text-red-600">{mostVulnerableDept.department_name}</h2>
+                        <p className="text-xs text-gray-500">
+                          {mostVulnerableDept.click_rate.toFixed(2)}% Click Rate
+                        </p>
+                      </>
+                    ) : <p className="text-sm text-gray-500">N/A</p>}
                   </CardContent>
                 </Card>
-                
+
                 <Card className="border-gray-100">
                   <CardContent className="p-6">
                     <div className="flex items-center justify-between mb-2">
-                      <p className="text-sm font-medium text-gray-500">Most Effective Team</p>
-                      <div className="flex items-center text-green-500 text-xs font-medium">
-                        <span>Low Risk</span>
-                      </div>
+                      <p className="text-sm font-medium text-gray-500">Most Effective Dept.</p>
+                      {/* Trend indicator can be dynamic later */}
                     </div>
-                    <div className="flex items-baseline">
-                      <p className="text-3xl font-bold">IT</p>
-                    </div>
-                    <div className="mt-2">
-                      <p className="text-sm text-gray-500">11% click rate</p>
-                      <p className="text-xs text-green-600 mt-1">High awareness level</p>
-                    </div>
+                    {loadingDeptPerf ? <p>Loading...</p> : errorDeptPerf ? <p className="text-red-500 text-xs">Error: {errorDeptPerf}</p> : mostEffectiveDept ? (
+                      <>
+                        <h2 className="text-2xl font-bold text-green-600">{mostEffectiveDept.department_name}</h2>
+                        <p className="text-xs text-gray-500">
+                          {mostEffectiveDept.click_rate.toFixed(2)}% Click Rate
+                        </p>
+                      </>
+                    ) : <p className="text-sm text-gray-500">N/A</p>}
                   </CardContent>
                 </Card>
               </div>
@@ -198,31 +307,22 @@ const Analytics = () => {
                   </CardHeader>
                   <CardContent>
                     <div className="h-80">
-                      <ResponsiveContainer width="100%" height="100%">
-                        <LineChart
-                          data={monthlyData}
-                          margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
-                        >
-                          <CartesianGrid strokeDasharray="3 3" />
-                          <XAxis dataKey="name" />
-                          <YAxis />
-                          <Tooltip />
-                          <Legend />
-                          <Line
-                            type="monotone"
-                            dataKey="clickRate"
-                            name="Click Rate (%)"
-                            stroke="#ef4444"
-                            activeDot={{ r: 8 }}
-                          />
-                          <Line
-                            type="monotone"
-                            dataKey="reportRate"
-                            name="Report Rate (%)"
-                            stroke="#10b981"
-                          />
-                        </LineChart>
-                      </ResponsiveContainer>
+                      {loadingTemporal ? <p>Loading trend data...</p> : errorTemporal ? <p className="text-red-500 text-xs">Error: {errorTemporal}</p> : (
+                        <ResponsiveContainer width="100%" height="100%">
+                          <LineChart data={temporalTrend} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
+                            <CartesianGrid strokeDasharray="3 3" />
+                            <XAxis dataKey="period" />
+                            <YAxis unit="%" domain={[0, 100]} />
+                            <Tooltip formatter={(value: number, name: string) => {
+                              const displayName = name === 'click_rate' ? 'Click Rate' : 'Read Rate';
+                              return [`${value}%`, displayName];
+                            }} />
+                            <Legend />
+                            <Line type="monotone" dataKey="click_rate" name="Click Rate" stroke="#EF4444" activeDot={{ r: 6 }} />
+                            <Line type="monotone" dataKey="read_rate" name="Read Rate" stroke="#22C55E" activeDot={{ r: 6 }} />
+                          </LineChart>
+                        </ResponsiveContainer>
+                      )}
                     </div>
                   </CardContent>
                 </Card>
@@ -234,33 +334,24 @@ const Analytics = () => {
                     </CardHeader>
                     <CardContent>
                       <div className="h-80">
-                        <ResponsiveContainer width="100%" height="100%">
-                          <BarChart
-                            data={departmentData}
-                            margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
-                          >
-                            <CartesianGrid strokeDasharray="3 3" />
-                            <XAxis dataKey="name" />
-                            <YAxis />
-                            <Tooltip />
-                            <Legend />
-                            <Bar
-                              dataKey="clickRate"
-                              name="Click Rate (%)"
-                              fill="#ef4444"
-                            />
-                            <Bar
-                              dataKey="reportRate"
-                              name="Report Rate (%)"
-                              fill="#10b981"
-                            />
-                          </BarChart>
-                        </ResponsiveContainer>
+                        {loadingDeptPerf ? <p>Loading department data...</p> : errorDeptPerf ? <p className="text-red-500 text-xs">Error: {errorDeptPerf}</p> : departmentPerformance.length === 0 ? <p>No department data available.</p> : (
+                          <ResponsiveContainer width="100%" height="100%">
+                            <BarChart data={departmentPerformance} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
+                              <CartesianGrid strokeDasharray="3 3" />
+                              <XAxis dataKey="department_name" angle={-15} textAnchor="end" height={50} interval={0} />
+                              <YAxis unit="%" domain={[0, 100]} />
+                              <Tooltip formatter={(value: number) => `${value}%`} />
+                              <Legend />
+                              <Bar dataKey="click_rate" name="Click Rate (%)" fill="#ef4444" />
+                              <Bar dataKey="read_rate" name="Read Rate (%)" fill="#22C55E" />
+                            </BarChart>
+                          </ResponsiveContainer>
+                        )}
                       </div>
                     </CardContent>
                   </Card>
                   
-                  <Card className="border-gray-100">
+                  {/* <Card className="border-gray-100">
                     <CardHeader>
                       <CardTitle>Campaign Performance</CardTitle>
                     </CardHeader>
@@ -269,7 +360,7 @@ const Analytics = () => {
                         <ResponsiveContainer width="100%" height="100%">
                           <BarChart
                             layout="vertical"
-                            data={campaignPerformanceData}
+                            data={[]} 
                             margin={{ top: 5, right: 30, left: 60, bottom: 5 }}
                           >
                             <CartesianGrid strokeDasharray="3 3" />
@@ -286,66 +377,10 @@ const Analytics = () => {
                         </ResponsiveContainer>
                       </div>
                     </CardContent>
-                  </Card>
+                  </Card> */}
                 </div>
                 
-                <Card className="border-gray-100">
-                  <CardHeader>
-                    <CardTitle>User Response Time Analysis</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="flex flex-col lg:flex-row">
-                      <div className="lg:w-1/3 flex flex-col justify-center items-center">
-                        <h3 className="text-lg font-medium mb-4">Time to Report Phishing</h3>
-                        <div className="h-64 w-64">
-                          <ResponsiveContainer width="100%" height="100%">
-                            <PieChart>
-                              <Pie
-                                data={responseTimeData}
-                                cx="50%"
-                                cy="50%"
-                                labelLine={false}
-                                outerRadius={80}
-                                fill="#8884d8"
-                                dataKey="value"
-                                label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
-                              >
-                                {responseTimeData.map((entry, index) => (
-                                  <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                                ))}
-                              </Pie>
-                              <Tooltip />
-                            </PieChart>
-                          </ResponsiveContainer>
-                        </div>
-                      </div>
-                      
-                      <div className="lg:w-2/3 mt-8 lg:mt-0">
-                        <h3 className="text-lg font-medium mb-4">Key Insights</h3>
-                        <div className="space-y-4">
-                          <div className="bg-gray-50 p-4 rounded-lg border border-gray-100">
-                            <h4 className="font-medium text-phish-700 mb-2">Fast Response Time</h4>
-                            <p className="text-sm text-gray-600">
-                              40% of users report phishing emails within 5 minutes, showing good awareness and quick action.
-                            </p>
-                          </div>
-                          <div className="bg-gray-50 p-4 rounded-lg border border-gray-100">
-                            <h4 className="font-medium text-red-700 mb-2">Delayed Reporting</h4>
-                            <p className="text-sm text-gray-600">
-                              25% of users take more than 15 minutes to report, increasing the risk window for potential attacks.
-                            </p>
-                          </div>
-                          <div className="bg-gray-50 p-4 rounded-lg border border-gray-100">
-                            <h4 className="font-medium text-teal-700 mb-2">Improvement Trend</h4>
-                            <p className="text-sm text-gray-600">
-                              Average reporting time has decreased by 18% since the start of training, indicating improved awareness.
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
+                {/* User Response Time Analysis Chart - Temporarily Removed */}
                 
                 <Card className="border-gray-100">
                   <CardHeader>
@@ -358,10 +393,18 @@ const Analytics = () => {
                           <TrendingUp className="h-5 w-5" />
                         </div>
                         <div>
-                          <h3 className="font-medium mb-1">Target Marketing Department</h3>
+                          {/* <h3 className="font-medium mb-1">Target Marketing Department</h3>
                           <p className="text-gray-600">
                             The Marketing team shows a consistently high click rate of 28%. Schedule additional focused training sessions.
-                          </p>
+                          </p> */}
+                          {mostVulnerableDept && (
+                            <>
+                              <h3 className="font-medium mb-1">Focus on: {mostVulnerableDept.department_name}</h3>
+                              <p className="text-gray-600">
+                                The {mostVulnerableDept.department_name} department shows the highest click rate ({mostVulnerableDept.click_rate.toFixed(2)}%). Consider targeted training.
+                              </p>
+                            </>
+                          )}
                         </div>
                       </div>
                       
