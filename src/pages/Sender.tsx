@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -87,6 +87,17 @@ const Sender = () => {
   
   // State for all users selection
   const [selectAllUsers, setSelectAllUsers] = useState(false);
+
+  const previewEditableRef = useRef<HTMLDivElement>(null);
+  const imageFilePastedRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    // Sync formData.body to the editable preview div
+    // This is important if formData.body is changed programmatically (e.g., loading a template)
+    if (previewEditableRef.current && formData.body !== previewEditableRef.current.innerHTML) {
+      previewEditableRef.current.innerHTML = formData.body;
+    }
+  }, [formData.body]);
 
   // Fetch users from the current company and get current user profile
   useEffect(() => {
@@ -464,6 +475,48 @@ const Sender = () => {
     }
   };
 
+  const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file && previewEditableRef.current) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const base64String = reader.result as string;
+        const imgTagHTML = `<img src="${base64String}" alt="Uploaded Image" style="max-width: 100%; height: auto; display: block; margin: 10px 0;" />`;
+
+        const previewDiv = previewEditableRef.current!;
+        previewDiv.focus(); 
+
+        const selection = window.getSelection();
+        let inserted = false;
+        if (selection && selection.rangeCount > 0) {
+          const range = selection.getRangeAt(0);
+          if (previewDiv.contains(range.commonAncestorContainer)) {
+            // Attempt to insert HTML at the cursor position
+            if (document.execCommand('insertHTML', false, imgTagHTML)) {
+                inserted = true;
+            }
+          }
+        }
+
+        if (!inserted) {
+          // Fallback: if execCommand failed or selection was not suitable
+          previewDiv.innerHTML += imgTagHTML;
+        }
+
+        // After modification, ensure formData.body is updated from the contentEditable div's innerHTML
+        const newBody = previewDiv.innerHTML;
+        if (formData.body !== newBody) {
+          setFormData(prev => ({ ...prev, body: newBody }));
+        }
+      };
+      reader.readAsDataURL(file);
+    }
+    // Reset file input to allow selecting the same file again if needed
+    if (event.target) {
+      event.target.value = '';
+    }
+  };
+
   return (
     <div className="min-h-screen flex flex-col">
       <Navbar />
@@ -713,26 +766,36 @@ const Sender = () => {
               </div>
               
               <div className="space-y-2">
-                <Label htmlFor="body">Message</Label>
-                <Textarea
-                  id="body"
-                  name="body"
-                  placeholder="Write your message here... HTML is supported"
-                  rows={8}
-                  value={formData.body}
-                  onChange={handleChange}
-                  required
-                  className="min-h-[200px] font-mono text-sm"
-                />
-                
-                {/* HTML Preview */}
-                <div className="mt-4">
-                  <Label>Message Preview</Label>
-                  <div 
-                    className="p-4 border rounded-md bg-white mt-1 min-h-[200px] overflow-auto"
-                    dangerouslySetInnerHTML={{ __html: formData.body }}
-                  />
+                <div className="flex justify-between items-center mb-1">
+                  <Label htmlFor="body-editor">Message</Label>
+                  <Button 
+                    type="button"
+                    variant="outline" 
+                    size="sm" 
+                    onClick={() => imageFilePastedRef.current?.click()}
+                  >
+                    Insert Image
+                  </Button>
                 </div>
+                <input
+                  type="file"
+                  ref={imageFilePastedRef}
+                  accept="image/*"
+                  className="hidden"
+                  onChange={handleImageUpload}
+                />
+                <div
+                  id="body-editor"
+                  ref={previewEditableRef}
+                  contentEditable={true}
+                  className="p-4 border rounded-md bg-white mt-1 min-h-[200px] overflow-auto focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-sm"
+                  onInput={(e: React.FormEvent<HTMLDivElement>) => {
+                    const newBody = e.currentTarget.innerHTML;
+                    if (formData.body !== newBody) {
+                      setFormData(prev => ({ ...prev, body: newBody }));
+                    }
+                  }}
+                />
               </div>
             </div>
             

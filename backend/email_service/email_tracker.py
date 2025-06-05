@@ -45,7 +45,12 @@ def add_tracking_pixel(body, email_id):
     script_tracking = f'<script>var img = new Image(); img.src = "{tracking_url}/api/email/mark-read/{email_id}/?uid={unique_ids[1]}&method=script&t={timestamp}";</script>'
     
     # Create a prominent "View in Browser" button that will reliably track opens
-    view_in_browser_url = f"{tracking_url}/api/email/view-in-browser/{email_id}/"
+    # The actual URL where the email content will be displayed
+    actual_view_url = f"{tracking_url}/api/email/view-in-browser/{email_id}/"
+    # URL-encode it to pass as a query parameter
+    encoded_actual_view_url = quote(actual_view_url)
+    # The tracking URL that will mark the click and then redirect
+    view_in_browser_url = f"{tracking_url}/api/email/mark-clicked/{email_id}/?url={encoded_actual_view_url}"
     view_in_browser_button = f'''
     <div style="text-align:center;margin:15px 0;">
         <table cellpadding="0" cellspacing="0" border="0" style="margin:0 auto;">
