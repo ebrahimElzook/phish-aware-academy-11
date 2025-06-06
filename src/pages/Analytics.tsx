@@ -349,8 +349,9 @@ const Analytics = () => {
                             <XAxis dataKey="period" />
                             <YAxis unit="%" domain={[0, 100]} />
                             <Tooltip formatter={(value: number, name: string) => {
-                              const displayName = name === 'click_rate' ? 'Click Rate' : 'Read Rate';
-                              return [`${value}%`, displayName];
+                              // 'name' is directly from the <Line name="..."/> prop (e.g., "Click Rate" or "Read Rate").
+                              // The value is a number representing a percentage.
+                              return [`${value.toFixed(2)}%`, name];
                             }} />
                             <Legend />
                             <Line type="monotone" dataKey="click_rate" name="Click Rate" stroke="#EF4444" activeDot={{ r: 6 }} />
