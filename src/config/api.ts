@@ -3,8 +3,8 @@
 // Base URLs for different environments
 const getBaseUrl = () => {
   // Use Vite's environment variable for the backend URL
-  if (import.meta.env.VITE_BACKEND_URL) {
-    return import.meta.env.VITE_BACKEND_URL;
+  if (import.meta.env.VITE_API_URL) {
+    return import.meta.env.VITE_API_URL;
   }
   // Fallback for development
   return 'http://127.0.0.1:8000';
