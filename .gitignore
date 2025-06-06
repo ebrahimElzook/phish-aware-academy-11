@@ -23,6 +23,10 @@ dist-ssr
 *.sln
 *.sw?
 
+# SQLite database
+db.sqlite3
+backend/db.sqlite3
+
 # Python / Django specific
 __pycache__/
 *.pyc
