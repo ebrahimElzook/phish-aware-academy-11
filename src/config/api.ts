@@ -1,9 +1,16 @@
 // API configuration
 
 // Base URLs for different environments
-const API_BASE_URL = process.env.NODE_ENV === 'production'
-  ? 'https://phishaware-backend-production.up.railway.app'
-  : 'http://127.0.0.1:8000';
+const getBaseUrl = () => {
+  // Use Vite's environment variable for the backend URL
+  if (import.meta.env.VITE_BACKEND_URL) {
+    return import.meta.env.VITE_BACKEND_URL;
+  }
+  // Fallback for development
+  return 'http://127.0.0.1:8000';
+};
+
+const API_BASE_URL = getBaseUrl();
 
 // API endpoints
 export const API_ENDPOINTS = {
@@ -11,13 +18,16 @@ export const API_ENDPOINTS = {
   CAMPAIGNS: `${API_BASE_URL}/api/campaigns/`,
   CREATE_CAMPAIGN: `${API_BASE_URL}/api/campaigns/create/`,
   
+  // Analytics endpoints
+  ANALYTICS_SUMMARY: `${API_BASE_URL}/api/email/analytics/summary/`,
+  ANALYTICS_DEPARTMENT: `${API_BASE_URL}/api/email/analytics/department-performance/`,
+  ANALYTICS_TREND: `${API_BASE_URL}/api/email/analytics/temporal-trend/`,
+  
   // Course endpoints
   COURSES: `${API_BASE_URL}/get_courses_for_company/`,
   
   // User endpoints
   USERS: `${API_BASE_URL}/get_users_for_company/`,
-  
-  // Add other endpoints as needed
 };
 
 // Helper function to get authorization headers

@@ -29,6 +29,7 @@ import {
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import LMSAnalytics from '@/components/analytics/LMSAnalytics';
+import { API_ENDPOINTS, getAuthHeaders } from '@/config/api';
 
 const departmentData = [
   { name: 'IT', clickRate: 11, reportRate: 55 }, // This will be replaced later
@@ -83,64 +84,98 @@ const Analytics = () => {
   const [mostVulnerableDept, setMostVulnerableDept] = useState<DepartmentPerformance | null>(null);
   const [mostEffectiveDept, setMostEffectiveDept] = useState<DepartmentPerformance | null>(null);
 
-  const API_BASE_URL = import.meta.env.VITE_BACKEND_URL || 'http://127.0.0.1:8000';
-
   useEffect(() => {
-    const fetchData = async (endpoint: string, setData: Function, setLoading: Function, setError: Function) => {
-      setLoading(true);
-      setError(null);
+    const fetchData = async (endpoint: string) => {
       try {
-        const token = localStorage.getItem('token');
-        const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+        const response = await fetch(endpoint, {
           headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          }
+            ...getAuthHeaders(),
+            'Content-Type': 'application/json',
+          },
         });
+
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);
         }
-        const data = await response.json();
-        setData(data);
-      } catch (e) {
-        console.error(`Failed to fetch ${endpoint}`, e);
-        setError(e instanceof Error ? e.message : String(e));
-      } finally {
-        setLoading(false);
+
+        return await response.json();
+      } catch (error) {
+        console.error(`Failed to fetch ${endpoint}`, error);
+        return null;
       }
     };
 
-    fetchData('/api/email/analytics/summary/', setSummaryStats, setLoadingSummary, setErrorSummary);
-    fetchData('/api/email/analytics/department-performance/', setDepartmentPerformance, setLoadingDeptPerf, setErrorDeptPerf);
-  }, [API_BASE_URL]);
+    const fetchSummaryData = async () => {
+      setLoadingSummary(true);
+      setErrorSummary(null);
+      try {
+        const data = await fetchData(API_ENDPOINTS.ANALYTICS_SUMMARY);
+        setSummaryStats(data);
+      } catch (error) {
+        console.error('Error fetching summary data:', error);
+        setErrorSummary('Failed to fetch summary data');
+      } finally {
+        setLoadingSummary(false);
+      }
+    };
+
+    const fetchDepartmentPerformanceData = async () => {
+      setLoadingDeptPerf(true);
+      setErrorDeptPerf(null);
+      try {
+        const data = await fetchData(API_ENDPOINTS.ANALYTICS_DEPARTMENT);
+        setDepartmentPerformance(data);
+      } catch (error) {
+        console.error('Error fetching department performance:', error);
+        setErrorDeptPerf('Failed to fetch department performance data');
+      } finally {
+        setLoadingDeptPerf(false);
+      }
+    };
+
+    // Fetch data when component mounts
+    const loadData = async () => {
+      try {
+        await Promise.all([
+          fetchSummaryData(),
+          fetchDepartmentPerformanceData()
+        ]);
+      } catch (error) {
+        console.error('Error loading analytics data:', error);
+      }
+    };
+
+    loadData();
+  }, []); // Empty dependency array means this runs once on mount
 
   useEffect(() => {
-    const fetchTemporalData = async () => {
+    const fetchTemporalData = async (range: string) => {
       setLoadingTemporal(true);
       setErrorTemporal(null);
       try {
-        const token = localStorage.getItem('token');
-        const response = await fetch(`${API_BASE_URL}/api/email/analytics/temporal-trend/?range=${timeRange}`, {
+        const response = await fetch(`${API_ENDPOINTS.ANALYTICS_TREND}?range=${range}`, {
           headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          }
+            ...getAuthHeaders(),
+            'Content-Type': 'application/json',
+          },
         });
+
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);
         }
+
         const data = await response.json();
         setTemporalTrend(data);
-      } catch (e) {
-        console.error('Failed to fetch temporal trend data', e);
-        setErrorTemporal(e instanceof Error ? e.message : String(e));
+      } catch (error) {
+        console.error('Failed to fetch temporal trend data', error);
+        setErrorTemporal('Failed to fetch temporal trend data');
       } finally {
         setLoadingTemporal(false);
       }
     };
 
-    fetchTemporalData();
-  }, [timeRange, API_BASE_URL]);
+    fetchTemporalData(timeRange);
+  }, [timeRange, API_ENDPOINTS.ANALYTICS_TREND]);
 
   useEffect(() => {
     if (departmentPerformance && departmentPerformance.length > 0) {
