@@ -19,14 +19,26 @@ def send_queued_email_job():
             logger.error('No active email configuration found in database for scheduled job.')
             return
 
-        # Get all unsent emails
-        unsent_emails = Email.objects.filter(sent=False)
-        if not unsent_emails.exists():
-            logger.info('No unsent emails to process.')
+        from django.utils import timezone # Ensure timezone is available
+
+        today = timezone.now().date()
+        logger.info(f"Scheduled email job: Current date for campaign check: {today}")
+
+        # Get all unsent emails that belong to an active campaign,
+        # ordered by the nearest campaign end date, then by email creation date.
+        eligible_emails = Email.objects.filter(
+            sent=False,
+            phishing_campaign__isnull=False,  # Must be part of a campaign
+            phishing_campaign__start_date__lte=today,
+            phishing_campaign__end_date__gte=today
+        ).select_related('phishing_campaign').order_by('phishing_campaign__end_date', 'created_at')
+
+        if not eligible_emails.exists():
+            logger.info('Scheduled email job: No eligible unsent emails within active campaign periods to process.')
             return
 
-        # Select one random email
-        selected_email = random.choice(list(unsent_emails))
+        # Select the email from the campaign ending soonest (or oldest email if end_dates are same)
+        selected_email = eligible_emails.first()
         selected_email_id_for_logging = selected_email.id
         
         logger.info(f"Processing email ID: {selected_email_id_for_logging} for recipient: {selected_email.recipient.email}")
