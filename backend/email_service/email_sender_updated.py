@@ -108,23 +108,17 @@ def send_email(request):
             # Attach HTML version
             email.attach_alternative(body, "text/html")
             
-            # Send the email
-            email.send(fail_silently=False)
-            logger.info(f"Successfully sent email to {to_email}")
+            # Email sending is now handled by a scheduled task.
+            # The 'email' object prepared above is not sent here directly.
+            logger.info(f"Email to {to_email} (ID: {email_id}) has been prepared and is queued for sending by the scheduler.")
             
-            # If this email was saved in the database, mark it as sent
+            # Marking email as sent is now handled by the scheduled task after successful sending.
             if email_id:
-                try:
-                    from accounts.models import Email
-                    saved_email = Email.objects.get(id=email_id)
-                    saved_email.mark_as_sent()
-                    logger.info(f"Marked email with ID {email_id} as sent")
-                except Exception as e:
-                    logger.error(f"Error marking email as sent: {str(e)}")
+                logger.info(f"Email with ID {email_id} will be marked as sent by the scheduler upon successful dispatch.")
             
             return JsonResponseWithCors({
                 'success': True,
-                'message': 'Email sent successfully',
+                'message': 'Email has been queued for sending.',
                 'to': to_email,
                 'from': from_email,
                 'subject': subject,

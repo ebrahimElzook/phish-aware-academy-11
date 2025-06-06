@@ -40,6 +40,7 @@ INSTALLED_APPS = [
     'email_service',
     'courses',
     'lms',
+    'django_apscheduler',
 ]
 
 MIDDLEWARE = [

@@ -71,6 +71,8 @@ const Sender = () => {
   const [selectedRecipients, setSelectedRecipients] = useState<string[]>([]);
   const [isSending, setIsSending] = useState(false);
   const [campaignName, setCampaignName] = useState(''); // State for campaign name input
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
   
   // State for company users
   const [users, setUsers] = useState<User[]>([]);
@@ -345,6 +347,26 @@ const Sender = () => {
 
       // 1. Create Campaign if campaignName (from state) is provided
       if (campaignName.trim() && companySlug) {
+        if (!startDate || !endDate) {
+          toast({
+            variant: 'destructive',
+            title: 'Dates Required',
+            description: 'Please select a start and end date for the campaign.',
+          });
+          setIsSending(false);
+          return;
+        }
+
+        if (new Date(endDate) < new Date(startDate)) {
+          toast({
+            variant: 'destructive',
+            title: 'Invalid Date Range',
+            description: 'End date cannot be before the start date.',
+          });
+          setIsSending(false);
+          return;
+        }
+
         const csrfToken = getCookie('csrftoken');
         const accessToken = localStorage.getItem('token');
         if (!accessToken) {
@@ -389,6 +411,8 @@ const Sender = () => {
               body: JSON.stringify({
                 campaign_name: campaignName.trim(),
                 company_slug: companySlug,
+                start_date: startDate || null,
+                end_date: endDate || null,
               }),
             });
             const campaignData = await campaignResponse.json();
@@ -786,6 +810,27 @@ const Sender = () => {
                   placeholder="e.g., Q3 Security Awareness Training"
                   value={campaignName}
                   onChange={(e) => setCampaignName(e.target.value)}
+                  required
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="startDate">Start Date</Label>
+                <Input
+                  id="startDate"
+                  type="date"
+                  value={startDate}
+                  onChange={(e) => setStartDate(e.target.value)}
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="endDate">End Date</Label>
+                <Input
+                  id="endDate"
+                  type="date"
+                  value={endDate}
+                  onChange={(e) => setEndDate(e.target.value)}
                   required
                 />
               </div>

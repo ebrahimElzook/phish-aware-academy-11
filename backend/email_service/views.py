@@ -225,11 +225,15 @@ def create_phishing_campaign_by_slug(request):
         data = request.data
         campaign_name = data.get('campaign_name')
         company_slug = data.get('company_slug')
+        start_date = data.get('start_date')
+        end_date = data.get('end_date')
 
-        if not campaign_name or not company_slug:
+        if not all([campaign_name, company_slug, start_date, end_date]):
             missing_fields = []
             if not campaign_name: missing_fields.append('campaign_name')
             if not company_slug: missing_fields.append('company_slug')
+            if not start_date: missing_fields.append('start_date')
+            if not end_date: missing_fields.append('end_date')
             return JsonResponseWithCors(
                 {'error': f'Missing required fields: {", ".join(missing_fields)}'},
                 status=400
@@ -246,7 +250,9 @@ def create_phishing_campaign_by_slug(request):
 
         campaign = PhishingCampaign.objects.create(
             campaign_name=campaign_name,
-            company=company
+            company=company,
+            start_date=start_date,
+            end_date=end_date
         )
         serializer = PhishingCampaignSerializer(campaign)
         logger.info(f"Successfully created phishing campaign '{campaign_name}' for company '{company.name}'.")
