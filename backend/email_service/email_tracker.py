@@ -101,13 +101,14 @@ def add_link_tracking(body, email_id):
     
     print(f"Final tracking URL: {final_url}")
     
-    # First, let's try to find all <a> tags and process them
+    # Process HTML content to make links and images trackable
     def process_links(html_content):
-        from bs4 import BeautifulSoup
+        from bs4 import BeautifulSoup, Tag
         
-        print("Processing links with BeautifulSoup...")
+        print("Processing links and images with BeautifulSoup...")
         soup = BeautifulSoup(html_content, 'html.parser')
         
+        # Process all <a> tags
         for a_tag in soup.find_all('a', href=True):
             original_url = a_tag['href']
             print(f"Found link: {original_url}")
@@ -124,6 +125,26 @@ def add_link_tracking(body, email_id):
             # Update the href
             a_tag['href'] = final_url
             print(f"Updated link to: {final_url}")
+        
+        # Process all <img> tags to make them clickable
+        for img_tag in soup.find_all('img'):
+            # Skip if already inside an <a> tag to prevent nested anchors
+            if img_tag.find_parent('a'):
+                print("Skipping image that's already inside a link")
+                continue
+                
+            # Skip tracking pixels and other hidden images
+            if img_tag.get('width') == '1' and img_tag.get('height') == '1':
+                print("Skipping tracking pixel")
+                continue
+                
+            print("Making image clickable")
+            
+            # Create a new <a> tag
+            a_tag = soup.new_tag('a', href=final_url)
+            
+            # Replace the image with the anchor containing the image
+            img_tag.wrap(a_tag)
         
         # Convert back to string
         result = str(soup)
