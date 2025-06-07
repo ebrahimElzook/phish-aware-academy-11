@@ -45,7 +45,8 @@ def add_tracking_pixel(body, email_id):
     script_tracking = f'<script>var img = new Image(); img.src = "{tracking_url}/api/email/mark-read/{email_id}/?uid={unique_ids[1]}&method=script&t={timestamp}";</script>'
     
     # The tracking URL that will mark the click and then redirect
-    view_in_browser_url = f"{tracking_url}/api/email/mark-clicked/{email_id}/?url={quote(f"{tracking_url}/api/email/view-in-browser/{email_id}/")}"
+    view_in_browser_path = f"/api/email/view-in-browser/{email_id}/"
+    view_in_browser_url = f"{tracking_url}/api/email/mark-clicked/{email_id}/?url={quote(tracking_url + view_in_browser_path)}"
     
     # Log the tracking information for debugging
     logger.info(f"Added multiple tracking methods for email {email_id}: {tracking_url}/api/email/mark-read/{email_id}/")
