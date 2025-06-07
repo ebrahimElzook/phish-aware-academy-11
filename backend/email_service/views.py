@@ -268,6 +268,139 @@ def create_phishing_campaign_by_slug(request):
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
+def get_campaign_analytics(request, campaign_id):
+    """
+    Get detailed analytics for a specific campaign
+    """
+    try:
+        # Get the campaign
+        campaign = PhishingCampaign.objects.get(id=campaign_id, company=request.user.company)
+        
+        # Get all emails for this campaign with related user data
+        from django.db.models import Prefetch
+        from accounts.models import User, Email
+        
+        emails = Email.objects.filter(
+            phishing_campaign=campaign
+        ).select_related('recipient').only(
+            'id', 'recipient__email', 'recipient__first_name', 'recipient__last_name',
+            'recipient__department__name', 'read', 'clicked', 'sent_at'
+        )
+        
+        # Prepare the response data
+        email_analytics = []
+        for email in emails:
+            email_analytics.append({
+                'id': email.id,
+                'email': email.recipient.email,
+                'name': f"{email.recipient.first_name or ''} {email.recipient.last_name or ''}".strip() or 'Unknown',
+                'department': email.recipient.department.name if email.recipient.department else 'No Department',
+                'opened': email.read,
+                'clicked': email.clicked,
+                'sent_at': email.sent_at.isoformat() if email.sent_at else None
+            })
+        
+        return JsonResponseWithCors({
+            'campaign_id': campaign.id,
+            'campaign_name': campaign.campaign_name,
+            'start_date': campaign.start_date.isoformat(),
+            'end_date': campaign.end_date.isoformat(),
+            'analytics': {
+                'emailOpens': email_analytics
+            },
+            'metrics': {
+                'total_emails': emails.count(),
+                'read': emails.filter(read=True).count(),
+                'clicked': emails.filter(clicked=True).count(),
+                'open_rate': (emails.filter(read=True).count() / emails.count() * 100) if emails.count() > 0 else 0,
+                'click_rate': (emails.filter(clicked=True).count() / emails.count() * 100) if emails.count() > 0 else 0
+            }
+        })
+        
+    except PhishingCampaign.DoesNotExist:
+        return JsonResponseWithCors(
+            {'error': 'Campaign not found or access denied'}, 
+            status=404
+        )
+    except Exception as e:
+        logger.error(f"Error fetching campaign analytics: {str(e)}", exc_info=True)
+        return JsonResponseWithCors(
+            {'error': 'Failed to fetch campaign analytics'}, 
+            status=500
+        )
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def list_phishing_campaigns(request):
+    """
+    List all phishing campaigns for the current user's company with email statistics
+    """
+    try:
+        # Get the current user's company
+        company = request.user.company
+        if not company:
+            return JsonResponseWithCors(
+                {'error': 'User is not associated with any company'}, 
+                status=400
+            )
+        
+        # Get all campaigns for the company
+        campaigns = PhishingCampaign.objects.filter(company=company).order_by('-created_at')
+        
+        # Get the email stats for all campaigns in one query
+        from django.db.models import Count, Q
+        from accounts.models import Email
+        
+        # Get counts for all campaigns
+        campaign_stats = Email.objects.filter(
+            phishing_campaign__in=campaigns
+        ).values('phishing_campaign').annotate(
+            targets_count=Count('id'),
+            opens_count=Count('id', filter=Q(read=True)),
+            clicks_count=Count('id', filter=Q(clicked=True))
+        )
+        
+        # Convert to a dictionary for easier lookup
+        stats_dict = {
+            stat['phishing_campaign']: stat 
+            for stat in campaign_stats
+        }
+        
+        # Serialize the campaigns
+        serializer = PhishingCampaignSerializer(campaigns, many=True)
+        data = serializer.data
+        
+        # Add stats to each campaign
+        for campaign_data, campaign in zip(data, campaigns):
+            stats = stats_dict.get(campaign.id, {
+                'targets_count': 0,
+                'opens_count': 0,
+                'clicks_count': 0
+            })
+            
+            targets = stats['targets_count'] or 0
+            opens = stats['opens_count'] or 0
+            clicks = stats['clicks_count'] or 0
+            
+            campaign_data.update({
+                'targets_count': targets,
+                'opens_count': opens,
+                'clicks_count': clicks,
+                'open_rate': round((opens / targets * 100) if targets > 0 else 0, 2),
+                'click_rate': round((clicks / targets * 100) if targets > 0 else 0, 2),
+            })
+        
+        return JsonResponseWithCors(data, safe=False)
+        
+    except Exception as e:
+        logger.error(f"Error listing phishing campaigns: {str(e)}", exc_info=True)
+        return JsonResponseWithCors(
+            {'error': 'Failed to fetch phishing campaigns'}, 
+            status=500
+        )
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
 def phishing_analytics_summary(request):
     company = request.user.company
     if not company:

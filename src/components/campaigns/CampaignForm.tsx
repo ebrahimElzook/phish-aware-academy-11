@@ -1,79 +1,144 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { Calendar } from '@/components/ui/calendar';
-import { useToast } from '@/hooks/use-toast';
-import { Search, Plus, X, Calendar as CalendarIcon, Check } from 'lucide-react';
-import {
+import { useToast } from "@/components/ui/use-toast";
+import { Search, Plus, X, Calendar as CalendarIcon, Check, Mail } from 'lucide-react';
+import { format } from 'date-fns';
+import { cn } from "@/lib/utils";
+import { Checkbox } from "@/components/ui/checkbox";
+import { DialogFooter, DialogClose } from "@/components/ui/dialog";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Badge } from "@/components/ui/badge";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { 
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
-import {
+} from "@/components/ui/select";
+import { 
   Popover,
   PopoverContent,
   PopoverTrigger,
-} from '@/components/ui/popover';
-import { format } from 'date-fns';
-import { cn } from '@/lib/utils';
-import { Checkbox } from '@/components/ui/checkbox';
-import { DialogFooter, DialogClose } from '@/components/ui/dialog';
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
-import { Badge } from '@/components/ui/badge';
+} from "@/components/ui/popover";
+import { userService, fetchWithAuth } from "@/services/api";
+import { 
+  EMAIL_CONFIGS_API_ENDPOINT, 
+  EMAIL_TEMPLATES_API_ENDPOINT,
+  PHISHING_CAMPAIGN_CREATE_API_ENDPOINT 
+} from "@/config";
 
-// Mock data for campaign templates
-const templates = [
-  { id: 1, name: 'Password Reset', category: 'IT', difficulty: 'Medium' },
-  { id: 2, name: 'Bonus Payment', category: 'HR', difficulty: 'Easy' },
-  { id: 3, name: 'System Update', category: 'IT', difficulty: 'Hard' },
-  { id: 4, name: 'Office Move', category: 'Admin', difficulty: 'Medium' },
-];
+// Define interfaces for email configurations and templates
+interface EmailConfig {
+  id: number;
+  host: string;
+  port: number;
+  host_user: string;
+  is_active: boolean;
+}
 
-// Mock departments data
-const departments = [
-  { id: 'd1', name: 'IT' },
-  { id: 'd2', name: 'HR' },
-  { id: 'd3', name: 'Finance' },
-  { id: 'd4', name: 'Marketing' },
-  { id: 'd5', name: 'Operations' },
-];
-
-// Mock employees data
-const employees = [
-  { id: 'e1', name: 'John Doe', email: 'john.doe@company.com', department: 'IT' },
-  { id: 'e2', name: 'Jane Smith', email: 'jane.smith@company.com', department: 'Marketing' },
-  { id: 'e3', name: 'Mike Johnson', email: 'mike.johnson@company.com', department: 'HR' },
-  { id: 'e4', name: 'Sarah Wilson', email: 'sarah.wilson@company.com', department: 'Finance' },
-  { id: 'e5', name: 'Robert Brown', email: 'robert.brown@company.com', department: 'IT' },
-  { id: 'e6', name: 'Lisa Taylor', email: 'lisa.taylor@company.com', department: 'Operations' },
-];
+interface EmailTemplate {
+  id: number;
+  subject: string;
+  content: string;
+  company: number | null;
+  company_name: string | null;
+  is_global: boolean;
+}
 
 interface CampaignFormProps {
+  companySlug: string;
   onClose: () => void;
   onCreate: () => void;
 }
 
-const CampaignForm: React.FC<CampaignFormProps> = ({ onClose, onCreate }) => {
+const CampaignForm: React.FC<CampaignFormProps> = ({ companySlug, onClose, onCreate }) => {
   const { toast } = useToast();
+  const [emailConfigs, setEmailConfigs] = useState<EmailConfig[]>([]);
+  const [selectedConfigId, setSelectedConfigId] = useState<number | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [emailTemplates, setEmailTemplates] = useState<EmailTemplate[]>([]);
+  const [selectedTemplateId, setSelectedTemplateId] = useState<number | null>(null);
+  const [isLoadingTemplates, setIsLoadingTemplates] = useState(true);
+  
+  // Form state
   const [targetType, setTargetType] = useState('all');
   const [selectedDepartments, setSelectedDepartments] = useState<string[]>([]);
   const [employeeSearch, setEmployeeSearch] = useState('');
-  const [selectedEmployees, setSelectedEmployees] = useState<typeof employees>([]);
+  const [departmentSearchTerm, setDepartmentSearchTerm] = useState('');
+  const [selectedEmployees, setSelectedEmployees] = useState<any[]>([]);
   const [campaignName, setCampaignName] = useState('');
-  const [selectedTemplate, setSelectedTemplate] = useState('');
   const [startDate, setStartDate] = useState<Date | undefined>(undefined);
   const [endDate, setEndDate] = useState<Date | undefined>(undefined);
+  const [isSending, setIsSending] = useState(false);
+  
+  // Users and departments
+  const [users, setUsers] = useState<any[]>([]);
+  const [departments, setDepartments] = useState<any[]>([]);
+  const [loadingUsers, setLoadingUsers] = useState(true);
+  const [loadingDepartments, setLoadingDepartments] = useState(true);
+  const [selectAllUsers, setSelectAllUsers] = useState(false);
+  
+  // Refs
+  const previewEditableRef = useRef<HTMLDivElement>(null);
 
-  const filteredEmployees = employees.filter(emp => 
-    !selectedEmployees.find(selected => selected.id === emp.id) &&
-    (emp.name.toLowerCase().includes(employeeSearch.toLowerCase()) ||
-     emp.email.toLowerCase().includes(employeeSearch.toLowerCase()))
+  // Fetch email configurations and templates on component mount
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        // Fetch email configurations
+        const configsResponse = await fetchWithAuth(EMAIL_CONFIGS_API_ENDPOINT);
+        const configsData = await configsResponse.json();
+        setEmailConfigs(configsData);
+        if (configsData.length > 0) {
+          setSelectedConfigId(configsData[0].id);
+        }
+        
+        // Fetch email templates
+        const templatesResponse = await fetchWithAuth(EMAIL_TEMPLATES_API_ENDPOINT);
+        const templatesData = await templatesResponse.json();
+        setEmailTemplates(templatesData);
+        
+        // Fetch users and departments
+        const [users, depts] = await Promise.all([
+          userService.getUsers(),
+          userService.getDepartments()
+        ]);
+        
+        setUsers(users);
+        setDepartments(depts);
+        setLoadingUsers(false);
+        setLoadingDepartments(false);
+        
+      } catch (error) {
+        console.error('Error fetching data:', error);
+        toast({
+          title: 'Error',
+          description: 'Failed to load required data',
+          variant: 'destructive'
+        });
+      } finally {
+        setIsLoading(false);
+        setIsLoadingTemplates(false);
+      }
+    };
+    
+    fetchData();
+  }, []);
+
+  // Filter employees based on search
+  const filteredEmployees = users.filter(user => 
+    !selectedEmployees.find(selected => selected.id === user.id) &&
+    (user.name?.toLowerCase().includes(employeeSearch.toLowerCase()) ||
+     user.email?.toLowerCase().includes(employeeSearch.toLowerCase()))
   );
 
+  // Toggle department selection
   const toggleDepartment = (deptId: string) => {
     setSelectedDepartments(prev => 
       prev.includes(deptId)
@@ -82,253 +147,396 @@ const CampaignForm: React.FC<CampaignFormProps> = ({ onClose, onCreate }) => {
     );
   };
   
-  const addEmployee = (employee: typeof employees[0]) => {
+  // Add employee to selection
+  const addEmployee = (employee: any) => {
     setSelectedEmployees(prev => [...prev, employee]);
     setEmployeeSearch('');
   };
   
+  // Remove employee from selection
   const removeEmployee = (employeeId: string) => {
     setSelectedEmployees(prev => prev.filter(emp => emp.id !== employeeId));
   };
 
-  const handleCreateCampaign = () => {
-    if (!campaignName || !selectedTemplate || !startDate || !endDate) {
+  // Handle form submission
+  const handleCreateCampaign = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    // Validate form
+    if (!campaignName || !selectedConfigId || !selectedTemplateId || !startDate || !endDate) {
       toast({
-        title: "Missing Information",
+        title: "Missing Required Fields",
         description: "Please fill in all required fields",
         variant: "destructive"
       });
       return;
     }
     
-    if (targetType === 'departments' && selectedDepartments.length === 0) {
+    // Validate dates
+    if (startDate >= endDate) {
       toast({
-        title: "No Departments Selected",
-        description: "Please select at least one department",
-        variant: "destructive"
-      });
-      return;
-    }
-    
-    if (targetType === 'specific' && selectedEmployees.length === 0) {
-      toast({
-        title: "No Employees Selected",
-        description: "Please select at least one employee",
-        variant: "destructive"
-      });
-      return;
-    }
-    
-    if (endDate < startDate) {
-      toast({
-        title: "Invalid Dates",
+        title: "Invalid Date Range",
         description: "End date must be after start date",
         variant: "destructive"
       });
       return;
     }
     
-    onCreate();
-    onClose();
+    // Get target users based on selection
+    let targetUsers: number[] = [];
+    
+    if (targetType === 'all') {
+      // Get all users
+      targetUsers = users.map(user => user.id);
+    } else if (targetType === 'department') {
+      // Get users from selected departments
+      if (selectedDepartments.length === 0) {
+        toast({
+          title: "No Departments Selected",
+          description: "Please select at least one department",
+          variant: "destructive"
+        });
+        return;
+      }
+      
+      targetUsers = users
+        .filter(user => user.department && selectedDepartments.includes(user.department.id))
+        .map(user => user.id);
+    } else {
+      // Get selected individual users
+      if (selectedEmployees.length === 0) {
+        toast({
+          title: "No Employees Selected",
+          description: "Please select at least one employee",
+          variant: "destructive"
+        });
+        return;
+      }
+      
+      targetUsers = selectedEmployees.map(user => user.id);
+    }
+    
+    if (targetUsers.length === 0) {
+      toast({
+        title: "No Valid Targets",
+        description: "No users match your selection criteria",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    setIsSending(true);
+    
+    try {
+      // Create the campaign with all data in one request
+      const response = await fetchWithAuth(PHISHING_CAMPAIGN_CREATE_API_ENDPOINT, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          campaign_name: campaignName,
+          company_slug: companySlug,
+          email_config: selectedConfigId,
+          template: selectedTemplateId,
+          start_date: startDate.toISOString().split('T')[0],
+          end_date: endDate.toISOString().split('T')[0],
+          target_users: targetUsers,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.detail || 'Failed to create campaign');
+      }
+
+      toast({
+        title: 'Success',
+        description: 'Campaign created successfully',
+      });
+      
+      // Reset form
+      setCampaignName('');
+      setSelectedConfigId(emailConfigs[0]?.id || null);
+      setSelectedTemplateId(null);
+      setStartDate(undefined);
+      setEndDate(undefined);
+      setTargetType('all');
+      setSelectedDepartments([]);
+      setSelectedEmployees([]);
+      
+      // Call the onCreate callback
+      onCreate();
+      
+      // Close the dialog
+      onClose();
+    } catch (error) {
+      console.error('Error creating campaign:', error);
+      toast({
+        title: 'Error',
+        description: error instanceof Error ? error.message : 'Failed to create campaign',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsSending(false);
+    }
   };
 
+  if (isLoading) {
+    return <div className="flex justify-center p-8">Loading campaign form...</div>;
+  }
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <div className="space-y-2">
-        <Label htmlFor="campaign-name">Campaign Name</Label>
-        <Input 
+        <Label htmlFor="campaign-name">Campaign Name <span className="text-red-500">*</span></Label>
+        <Input
           id="campaign-name"
+          placeholder="Enter campaign name"
           value={campaignName}
           onChange={(e) => setCampaignName(e.target.value)}
-          placeholder="Enter campaign name"
         />
       </div>
-      
+
       <div className="space-y-2">
-        <Label htmlFor="campaign-template">Template</Label>
+        <Label>Email Configuration <span className="text-red-500">*</span></Label>
         <Select 
-          value={selectedTemplate} 
-          onValueChange={(value) => setSelectedTemplate(value)}
+          value={selectedConfigId?.toString() || ''} 
+          onValueChange={(value) => setSelectedConfigId(Number(value))}
         >
-          <SelectTrigger id="campaign-template">
-            <SelectValue placeholder="Select campaign template" />
+          <SelectTrigger>
+            <SelectValue placeholder="Select an email configuration" />
           </SelectTrigger>
           <SelectContent>
-            {templates.map(template => (
-              <SelectItem key={template.id} value={template.name}>
-                {template.name} - {template.category}
+            {emailConfigs.map((config) => (
+              <SelectItem key={config.id} value={config.id.toString()}>
+                {config.host_user} ({config.host}:{config.port})
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
+      <div className="space-y-2">
+        <Label>Email Template <span className="text-red-500">*</span></Label>
+        <Select 
+          value={selectedTemplateId?.toString() || ''} 
+          onValueChange={(value) => setSelectedTemplateId(Number(value))}
+        >
+          <SelectTrigger>
+            <SelectValue placeholder="Select a template" />
+          </SelectTrigger>
+          <SelectContent>
+            {emailTemplates.map((template) => (
+              <SelectItem key={template.id} value={template.id.toString()}>
+                {template.subject} {template.company_name ? `(${template.company_name})` : ''}
               </SelectItem>
             ))}
           </SelectContent>
         </Select>
       </div>
       
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
-          <Label htmlFor="start-date">Start Date</Label>
+          <Label htmlFor="start-date">Start Date <span className="text-red-500">*</span></Label>
           <Popover>
             <PopoverTrigger asChild>
               <Button
-                id="start-date"
-                variant={"outline"}
+                variant="outline"
                 className={cn(
                   "w-full justify-start text-left font-normal",
                   !startDate && "text-muted-foreground"
                 )}
               >
                 <CalendarIcon className="mr-2 h-4 w-4" />
-                {startDate ? format(startDate, "PPP") : <span>Select date</span>}
+                {startDate ? format(startDate, "PPP") : <span>Pick a date</span>}
               </Button>
             </PopoverTrigger>
-            <PopoverContent className="w-auto p-0">
+            <PopoverContent className="w-auto p-0" align="start">
               <Calendar
                 mode="single"
                 selected={startDate}
                 onSelect={setStartDate}
                 initialFocus
+                disabled={(date) => {
+                  // Disable dates before today
+                  const today = new Date();
+                  today.setHours(0, 0, 0, 0);
+                  return date < today;
+                }}
               />
             </PopoverContent>
           </Popover>
         </div>
-        
         <div className="space-y-2">
-          <Label htmlFor="end-date">End Date</Label>
+          <Label htmlFor="end-date">End Date <span className="text-red-500">*</span></Label>
           <Popover>
             <PopoverTrigger asChild>
               <Button
-                id="end-date"
-                variant={"outline"}
+                variant="outline"
                 className={cn(
                   "w-full justify-start text-left font-normal",
                   !endDate && "text-muted-foreground"
                 )}
               >
                 <CalendarIcon className="mr-2 h-4 w-4" />
-                {endDate ? format(endDate, "PPP") : <span>Select date</span>}
+                {endDate ? format(endDate, "PPP") : <span>Pick a date</span>}
               </Button>
             </PopoverTrigger>
-            <PopoverContent className="w-auto p-0">
+            <PopoverContent className="w-auto p-0" align="start">
               <Calendar
                 mode="single"
                 selected={endDate}
                 onSelect={setEndDate}
-                fromDate={startDate}
                 initialFocus
+                disabled={(date) => {
+                  // Disable dates before start date or today
+                  const today = new Date();
+                  today.setHours(0, 0, 0, 0);
+                  
+                  if (startDate) {
+                    return date < startDate;
+                  }
+                  return date < today;
+                }}
               />
             </PopoverContent>
           </Popover>
         </div>
       </div>
       
-      <div className="space-y-4">
-        <Label>Target Audience</Label>
-        <Tabs defaultValue={targetType} onValueChange={setTargetType}>
-          <TabsList className="grid grid-cols-3 mb-4">
+      <div className="space-y-2">
+        <Label>Target Audience <span className="text-red-500">*</span></Label>
+        <Tabs value={targetType} onValueChange={setTargetType} className="w-full">
+          <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="all">All Users</TabsTrigger>
-            <TabsTrigger value="departments">Departments</TabsTrigger>
-            <TabsTrigger value="specific">Specific Employees</TabsTrigger>
+            <TabsTrigger value="department">By Department</TabsTrigger>
+            <TabsTrigger value="individual">Individual</TabsTrigger>
           </TabsList>
           
-          <TabsContent value="all">
-            <p className="text-sm text-gray-500">
-              This campaign will target all employees in the company.
-            </p>
-          </TabsContent>
-          
-          <TabsContent value="departments">
-            <div className="border p-3 rounded-md">
-              <div className="grid grid-cols-2 gap-2 max-h-48 overflow-y-auto">
-                {departments.map(dept => (
-                  <div key={dept.id} className="flex items-center space-x-2">
-                    <Checkbox 
-                      id={dept.id} 
-                      checked={selectedDepartments.includes(dept.id)}
-                      onCheckedChange={() => toggleDepartment(dept.id)}
-                    />
-                    <Label htmlFor={dept.id} className="text-sm font-normal">{dept.name}</Label>
-                  </div>
-                ))}
+          <TabsContent value="department" className="space-y-2">
+            <div className="space-y-2">
+              <div className="relative">
+                <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search departments..."
+                  className="pl-8"
+                  value={departmentSearchTerm}
+                  onChange={(e) => setDepartmentSearchTerm(e.target.value)}
+                />
+              </div>
+              <div className="space-y-2 max-h-40 overflow-y-auto p-2 border rounded">
+                {loadingDepartments ? (
+                  <p className="text-sm text-muted-foreground text-center py-2">
+                    Loading departments...
+                  </p>
+                ) : departments.filter(dept => 
+                  dept.name.toLowerCase().includes(departmentSearchTerm.toLowerCase())
+                ).length > 0 ? (
+                  departments
+                    .filter(dept => dept.name.toLowerCase().includes(departmentSearchTerm.toLowerCase()))
+                    .map((dept) => (
+                      <div key={dept.id} className="flex items-center space-x-2">
+                        <Checkbox 
+                          id={`dept-${dept.id}`} 
+                          checked={selectedDepartments.includes(dept.id)}
+                          onCheckedChange={() => toggleDepartment(dept.id)}
+                        />
+                        <Label htmlFor={`dept-${dept.id}`} className="text-sm font-medium">
+                          {dept.name} ({dept.user_count || 0} users)
+                        </Label>
+                      </div>
+                    ))
+                ) : (
+                  <p className="text-sm text-muted-foreground text-center py-2">
+                    No departments found
+                  </p>
+                )}
               </div>
             </div>
           </TabsContent>
           
-          <TabsContent value="specific">
-            <div className="space-y-4">
-              <div className="flex gap-2">
-                <Input 
+          <TabsContent value="individual" className="space-y-2">
+            <div className="space-y-2">
+              <div className="relative">
+                <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search employees..."
+                  className="pl-8"
                   value={employeeSearch}
                   onChange={(e) => setEmployeeSearch(e.target.value)}
-                  placeholder="Search employees by name or email"
-                  className="flex-1"
                 />
-                <Button variant="outline" disabled={!employeeSearch}>
-                  <Search className="h-4 w-4" />
-                </Button>
               </div>
-              
-              {employeeSearch && filteredEmployees.length > 0 && (
-                <div className="border rounded-md max-h-48 overflow-y-auto">
-                  <ul className="divide-y">
-                    {filteredEmployees.map(emp => (
-                      <li 
-                        key={emp.id} 
-                        className="p-2 hover:bg-gray-50 flex justify-between items-center cursor-pointer"
-                        onClick={() => addEmployee(emp)}
-                      >
-                        <div>
-                          <p className="font-medium">{emp.name}</p>
-                          <p className="text-xs text-gray-500">{emp.email} - {emp.department}</p>
-                        </div>
-                        <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                          <Plus className="h-4 w-4" />
-                        </Button>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-              
-              {employeeSearch && filteredEmployees.length === 0 && (
-                <p className="text-sm text-gray-500 py-2">No matching employees found</p>
-              )}
-              
-              {selectedEmployees.length > 0 && (
-                <div>
-                  <Label className="block mb-2">Selected Employees ({selectedEmployees.length})</Label>
-                  <div className="border rounded-md p-2 space-y-1 max-h-48 overflow-y-auto">
-                    {selectedEmployees.map(emp => (
-                      <div key={emp.id} className="flex justify-between items-center bg-gray-50 rounded-md p-2">
-                        <div>
-                          <p className="font-medium">{emp.name}</p>
-                          <p className="text-xs text-gray-500">{emp.email} - {emp.department}</p>
-                        </div>
-                        <Button 
-                          variant="ghost" 
-                          size="sm" 
-                          onClick={() => removeEmployee(emp.id)}
-                          className="h-8 w-8 p-0 text-red-500 hover:text-red-700 hover:bg-red-50"
-                        >
-                          <X className="h-4 w-4" />
-                        </Button>
+              <div className="space-y-2 max-h-40 overflow-y-auto p-2 border rounded">
+                {loadingUsers ? (
+                  <p className="text-sm text-muted-foreground text-center py-2">
+                    Loading employees...
+                  </p>
+                ) : filteredEmployees.length > 0 ? (
+                  filteredEmployees.map((user) => (
+                    <div key={user.id} className="flex items-center justify-between p-2 hover:bg-muted rounded">
+                      <div>
+                        <p className="text-sm font-medium">{user.name || 'Unnamed User'}</p>
+                        <p className="text-xs text-muted-foreground">{user.email || 'No email'}</p>
                       </div>
-                    ))}
-                  </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => addEmployee(user)}
+                      >
+                        <Plus className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-sm text-muted-foreground text-center py-2">
+                    No employees found
+                  </p>
+                )}
+              </div>
+            </div>
+            
+            <div className="space-y-2">
+              <Label>Selected Employees</Label>
+              {selectedEmployees.length > 0 ? (
+                <div className="space-y-2 max-h-32 overflow-y-auto p-2 border rounded">
+                  {selectedEmployees.map((user) => (
+                    <div key={user.id} className="flex items-center justify-between p-2 bg-muted rounded">
+                      <div>
+                        <p className="text-sm font-medium">{user.name || 'Unnamed User'}</p>
+                        <p className="text-xs text-muted-foreground">{user.email || 'No email'}</p>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => removeEmployee(user.id)}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ))}
                 </div>
+              ) : (
+                <p className="text-sm text-muted-foreground text-center py-4 border rounded">
+                  No employees selected
+                </p>
               )}
             </div>
           </TabsContent>
         </Tabs>
       </div>
       
-      <DialogFooter>
+      <DialogFooter className="mt-6">
         <DialogClose asChild>
-          <Button variant="outline">Cancel</Button>
+          <Button variant="outline" disabled={isSending}>
+            Cancel
+          </Button>
         </DialogClose>
         <Button 
           onClick={handleCreateCampaign}
-          className="bg-[#907527] hover:bg-[#705b1e]"
+          disabled={isSending || !campaignName || !selectedConfigId || !selectedTemplateId || !startDate || !endDate}
         >
-          Create Campaign
+          {isSending ? 'Creating...' : 'Create Campaign'}
         </Button>
       </DialogFooter>
     </div>

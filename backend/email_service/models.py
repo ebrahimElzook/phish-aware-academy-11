@@ -29,6 +29,7 @@ class EmailTemplate(models.Model):
         ('hard', 'Hard'),
     ]
     
+    name = models.SlugField(max_length=100, unique=True, help_text="Unique identifier for the template")
     subject = models.CharField(max_length=255, help_text="Email subject line")
     content = models.TextField(help_text="Email content/body")
     company = models.ForeignKey('accounts.Company', on_delete=models.CASCADE, blank=True, null=True, help_text="Company associated with this template")

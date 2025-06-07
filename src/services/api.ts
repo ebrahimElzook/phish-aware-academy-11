@@ -92,6 +92,21 @@ export interface Department {
   user_count: number;
 }
 
+export interface Campaign {
+  id: number;
+  campaign_name: string;
+  start_date: string;
+  end_date: string;
+  company: number;
+  created_at: string;
+  updated_at: string;
+  targets_count?: number;
+  clicks_count?: number;
+  opens_count?: number;
+  click_rate?: number;
+  open_rate?: number;
+}
+
 export interface NewUserData {
   first_name: string;
   last_name: string;
@@ -849,6 +864,22 @@ export const fetchWithAuth = async (url: string, options: RequestInit = {}): Pro
 };
 
 // LMS Campaign service
+export const phishingService = {
+  // Get all phishing campaigns for the current company
+  async getCampaigns(): Promise<Campaign[]> {
+    try {
+      const response = await fetchWithAuth(`${API_URL}/email/campaigns/`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch campaigns');
+      }
+      return await response.json();
+    } catch (error) {
+      console.error('Error fetching campaigns:', error);
+      throw error;
+    }
+  },
+};
+
 export const lmsService = {
   // Get campaigns assigned to the current user
   getUserCampaigns: async () => {

@@ -29,10 +29,15 @@ class PhishingCampaignSerializer(serializers.ModelSerializer):
     company_id = serializers.PrimaryKeyRelatedField(
         queryset=Company.objects.all(), source='company', write_only=True
     )
+    start_date = serializers.DateField(format='%Y-%m-%d')
+    end_date = serializers.DateField(format='%Y-%m-%d')
 
     class Meta:
         model = PhishingCampaign
-        fields = ['id', 'campaign_name', 'company', 'company_id', 'created_at', 'updated_at']
+        fields = [
+            'id', 'campaign_name', 'company', 'company_id', 
+            'start_date', 'end_date', 'created_at', 'updated_at'
+        ]
         read_only_fields = ['created_at', 'updated_at']
 
 
