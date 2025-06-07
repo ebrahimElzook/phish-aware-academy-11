@@ -26,12 +26,24 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { userService, fetchWithAuth } from "@/services/api";
+import { userService, fetchWithAuth, authService } from "@/services/api";
 import { 
+  EMAIL_API_ENDPOINT,
+  EMAIL_SAVE_API_ENDPOINT,
   EMAIL_CONFIGS_API_ENDPOINT, 
   EMAIL_TEMPLATES_API_ENDPOINT,
   PHISHING_CAMPAIGN_CREATE_API_ENDPOINT 
 } from "@/config";
+import { useAuth } from "@/contexts/AuthContext";
+
+// Helper function to get CSRF token from cookies
+const getCookie = (name: string): string | null => {
+  if (typeof document === 'undefined') return null;
+  const value = `; ${document.cookie}`;
+  const parts = value.split(`; ${name}=`);
+  if (parts.length === 2) return parts.pop()?.split(';').shift() || null;
+  return null;
+};
 
 // Define interfaces for email configurations and templates
 interface EmailConfig {
@@ -77,7 +89,8 @@ const CampaignForm: React.FC<CampaignFormProps> = ({ companySlug, onClose, onCre
   const [endDate, setEndDate] = useState<Date | undefined>(undefined);
   const [isSending, setIsSending] = useState(false);
   
-  // Users and departments
+  // Get current user from auth context
+  const { user: currentUser } = useAuth();
   const [users, setUsers] = useState<any[]>([]);
   const [departments, setDepartments] = useState<any[]>([]);
   const [loadingUsers, setLoadingUsers] = useState(true);
@@ -86,6 +99,11 @@ const CampaignForm: React.FC<CampaignFormProps> = ({ companySlug, onClose, onCre
   
   // Refs
   const previewEditableRef = useRef<HTMLDivElement>(null);
+
+  // Log current user for debugging
+  useEffect(() => {
+    console.log('Current user:', currentUser);
+  }, [currentUser]);
 
   // Fetch email configurations and templates on component mount
   useEffect(() => {
@@ -159,6 +177,129 @@ const CampaignForm: React.FC<CampaignFormProps> = ({ companySlug, onClose, onCre
   };
 
   // Handle form submission
+  const sendEmails = async (campaignId: number, targetUsers: number[]) => {
+    try {
+      // Get the selected template
+      const selectedTemplate = emailTemplates.find(t => t.id === selectedTemplateId);
+      if (!selectedTemplate) {
+        throw new Error('Selected template not found');
+      }
+
+      // Get the selected email config
+      const selectedConfig = emailConfigs.find(c => c.id === selectedConfigId);
+      if (!selectedConfig) {
+        throw new Error('Selected email configuration not found');
+      }
+
+      // Get CSRF token
+      let csrfToken = getCookie('csrftoken');
+      if (!csrfToken) {
+        const optionsCsrfResponse = await fetch(EMAIL_API_ENDPOINT, { method: 'OPTIONS', credentials: 'include' });
+        if (!optionsCsrfResponse.ok) throw new Error('Failed to establish secure connection for sending emails.');
+        csrfToken = getCookie('csrftoken');
+      }
+      if (!csrfToken) {
+        throw new Error('CSRF token not found for sending emails. Please refresh and try again.');
+      }
+
+      const successfulSends: string[] = [];
+      const failedSends: { email: string; error: string }[] = [];
+
+      // Get the target users' details
+      const targetUserDetails = users.filter(user => targetUsers.includes(user.id));
+
+      for (const user of targetUserDetails) {
+        try {
+          // Personalize the email body
+          const recipientName = `${user.first_name} ${user.last_name}`;
+          const personalizedBody = selectedTemplate.content
+            .replace(/\{recipient\.name\}/g, recipientName);
+
+          // 1. Save the email
+          if (!currentUser?.id) {
+            console.error('Current user data:', currentUser);
+            throw new Error('No authenticated user found. Please log in again.');
+          }
+
+          const savePayload = {
+            to: user.email,
+            from: selectedConfig.host_user,
+            subject: selectedTemplate.subject,
+            body: personalizedBody,
+            phishing_campaign_id: campaignId,
+            sender_id: parseInt(currentUser.id),  // Ensure it's a number
+          };
+          
+          console.log('Saving email with payload:', savePayload);
+
+          const saveResponse = await fetch(EMAIL_SAVE_API_ENDPOINT, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'X-CSRFToken': csrfToken,
+              'X-Requested-With': 'XMLHttpRequest',
+            },
+            credentials: 'include',
+            body: JSON.stringify(savePayload),
+          });
+
+          const saveResponseData = await saveResponse.json();
+          if (!saveResponse.ok) {
+            throw new Error(`Failed to save email: ${saveResponseData.error || saveResponseData.detail || 'Unknown error'}`);
+          }
+
+          // 2. Send the email
+          const sendPayload = {
+            to: user.email,
+            from: selectedConfig.host_user,
+            subject: selectedTemplate.subject,
+            body: personalizedBody,
+            email_id: saveResponseData.email_id,
+            phishing_campaign_id: campaignId,
+          };
+
+          const sendResponse = await fetchWithAuth(EMAIL_API_ENDPOINT, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'X-CSRFToken': csrfToken,
+              'X-Requested-With': 'XMLHttpRequest',
+            },
+            credentials: 'include',
+            body: JSON.stringify(sendPayload),
+          });
+
+          if (!sendResponse.ok) {
+            const errorData = await sendResponse.json().catch(() => ({}));
+            throw new Error(errorData.detail || 'Failed to send email');
+          }
+
+          successfulSends.push(user.email);
+        } catch (error) {
+          console.error(`Error sending email to ${user.email}:`, error);
+          failedSends.push({ 
+            email: user.email, 
+            error: error instanceof Error ? error.message : 'Unknown error' 
+          });
+        }
+      }
+
+      // Show results
+      if (failedSends.length > 0) {
+        toast({
+          title: 'Partial Success',
+          description: `Sent to ${successfulSends.length} recipients, failed for ${failedSends.length}.`,
+          variant: 'default',
+        });
+      }
+
+      return { success: true, successfulSends, failedSends };
+    } catch (error) {
+      console.error('Error in sendEmails:', error);
+      throw error;
+    }
+  };
+
   const handleCreateCampaign = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -228,8 +369,8 @@ const CampaignForm: React.FC<CampaignFormProps> = ({ companySlug, onClose, onCre
     setIsSending(true);
     
     try {
-      // Create the campaign with all data in one request
-      const response = await fetchWithAuth(PHISHING_CAMPAIGN_CREATE_API_ENDPOINT, {
+      // 1. Create the campaign
+      const campaignResponse = await fetchWithAuth(PHISHING_CAMPAIGN_CREATE_API_ENDPOINT, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -237,17 +378,40 @@ const CampaignForm: React.FC<CampaignFormProps> = ({ companySlug, onClose, onCre
         body: JSON.stringify({
           campaign_name: campaignName,
           company_slug: companySlug,
-          email_config: selectedConfigId,
-          template: selectedTemplateId,
           start_date: startDate.toISOString().split('T')[0],
           end_date: endDate.toISOString().split('T')[0],
+        }),
+      });
+
+      if (!campaignResponse.ok) {
+        const errorData = await campaignResponse.json().catch(() => ({}));
+        throw new Error(errorData.detail || 'Failed to create campaign');
+      }
+
+      const campaignData = await campaignResponse.json();
+      const campaignId = campaignData.id;
+
+      // 2. Send emails to all target users
+      await sendEmails(campaignId, targetUsers);
+
+      // 3. Update campaign with email config and template
+      const updateUrl = PHISHING_CAMPAIGN_CREATE_API_ENDPOINT.replace('/create', '');
+      const updateResponse = await fetchWithAuth(`${updateUrl}${campaignId}/`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email_config: selectedConfigId,
+          template: selectedTemplateId,
           target_users: targetUsers,
         }),
       });
 
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.detail || 'Failed to create campaign');
+      if (!updateResponse.ok) {
+        const errorData = await updateResponse.json().catch(() => ({}));
+        console.warn('Failed to update campaign with email settings:', errorData);
+        // Don't fail the whole operation if just the update fails
       }
 
       toast({

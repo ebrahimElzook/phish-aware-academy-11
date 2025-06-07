@@ -56,27 +56,17 @@ def get_users_for_company(request):
 def get_lms_campaigns(request):
     """API endpoint to get LMS campaigns for the current user's company"""
     user = request.user
-    print(f"[DEBUG] User requesting campaigns: {user.username} (ID: {user.id})")
     
     # Check if user is a Super Admin
-    print(f"[DEBUG] User role: {getattr(user, 'role', 'No role attribute found')}")
-    print(f"[DEBUG] User object attributes: {dir(user)}")
-    
-    # Try to determine if user is a Super Admin
     is_super_admin = False
     if hasattr(user, 'role'):
         # Check for 'SUPER_ADMIN' (correct case from User model)
         is_super_admin = user.role == 'SUPER_ADMIN'
-        print(f"[DEBUG] Is super admin based on role: {is_super_admin}")
     elif hasattr(user, 'is_superuser'):
         is_super_admin = user.is_superuser
-        print(f"[DEBUG] Is super admin based on is_superuser: {is_super_admin}")
-    
-    print(f"[DEBUG] Final is_super_admin determination: {is_super_admin}")
     
     # Get the user's company
     company = user.company
-    print(f"[DEBUG] User's company: {company}")
     
     # Handle Super Admins differently
     if is_super_admin:
@@ -94,13 +84,9 @@ def get_lms_campaigns(request):
         
         # Get campaigns for this company
         campaigns = LMSCampaign.objects.filter(company=company)
-    print(f"[DEBUG] Found {campaigns.count()} campaigns for company {company}")
-    for c in campaigns:
-        print(f"[DEBUG] Campaign: {c.id} - {c.name}")
     
     # Format data for response
     data = []
-    print(f"[DEBUG] Formatting {campaigns.count()} campaigns for response")
     for campaign in campaigns:
         # Get stats for this campaign
         total_users = LMSCampaignUser.objects.filter(campaign=campaign).count()

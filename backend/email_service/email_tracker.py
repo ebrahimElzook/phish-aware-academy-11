@@ -86,12 +86,10 @@ def add_link_tracking(body, email_id):
     Modify all links in the email body to point to the 'View in Browser' page
     """
     if not email_id:
-        print("No email_id provided, skipping link tracking")
         return body
         
     # Get the tracking URL from settings
     server_url = settings.EMAIL_TRACKING_URL
-    print(f"Server URL: {server_url}")
     
     # Create the tracking URL that will mark the click and redirect
     tracking_url = f"{server_url}/api/email/mark-clicked/{email_id}/"
@@ -99,47 +97,34 @@ def add_link_tracking(body, email_id):
     encoded_url = quote(view_in_browser_url, safe='')
     final_url = f"{tracking_url}?url={encoded_url}"
     
-    print(f"Final tracking URL: {final_url}")
-    
-    # Process HTML content to make links and images trackable
     def process_links(html_content):
         from bs4 import BeautifulSoup, Tag
         
-        print("Processing links and images with BeautifulSoup...")
         soup = BeautifulSoup(html_content, 'html.parser')
         
         # Process all <a> tags
         for a_tag in soup.find_all('a', href=True):
             original_url = a_tag['href']
-            print(f"Found link: {original_url}")
             
             # Only skip truly special URLs, but process '#' links
             if not original_url or original_url.startswith(('javascript:', 'mailto:', 'tel:')):
-                print(f"Skipping special link: {original_url}")
                 continue
                 
             # Process '#' links by replacing them with our tracking URL
-            if original_url == '#':
-                print(f"Processing '#' link, replacing with tracking URL")
                 
             # Update the href
             a_tag['href'] = final_url
-            print(f"Updated link to: {final_url}")
         
         # Process all <img> tags to make them clickable
         for img_tag in soup.find_all('img'):
             # Skip if already inside an <a> tag to prevent nested anchors
             if img_tag.find_parent('a'):
-                print("Skipping image that's already inside a link")
                 continue
                 
             # Skip tracking pixels and other hidden images
             if img_tag.get('width') == '1' and img_tag.get('height') == '1':
-                print("Skipping tracking pixel")
                 continue
                 
-            print("Making image clickable")
-            
             # Create a new <a> tag
             a_tag = soup.new_tag('a', href=final_url)
             
@@ -148,7 +133,6 @@ def add_link_tracking(body, email_id):
         
         # Convert back to string
         result = str(soup)
-        print("Final body preview:", result[:500])
         return result
     
     try:
@@ -165,13 +149,9 @@ def add_link_tracking(body, email_id):
             url = match.group(3)  # The URL
             after = match.group(4)  # Everything after the URL
             
-            print(f"Regex found URL: {url}")
-            
             if not url or url.startswith(('#', 'javascript:', 'mailto:', 'tel:')):
-                print(f"Skipping special URL: {url}")
                 return match.group(0)
                 
-            print(f"Replacing with: {final_url}")
             return f'{before}href="{final_url}"{after}'
         
         # Try different patterns
@@ -184,5 +164,4 @@ def add_link_tracking(body, email_id):
         for pattern in patterns:
             result = re.sub(pattern, replace_href, result, flags=re.IGNORECASE | re.DOTALL)
             
-        print("Final body preview (regex):", result[:500])
         return result
