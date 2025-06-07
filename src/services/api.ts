@@ -569,8 +569,6 @@ export const userService = {
         throw new Error('Company context is required to upload users');
       }
       
-      console.log('Uploading users to endpoint:', endpoint);
-      console.log('Form data contains file:', formData.has('file'));
       
       const response = await fetch(endpoint, {
         method: 'POST',
@@ -593,7 +591,6 @@ export const userService = {
         }
       }
       
-      console.log('Upload successful, parsing response...');
 
       return await response.json();
     } catch (error) {
@@ -780,6 +777,8 @@ export const fetchWithAuth = async (url: string, options: RequestInit = {}): Pro
   const token = localStorage.getItem('token');
   
   if (!token) {
+    authService.logout();
+    window.location.href = '/login';
     throw new Error('No authentication token found');
   }
 
@@ -791,8 +790,6 @@ export const fetchWithAuth = async (url: string, options: RequestInit = {}): Pro
       ? `https://phishaware-backend-production.up.railway.app${url}` 
       : `${API_URL}${url.startsWith('/') ? '' : '/'}${url}`;
   
-  console.log('Making authenticated request to:', absoluteUrl);
-
   const headers = {
     ...options.headers,
     'Authorization': `Bearer ${token}`,
@@ -808,11 +805,32 @@ export const fetchWithAuth = async (url: string, options: RequestInit = {}): Pro
     if (response.status === 401) {
       // Token expired, try to refresh
       try {
-        await authService.refreshToken();
+        const newToken = await authService.refreshToken();
+        if (!newToken) {
+          throw new Error('Failed to refresh token');
+        }
+        
+        // Update the authorization header with the new token
+        const newHeaders = {
+          ...headers,
+          'Authorization': `Bearer ${newToken}`
+        };
+        
         // Retry the request with the new token
-        return fetchWithAuth(url, options);
+        const retryResponse = await fetch(absoluteUrl, {
+          ...options,
+          headers: newHeaders,
+        });
+        
+        if (retryResponse.status === 401) {
+          // If we still get 401 after refresh, force logout
+          throw new Error('Session expired after token refresh');
+        }
+        
+        return retryResponse;
       } catch (refreshError) {
-        // Refresh failed, redirect to login
+        console.error('Token refresh failed:', refreshError);
+        // Refresh failed, force logout and redirect to login
         authService.logout();
         window.location.href = '/login';
         throw new Error('Session expired. Please login again.');
@@ -822,6 +840,10 @@ export const fetchWithAuth = async (url: string, options: RequestInit = {}): Pro
     return response;
   } catch (error) {
     console.error('Fetch with auth error:', error, 'URL:', absoluteUrl);
+    if (error instanceof Error && error.message.includes('Failed to fetch')) {
+      // Network error or server down
+      console.error('Network error - please check your connection');
+    }
     throw error;
   }
 };

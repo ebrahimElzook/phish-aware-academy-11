@@ -83,7 +83,6 @@ export const UserManualEntry = () => {
       return;
     }
     
-    console.log('Uploading file:', file.name, 'Type:', file.type, 'Size:', file.size);
 
     toast({
       title: "File upload started",
@@ -94,11 +93,7 @@ export const UserManualEntry = () => {
       const formData = new FormData();
       formData.append('file', file);
       
-      // Log form data contents
-      console.log('Form data created with file:', file.name);
-      
       const response = await userService.uploadUsersBulk(formData);
-      console.log('Upload successful, received response:', response);
       
       // Check if response has the expected format
       if (response && response.created_users && Array.isArray(response.created_users)) {

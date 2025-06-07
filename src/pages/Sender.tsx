@@ -12,7 +12,7 @@ import Footer from '@/components/Footer';
 import { Checkbox } from '@/components/ui/checkbox';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { userService, authService, User, Department } from '@/services/api';
+import { userService, authService, User, Department, fetchWithAuth } from '@/services/api';
 import SentEmailsList from '@/components/email/SentEmailsList';
 
 // Helper function to get CSRF token from cookies
@@ -399,12 +399,11 @@ const Sender = () => {
             });
         } else {
           try {
-            const campaignResponse = await fetch(PHISHING_CAMPAIGN_CREATE_API_ENDPOINT, {
+            const campaignResponse = await fetchWithAuth(PHISHING_CAMPAIGN_CREATE_API_ENDPOINT, {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',
                 'X-CSRFToken': finalCsrfToken,
-                'Authorization': `Bearer ${accessToken}`,
                 'X-Requested-With': 'XMLHttpRequest',
               },
               credentials: 'include',
@@ -509,7 +508,7 @@ const Sender = () => {
             sendPayload.phishing_campaign_id = currentCampaignId;
           }
           
-          const sendResponse = await fetch(EMAIL_API_ENDPOINT, {
+          const sendResponse = await fetchWithAuth(EMAIL_API_ENDPOINT, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
@@ -555,9 +554,20 @@ const Sender = () => {
       }
     } catch (error) {
       console.error('Error sending email:', error);
+      let errorMessage = 'Failed to send email';
+      
+      if (error instanceof Error) {
+        if (error.message.includes('401')) {
+          errorMessage = 'Your session has expired. Please log in again.';
+          // The fetchWithAuth interceptor should handle the redirection
+        } else {
+          errorMessage = error.message;
+        }
+      }
+      
       toast({
-        title: 'Error Sending Email Process',
-        description: error instanceof Error ? error.message : 'An overall error occurred. Please try again.',
+        title: 'Error',
+        description: errorMessage,
         variant: 'destructive',
       });
     } finally {
@@ -892,36 +902,53 @@ const Sender = () => {
               </div>
               
               <div className="space-y-2">
-                <div className="flex justify-between items-center mb-1">
-                  <Label htmlFor="body-editor">Message</Label>
-                  <Button 
-                    type="button"
-                    variant="outline" 
-                    size="sm" 
-                    onClick={() => imageFilePastedRef.current?.click()}
-                  >
-                    Insert Image
-                  </Button>
+                {/* New Textarea for HTML editing */}
+                <div className="space-y-1">
+                  <Label htmlFor="body-html">HTML Code</Label>
+                  <Textarea
+                    id="body-html"
+                    name="body" // Ensures handleChange updates formData.body
+                    placeholder="Write your HTML code here..."
+                    rows={8}
+                    value={formData.body}
+                    onChange={handleChange} // Assumes handleChange is defined to handle textarea
+                    className="min-h-[200px] font-mono text-sm"
+                  />
                 </div>
-                <input
-                  type="file"
-                  ref={imageFilePastedRef}
-                  accept="image/*"
-                  className="hidden"
-                  onChange={handleImageUpload}
-                />
-                <div
-                  id="body-editor"
-                  ref={previewEditableRef}
-                  contentEditable={true}
-                  className="p-4 border rounded-md bg-white mt-1 min-h-[200px] overflow-auto focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-sm"
-                  onInput={(e: React.FormEvent<HTMLDivElement>) => {
-                    const newBody = e.currentTarget.innerHTML;
-                    if (formData.body !== newBody) {
-                      setFormData(prev => ({ ...prev, body: newBody }));
-                    }
-                  }}
-                />
+
+                {/* Existing WYSIWYG editor, now acting more as a preview but still editable */}
+                <div className="space-y-1 mt-4">
+                  <div className="flex justify-between items-center mb-1">
+                    <Label htmlFor="body-editor">Message Preview (Editable)</Label>
+                    <Button 
+                      type="button"
+                      variant="outline" 
+                      size="sm" 
+                      onClick={() => imageFilePastedRef.current?.click()}
+                    >
+                      Insert Image
+                    </Button>
+                  </div>
+                  <input
+                    type="file"
+                    ref={imageFilePastedRef}
+                    accept="image/*"
+                    className="hidden"
+                    onChange={handleImageUpload}
+                  />
+                  <div
+                    id="body-editor"
+                    ref={previewEditableRef}
+                    contentEditable={true}
+                    className="p-4 border rounded-md bg-white mt-1 min-h-[200px] overflow-auto focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-sm"
+                    onInput={(e: React.FormEvent<HTMLDivElement>) => {
+                      const newBody = e.currentTarget.innerHTML;
+                      if (formData.body !== newBody) {
+                        setFormData(prev => ({ ...prev, body: newBody }));
+                      }
+                    }}
+                  />
+                </div>
               </div>
             </div>
             
