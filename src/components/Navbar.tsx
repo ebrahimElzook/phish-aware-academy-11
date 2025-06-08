@@ -94,12 +94,7 @@ const Navbar = () => {
                   <span>Users</span>
                 </div>
               </Link>
-              <Link to={getLink("/sender")} className={`transition-colors ${isActive("/sender") ? "text-[#907527]" : "text-gray-700 hover:text-[#907527]"}`}>
-                <div className="flex items-center gap-1">
-                  <Send className="h-4 w-4" />
-                  <span>Sender</span>
-                </div>
-              </Link>
+              {/* Sender tab has been removed */}
             </>
           )}
           
