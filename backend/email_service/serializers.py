@@ -18,7 +18,11 @@ class EmailTemplateSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = EmailTemplate
-        fields = ['id', 'subject', 'content', 'company', 'company_name', 'is_global']
+        fields = [
+            'id', 'name', 'subject', 'content', 'company', 'company_name', 
+            'is_global', 'difficulty', 'category'
+        ]
+        read_only_fields = ['created_at', 'updated_at']
     
     def get_company_name(self, obj):
         return obj.company.name if obj.company else None

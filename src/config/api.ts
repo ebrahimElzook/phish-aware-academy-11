@@ -32,9 +32,23 @@ export const API_ENDPOINTS = {
 
 // Helper function to get authorization headers
 export const getAuthHeaders = () => {
-  const token = localStorage.getItem('token');
+  // Check multiple possible token locations
+  const token = 
+    localStorage.getItem('access_token') || 
+    localStorage.getItem('token') ||
+    sessionStorage.getItem('access_token') ||
+    sessionStorage.getItem('token');
+    
+  if (!token) {
+    console.warn('No access token found in storage');
+    console.log('Current localStorage:', { ...localStorage });
+    console.log('Current sessionStorage:', { ...sessionStorage });
+    return {};
+  }
+  
   return {
-    'Authorization': `Bearer ${token}`
+    'Authorization': `Bearer ${token}`,
+    'Content-Type': 'application/json',
   };
 };
 

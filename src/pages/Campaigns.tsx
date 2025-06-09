@@ -123,7 +123,6 @@ const Campaigns = () => {
       }
       
       const url = `${import.meta.env.VITE_API_URL || 'http://localhost:8000'}/api/email/campaigns/${campaign.id}/analytics/`;
-      console.log('Fetching campaign analytics from:', url);
       
       const response = await fetch(url, {
         method: 'GET',
@@ -144,7 +143,6 @@ const Campaigns = () => {
       }
 
       const data = await response.json();
-      console.log('Campaign analytics response:', data);
       
       // Transform the data to match what CampaignDetails expects
       const transformedCampaign = {

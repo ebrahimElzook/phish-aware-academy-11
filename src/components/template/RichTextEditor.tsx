@@ -1,3 +1,4 @@
+import { useEffect, useState, useRef } from 'react';
 import { useEditor, EditorContent, Editor } from '@tiptap/react';
 import StarterKit, { StarterKitOptions } from '@tiptap/starter-kit';
 import Image from '@tiptap/extension-image';
@@ -12,7 +13,6 @@ import { Bold, Italic, Underline, Strikethrough, List, ListOrdered, Link2, Image
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useState } from 'react';
 
 // Extend the Commands interface to include text align commands
 declare module '@tiptap/core' {
@@ -42,8 +42,30 @@ export const RichTextEditor = ({ content, onChange }: RichTextEditorProps) => {
   const [isImageDialogOpen, setIsImageDialogOpen] = useState(false);
   const [imageUrl, setImageUrl] = useState('');
   const [imageAlt, setImageAlt] = useState('');
+  const editorRef = useRef<Editor | null>(null);
+
+  // Handle image insertion from the parent component
+  useEffect(() => {
+    const handleImageInsert = (event: Event) => {
+      const customEvent = event as CustomEvent<string>;
+      if (editorRef.current && customEvent.detail) {
+        editorRef.current.chain().focus().setImage({ 
+          src: customEvent.detail, 
+          alt: 'Uploaded image' 
+        }).run();
+      }
+    };
+
+    window.addEventListener('insert-image', handleImageInsert as EventListener);
+    return () => {
+      window.removeEventListener('insert-image', handleImageInsert as EventListener);
+    };
+  }, []);
 
   const editor = useEditor({
+    onUpdate: ({ editor }) => {
+      editorRef.current = editor;
+    },
     extensions: [
       StarterKit.configure({
         // Disable the built-in text align and use the extension instead

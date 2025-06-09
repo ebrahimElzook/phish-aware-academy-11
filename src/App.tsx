@@ -70,18 +70,20 @@ const App = () => (
             <Route element={<ProtectedRoute allowedRoles={['admin', 'super_admin', 'company_admin']} />}>
               <Route path="dashboard" element={<Dashboard />} />
               <Route path="templates" element={<Templates />} />
+              <Route path="template-editor" element={<TemplateEditor />} />
+              <Route path="template-editor/:id" element={<TemplateEditor />} />
               <Route path="campaigns" element={<Campaigns />} />
               <Route path="analytics" element={<Analytics />} />
               <Route path="user-management" element={<UserManagement />} />
               <Route path="sender" element={<Sender />} />
               <Route path="lms-campaigns" element={<LMSCampaigns />} />
+              <Route path="employee-courses" element={<EmployeeCourses />} />
+              <Route path="profile-settings" element={<ProfileSettings />} />
             </Route>
             
             {/* Routes accessible to all authenticated users */}
             <Route element={<ProtectedRoute restrictUserRole={false} />}>
-              <Route path="template-editor/:id?" element={<TemplateEditor />} />
-              <Route path="employee-courses" element={<EmployeeCourses />} />
-              <Route path="profile-settings" element={<ProfileSettings />} />
+              {/* Additional non-admin routes can go here */}
             </Route>
           </Route>
           

@@ -100,11 +100,6 @@ const CampaignForm: React.FC<CampaignFormProps> = ({ companySlug, onClose, onCre
   // Refs
   const previewEditableRef = useRef<HTMLDivElement>(null);
 
-  // Log current user for debugging
-  useEffect(() => {
-    console.log('Current user:', currentUser);
-  }, [currentUser]);
-
   // Fetch email configurations and templates on component mount
   useEffect(() => {
     const fetchData = async () => {
@@ -230,7 +225,6 @@ const CampaignForm: React.FC<CampaignFormProps> = ({ companySlug, onClose, onCre
             sender_id: parseInt(currentUser.id),  // Ensure it's a number
           };
           
-          console.log('Saving email with payload:', savePayload);
 
           const saveResponse = await fetch(EMAIL_SAVE_API_ENDPOINT, {
             method: 'POST',

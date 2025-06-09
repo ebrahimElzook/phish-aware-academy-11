@@ -1,13 +1,16 @@
 from django.core.mail import send_mail, get_connection, EmailMultiAlternatives
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponseBadRequest
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
 from django.conf import settings
 from django.views.decorators.csrf import ensure_csrf_cookie
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
+from rest_framework import status
 from .models import CSWordEmailServ, EmailTemplate, PhishingCampaign
 from .serializers import CSWordEmailServSerializer, EmailTemplateSerializer, PhishingCampaignSerializer
+from accounts.models import Company
 from accounts.models import Email, User, Company, Department # Added Company and Department import
 from django.db.models import Count, Q, Avg, F, ExpressionWrapper, FloatField, Case, When
 from django.db.models.functions import TruncMonth
@@ -181,38 +184,127 @@ def get_email_configurations(request):
 
 @csrf_exempt
 @require_http_methods(['GET', 'OPTIONS'])
+@csrf_exempt
+@api_view(['GET', 'OPTIONS'])
+@permission_classes([IsAuthenticated])
 def get_email_templates(request):
     """
     API endpoint to get email templates based on global flag and company
     """
-    # Handle OPTIONS request for CORS preflight
     if request.method == 'OPTIONS':
-        response = JsonResponseWithCors({}, status=200)
-        return response
+        return JsonResponseWithCors({}, status=200)
         
     try:
-        # Get company slug from query parameters
-        company_slug = request.GET.get('company_slug', None)
+        # Get company slug from query parameters or user's company
+        company_slug = request.query_params.get('company_slug')
         
-        # If company_slug is provided, filter templates by company or global flag
         if company_slug:
-            # Get templates that are either global or belong to the specified company
-            from accounts.models import Company
             try:
                 company = Company.objects.get(slug=company_slug)
-                templates = EmailTemplate.objects.filter(is_global=True) | \
-                           EmailTemplate.objects.filter(company=company)
+                # Get templates that are either global or belong to the company
+                templates = EmailTemplate.objects.filter(
+                    Q(is_global=True) | Q(company=company)
+                ).distinct()
             except Company.DoesNotExist:
-                # If company doesn't exist, return only global templates
                 templates = EmailTemplate.objects.filter(is_global=True)
         else:
-            # If no company_slug is provided, return all templates (original logic)
+            # If no company_slug, return all templates (admin only)
+            if not request.user.is_staff:
+                return JsonResponseWithCors(
+                    {'error': 'Not authorized to view all templates'}, 
+                    status=status.HTTP_403_FORBIDDEN
+                )
             templates = EmailTemplate.objects.all()
             
         serializer = EmailTemplateSerializer(templates, many=True)
         return JsonResponseWithCors(serializer.data, safe=False)
+        
     except Exception as e:
-        return JsonResponseWithCors({'error': str(e)}, status=500)
+        return JsonResponseWithCors(
+            {'error': str(e)}, 
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+
+@csrf_exempt
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def create_email_template(request):
+    """
+    API endpoint to create a new email template
+    """
+    try:
+        data = request.data.copy()
+        
+        # Set the company from the user's company if not provided
+        if 'company' not in data and hasattr(request.user, 'company'):
+            data['company'] = request.user.company.id
+        
+        serializer = EmailTemplateSerializer(data=data)
+        if serializer.is_valid():
+            serializer.save()
+            return JsonResponseWithCors(
+                serializer.data, 
+                status=status.HTTP_201_CREATED
+            )
+        return JsonResponseWithCors(
+            serializer.errors, 
+            status=status.HTTP_400_BAD_REQUEST
+        )
+    except Exception as e:
+        return JsonResponseWithCors(
+            {'error': str(e)}, 
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+
+@csrf_exempt
+@api_view(['GET', 'PUT', 'DELETE'])
+@permission_classes([IsAuthenticated])
+def manage_email_template(request, template_id):
+    """
+    API endpoint to get, update, or delete a specific email template
+    """
+    try:
+        try:
+            template = EmailTemplate.objects.get(id=template_id)
+        except EmailTemplate.DoesNotExist:
+            return JsonResponseWithCors(
+                {'error': 'Template not found'}, 
+                status=status.HTTP_404_NOT_FOUND
+            )
+        
+        # Check permissions (user must be admin or template must belong to their company)
+        if not request.user.is_staff and template.company != request.user.company:
+            return JsonResponseWithCors(
+                {'error': 'Not authorized to access this template'}, 
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        if request.method == 'GET':
+            serializer = EmailTemplateSerializer(template)
+            return JsonResponseWithCors(serializer.data)
+            
+        elif request.method == 'PUT':
+            serializer = EmailTemplateSerializer(template, data=request.data, partial=True)
+            if serializer.is_valid():
+                serializer.save()
+                return JsonResponseWithCors(serializer.data)
+            return JsonResponseWithCors(
+                serializer.errors, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
+            
+        elif request.method == 'DELETE':
+            template.delete()
+            return JsonResponseWithCors(
+                {'message': 'Template deleted successfully'}, 
+                status=status.HTTP_204_NO_CONTENT
+            )
+            
+    except Exception as e:
+        return JsonResponseWithCors(
+            {'error': str(e)}, 
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
 
 
 @api_view(['POST', 'OPTIONS'])

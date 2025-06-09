@@ -1,5 +1,15 @@
 
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import axios from 'axios';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { getAuthHeaders } from '@/config/api';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -7,11 +17,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
-import { Save, ArrowLeft, Code, Type } from 'lucide-react';
-import { RichTextEditor } from '@/components/template/RichTextEditor';
+import { Save, ArrowLeft, Code, Type, RefreshCw } from 'lucide-react';
+
 import { Textarea } from "@/components/ui/textarea";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { useIsMobile } from '@/hooks/use-mobile';
+import Navbar from '@/components/Navbar';
 
 const TemplateEditor = () => {
   const isMobile = useIsMobile();
@@ -27,46 +38,412 @@ const TemplateEditor = () => {
     navigate(`/${companySlug}/templates`);
   };
 
-  const [editorMode, setEditorMode] = useState<'html' | 'richText'>('html');
-  const [template, setTemplate] = useState({
+  const [editorMode, setEditorMode] = useState<'html' | 'preview'>('html');
+  const previewRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
+  const [templateMode, setTemplateMode] = useState<'new' | 'existing'>('new');
+
+  // Define interfaces first
+  interface TemplateData {
+    id: string;
+    name: string;
+    subject: string;
+    content: string;
+    difficulty: string;
+    category: string;
+  }
+
+  interface TemplateOption {
+    value: string;
+    label: string;
+    disabled?: boolean;
+    isGlobal?: boolean;
+  }
+
+  // Template state
+  const [template, setTemplate] = useState<TemplateData>({
+    id: "",
     name: "",
+    subject: "",
+    content: "",
     difficulty: "medium",
-    subject: "Important: Your Account Security Requires Attention",
-    body: `<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; color: #333;">
-  <div style="text-align: center; padding-bottom: 20px;">
-    <img src="https://via.placeholder.com/150x50" alt="Company Logo" style="max-width: 150px;">
-  </div>
-  
-  <div style="background-color: #f7f7f7; border-left: 4px solid #d63031; padding: 15px; margin-bottom: 20px;">
-    <p style="margin: 0; font-weight: bold; color: #d63031;">URGENT: Action Required</p>
-  </div>
-  
-  <p>Dear ${"recipient.name"},</p>
-  
-  <p>Our security system has detected unusual login attempts on your account. To ensure your account remains secure, please verify your identity by clicking the button below.</p>
-  
-  <div style="text-align: center; margin: 30px 0;">
-    <a href="#" style="background-color: #0984e3; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px; font-weight: bold;">Verify Account Now</a>
-  </div>
-  
-  <p>If you did not attempt to log in, please reset your password immediately by clicking the button above.</p>
-  
-  <p>For security reasons, this link will expire in 24 hours.</p>
-  
-  <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;">
-  
-  <p style="font-size: 12px; color: #777;">This is an automated message from the IT Security department. Please do not reply directly to this email. If you need assistance, please contact the help desk at support@orgname.com.</p>
-  
-  <p style="font-size: 12px; color: #777;">© 2025 Your Organization. All rights reserved.</p>
-</div>`,
+    category: "",
   });
 
-  const handleSaveTemplate = () => {
-    toast({
-      title: "Template Saved",
-      description: "Your email template has been saved successfully.",
-    });
+  // API response type
+  interface EmailTemplate {
+    id?: string | number;
+    name: string;
+    subject: string;
+    content: string;
+    difficulty: string;
+    category: string;
+    is_global?: boolean;
+    company?: number | { id: number; slug: string };
+  }
+
+  const queryClient = useQueryClient();
+
+  // Check authentication state
+  const isAuthenticated = !!localStorage.getItem('access_token') || !!localStorage.getItem('token');
+
+  // Get company slug from URL
+  const path = window.location.pathname;
+  const companySlug = path.split('/')[1];
+
+  // Fetch email templates from the backend for the current company
+  const { 
+    data: templatesData = [], 
+    isLoading: isLoadingTemplates,
+    isError: isTemplatesError,
+    error: templatesError,
+    refetch: refetchTemplates 
+  } = useQuery<EmailTemplate[]>({
+    queryKey: ['emailTemplates', companySlug],
+    queryFn: async () => {
+      if (!isAuthenticated) {
+        console.warn('Not authenticated, skipping template fetch');
+        return [];
+      }
+
+      try {
+        const response = await axios.get(`/api/email/templates/`, {
+          headers: getAuthHeaders(),
+          withCredentials: true,
+          params: {
+            company_slug: companySlug
+          }
+        });
+        
+        // First ensure we have valid data
+        if (!Array.isArray(response.data)) {
+          console.warn('Expected array of templates but got:', response.data);
+          return [];
+        }
+        
+        // Return all templates and let the backend handle the filtering
+        // The backend should already be filtering by company based on the JWT token
+        return response.data;
+      } catch (error) {
+        console.error('Error fetching templates:', error);
+        if (error.response?.status === 401) {
+          console.warn('Unauthorized - please log in again');
+          // Consider redirecting to login here if needed
+        }
+        throw error;
+      }
+    },
+    enabled: isAuthenticated && !!companySlug, // Only run the query if authenticated and company slug exists
+    retry: 1,
+    refetchOnWindowFocus: false,
+  });
+
+  // Debug effect to log template data changes
+  useEffect(() => {
+    
+  }, [templatesData]);
+  
+  // Add manual refetch button for debugging
+  const handleManualRefetch = useCallback(async () => {
+    try {
+      const { data } = await queryClient.fetchQuery({
+        queryKey: ['emailTemplates', companySlug],
+        queryFn: async () => {
+          const response = await axios.get(`/api/email/templates/`, {
+            headers: getAuthHeaders(),
+            withCredentials: true,
+            params: { company_slug: companySlug }
+          });
+          return response.data;
+        }
+      });
+    } catch (error) {
+      console.error('Manual fetch error:', error);
+      toast({
+        title: 'Error',
+        description: error.response?.data?.message || 'Failed to fetch templates',
+        variant: 'destructive',
+      });
+    }
+  }, [companySlug, queryClient]);
+
+  // Format templates for dropdown with global template indicators
+  const templateOptions = React.useMemo<TemplateOption[]>(() => {
+    if (!Array.isArray(templatesData)) {
+      console.warn('templatesData is not an array:', templatesData);
+      return [];
+    }
+    
+    if (templatesData.length === 0) {
+      if (isLoadingTemplates) {
+        return []; // Don't show message while loading
+      }
+      if (isTemplatesError) {
+        toast({
+          title: 'Error',
+          description: 'Failed to load templates. Please try again.',
+          variant: 'destructive',
+        });
+      }
+      return [];
+    }
+    
+    return templatesData.map(template => ({
+      value: String(template.id || ''),
+      label: template.is_global 
+        ? `${template.name || `Template ${template.id || 'New'}`} (Global)`
+        : template.name || `Template ${template.id || 'New'}`,
+      disabled: template.is_global, // Disable selection of global templates
+      isGlobal: template.is_global
+    }));
+  }, [templatesData, isLoadingTemplates, isTemplatesError, templatesError, isAuthenticated]);
+
+  // Handle query errors
+  useEffect(() => {
+    if (isLoadingTemplates === false && templateOptions.length === 0 && isAuthenticated) {
+      toast({
+        title: 'No Templates',
+        description: 'No templates found. Create a new one or check your connection.',
+        variant: 'default',
+      });
+    }
+  }, [isLoadingTemplates, templateOptions, isAuthenticated]);
+
+  // Load template when selected from dropdown
+  const loadTemplate = useCallback((templateId: string) => {
+    if (!templateId || !templatesData) return;
+    
+    const selectedTemplate = templatesData.find(t => t.id?.toString() === templateId);
+    if (selectedTemplate) {
+      // Prevent loading global templates for editing
+      if (selectedTemplate.is_global) {
+        toast({
+          title: 'Read-only',
+          description: 'Global templates cannot be edited. Please create a new template instead.',
+          variant: 'default',
+        });
+        setTemplateMode('new');
+        setTemplate({
+          id: '',
+          name: '',
+          subject: '',
+          content: '',
+          difficulty: 'medium',
+          category: '',
+        });
+        return;
+      }
+      
+      setTemplate({
+        id: String(selectedTemplate.id || ''),
+        name: selectedTemplate.name || '',
+        subject: selectedTemplate.subject || '',
+        content: selectedTemplate.content || '',
+        difficulty: selectedTemplate.difficulty || 'medium',
+        category: selectedTemplate.category || '',
+      });
+    }
+  }, [templatesData]);
+
+  // Handle template dropdown change
+  const handleTemplateChange = (value: string) => {
+    if (value === 'new') {
+      setTemplate({
+        id: '',
+        name: '',
+        subject: '',
+        content: '',
+        difficulty: 'medium',
+        category: '',
+      });
+      setTemplateMode('new');
+    } else {
+      loadTemplate(value);
+      setTemplateMode('existing');
+    }
   };
+
+  const handleSaveTemplate = async () => {
+    try {
+      const isNew = templateMode === 'new' || !template.id;
+      const url = isNew 
+        ? '/api/email/templates/create/'
+        : `/api/email/templates/${template.id}/`;
+      
+      const method = isNew ? 'post' : 'put';
+      
+      const requestData: any = {
+        name: template.name,
+        subject: template.subject,
+        content: template.content,
+        difficulty: template.difficulty,
+        category: template.category,
+        is_global: false,
+      };
+
+      // Only include company_slug for new templates
+      if (isNew && companySlug) {
+        requestData.company_slug = companySlug;
+      }
+      
+      const response = await axios({
+        method,
+        url,
+        headers: {
+          ...getAuthHeaders(),
+          'Content-Type': 'application/json',
+          'X-CSRFToken': getCsrfToken(),
+        },
+        withCredentials: true,
+        data: requestData,
+      });
+
+      // Invalidate and refetch templates with the company slug
+      await queryClient.invalidateQueries({ 
+        queryKey: ['emailTemplates', companySlug] 
+      });
+      
+      toast({
+        title: "Success",
+        description: isNew 
+          ? "Template created successfully!" 
+          : "Template updated successfully!",
+      });
+
+      // If it was a new template, update the form with the new template data
+      if (isNew && response.data) {
+        setTemplate(prev => ({
+          ...prev,
+          id: response.data.id,
+          name: response.data.name,
+        }));
+        setTemplateMode('existing');
+      }
+    } catch (error) {
+      console.error('Error saving template:', error);
+      toast({
+        title: "Error",
+        description: error.response?.data?.detail || 
+                  error.response?.data?.message || 
+                  Object.values(error.response?.data || {}).flat().join('\n') ||
+                  "Failed to save template. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  // Helper function to get CSRF token
+  const getCsrfToken = () => {
+    return document.cookie
+      .split('; ')
+      .find(row => row.startsWith('csrftoken='))
+      ?.split('=')[1];
+  };
+
+  const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const imageUrl = e.target?.result as string;
+      const img = new Image();
+      img.onload = () => {
+        // Create a data URL for the image
+        const canvas = document.createElement('canvas');
+        const maxWidth = 600;
+        let width = img.width;
+        let height = img.height;
+
+        if (width > maxWidth) {
+          height = Math.round((height * maxWidth) / width);
+          width = maxWidth;
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        ctx?.drawImage(img, 0, 0, width, height);
+        
+        const resizedImageUrl = canvas.toDataURL('image/jpeg', 0.9);
+        const imgTag = `<img src="${resizedImageUrl}" alt="Uploaded image" style="max-width: 100%; height: auto; display: block; margin: 0 auto 20px;">`;
+        
+        // Insert at the beginning of the content
+        setTemplate(prev => ({
+          ...prev,
+          content: imgTag + prev.content
+        }));
+      };
+      img.src = imageUrl;
+    };
+    reader.readAsDataURL(file);
+    
+    // Reset the file input
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
+  // Keep a ref to the current content and update state
+  const currentContentRef = useRef(template.content);
+  const isUpdatingRef = useRef(false);
+  
+  // Update the ref when template changes from outside (not from preview)
+  useEffect(() => {
+    if (!isUpdatingRef.current && previewRef.current) {
+      currentContentRef.current = template.content;
+      previewRef.current.innerHTML = template.content;
+    }
+  }, [template.content]);
+  
+  const pendingContentRef = useRef<string | null>(null);
+  
+  // Handle preview input changes with debounce
+  const handlePreviewInput = useCallback((e: React.FormEvent<HTMLDivElement>) => {
+    if (!previewRef.current) return;
+    
+    const newContent = previewRef.current.innerHTML;
+    currentContentRef.current = newContent;
+    
+    // Store the new content temporarily but don't update state yet
+    pendingContentRef.current = newContent;
+  }, []);
+  
+  // Handle Enter key in preview
+  const handlePreviewKeyDown = useCallback((e: React.KeyboardEvent<HTMLDivElement>) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      const selection = window.getSelection();
+      if (selection && selection.rangeCount > 0) {
+        const range = selection.getRangeAt(0);
+        const br = document.createElement('br');
+        range.deleteContents();
+        range.insertNode(br);
+        range.setStartAfter(br);
+        range.setEndAfter(br);
+        selection.removeAllRanges();
+        selection.addRange(range);
+        
+        // Update the content ref after Enter key
+        if (previewRef.current) {
+          const newContent = previewRef.current.innerHTML;
+          currentContentRef.current = newContent;
+          pendingContentRef.current = newContent;
+        }
+      }
+    }
+  }, []);
+
+  // Handle blur to commit changes
+  const handlePreviewBlur = useCallback(() => {
+    if (pendingContentRef.current !== null) {
+      setTemplate(prev => ({
+        ...prev,
+        content: pendingContentRef.current || ''
+      }));
+      pendingContentRef.current = null;
+    }
+  }, []);
 
   const PreviewPane = () => (
     <Card className="border-gray-100 h-full">
@@ -81,24 +458,30 @@ const TemplateEditor = () => {
           </div>
         </div>
         <div className="p-4">
-          <div className="prose max-w-none" dangerouslySetInnerHTML={{ __html: template.body }} />
+          <div className="prose max-w-none" dangerouslySetInnerHTML={{ __html: template.content }} />
         </div>
       </CardContent>
     </Card>
   );
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8 px-4 md:px-6">
+    <div className="min-h-screen bg-gray-50 px-4 md:px-6">
+      <Navbar />
       <div className="max-w-7xl mx-auto">
-        <div className="flex items-center justify-between mb-6">
-          <Button variant="ghost" size="sm" onClick={handleBackToTemplates}>
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            Back to Templates
-          </Button>
-          <Button size="sm" onClick={handleSaveTemplate}>
-            <Save className="mr-2 h-4 w-4" />
-            Save Template
-          </Button>
+        <div className="flex items-center justify-between py-8 mb-6">
+          <div className="flex items-center space-x-2">
+            
+          </div>
+          <div className="flex items-center space-x-2">
+            <Button 
+              size="sm" 
+              onClick={handleSaveTemplate}
+              disabled={isLoadingTemplates}
+            >
+              <Save className="mr-2 h-4 w-4" />
+              Save Template
+            </Button>
+          </div>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -116,14 +499,69 @@ const TemplateEditor = () => {
                   <TabsContent value="content" className="space-y-4">
                     <div className="space-y-4">
                       <div className="space-y-2">
-                        <Label htmlFor="name">Template Name</Label>
-                        <Input
-                          id="name"
-                          value={template.name}
-                          onChange={(e) => setTemplate({ ...template, name: e.target.value })}
-                          placeholder="Enter template name"
-                        />
+                        <Label>Template Mode</Label>
+                        <div className="flex space-x-4">
+                          <Button
+                            type="button"
+                            variant={templateMode === 'new' ? 'default' : 'outline'}
+                            onClick={() => setTemplateMode('new')}
+                            className="flex-1"
+                          >
+                            Add New Template
+                          </Button>
+                          <Button
+                            type="button"
+                            variant={templateMode === 'existing' ? 'default' : 'outline'}
+                            onClick={() => setTemplateMode('existing')}
+                            className="flex-1"
+                          >
+                            Edit Existing Template
+                          </Button>
+                        </div>
                       </div>
+
+                      {templateMode === 'existing' ? (
+                        <div className="space-y-2">
+                          <Label htmlFor="select-template">Select Template</Label>
+                          <Select
+                            value={template.id || ''}
+                            onValueChange={handleTemplateChange}
+                            disabled={isLoadingTemplates}
+                          >
+                            <SelectTrigger className="w-[180px]">
+                              <SelectValue placeholder={
+                                isLoadingTemplates ? 'Loading...' : 'Select a template'
+                              } />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="new">Create New Template</SelectItem>
+                              {templateOptions.map((option) => (
+                                <SelectItem 
+                                  key={option.value} 
+                                  value={option.value}
+                                  disabled={option.isGlobal}
+                                  className={option.isGlobal ? 'opacity-50' : ''}
+                                >
+                                  {option.label}
+                                  {option.isGlobal && (
+                                    <span className="ml-2 text-xs text-muted-foreground">(Read-only)</span>
+                                  )}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      ) : (
+                        <div className="space-y-2">
+                          <Label htmlFor="template-name">Template Name</Label>
+                          <Input
+                            id="template-name"
+                            value={template.name}
+                            onChange={(e) => setTemplate({ ...template, name: e.target.value })}
+                            placeholder="Enter template name"
+                          />
+                        </div>
+                      )}
                       
                       <div className="space-y-2">
                         <Label>Difficulty</Label>
@@ -167,23 +605,39 @@ const TemplateEditor = () => {
                           placeholder="Enter email subject"
                         />
                       </div>
-                      
+                      <div className="space-y-2">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => fileInputRef.current?.click()}
+                          className="text-sm"
+                        >
+                          Insert Image
+                        </Button>
+                        <input
+                          type="file"
+                          ref={fileInputRef}
+                          onChange={handleImageUpload}
+                          className="hidden"
+                        />
+                      </div>
                       <div className="space-y-2">
                         <div className="flex items-center justify-between">
                           <Label>Email Content</Label>
                           <ToggleGroup 
                             type="single" 
                             value={editorMode}
-                            onValueChange={(value) => value && setEditorMode(value as 'html' | 'richText')}
+                            onValueChange={(value) => value && setEditorMode(value as 'html' | 'preview')}
                             className="h-8"
                           >
                             <ToggleGroupItem value="html" className="text-xs px-3">
                               <Code className="h-3.5 w-3.5 mr-1" />
                               HTML
                             </ToggleGroupItem>
-                            <ToggleGroupItem value="richText" className="text-xs px-3">
+                            <ToggleGroupItem value="preview" className="text-xs px-3">
                               <Type className="h-3.5 w-3.5 mr-1" />
-                              Rich Text
+                              Preview
                             </ToggleGroupItem>
                           </ToggleGroup>
                         </div>
@@ -192,26 +646,33 @@ const TemplateEditor = () => {
                           <div className="space-y-2">
                             <Textarea
                               className="w-full min-h-[400px] p-3 font-mono text-sm"
-                              value={template.body}
-                              onChange={(e) => setTemplate({ ...template, body: e.target.value })}
+                              value={template.content}
+                              onChange={(e) => setTemplate({ ...template, content: e.target.value })}
                               placeholder="Enter your HTML content here..."
                             />
-                            <p className="text-xs text-gray-500">
-                              Edit the HTML directly. Switch to Rich Text for a visual editor.
-                            </p>
                           </div>
                         ) : (
-                          <div className="border rounded-md">
-                            <RichTextEditor 
-                              content={template.body} 
-                              onChange={(content) => setTemplate({ ...template, body: content })} 
-                            />
-                            <p className="text-xs text-gray-500 p-2 border-t bg-gray-50">
-                              Use the toolbar to format your content. Switch to HTML for direct code editing.
-                            </p>
-                          </div>
+                          <div 
+                            ref={previewRef}
+                            className="prose max-w-none p-4 border rounded min-h-[400px] bg-white"
+                            contentEditable
+                            dangerouslySetInnerHTML={{ __html: template.content }}
+                            onInput={handlePreviewInput}
+                            onBlur={handlePreviewBlur}
+                            onKeyDown={handlePreviewKeyDown}
+                            style={{ 
+                              outline: 'none',
+                              whiteSpace: 'pre-wrap',
+                              wordWrap: 'break-word',
+                              minHeight: '400px',
+                              cursor: 'text'
+                            }}
+                            suppressContentEditableWarning={true}
+                          />
                         )}
                       </div>
+
+                      
                     </div>
                   </TabsContent>
                 </Tabs>

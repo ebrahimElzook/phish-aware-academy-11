@@ -31,14 +31,18 @@ const Navbar = () => {
     return path;
   };
   
-  // Check if a path is active, considering company context
+  // Check if a path is active, considering company context and sub-routes
   const isActive = (path: string) => {
     if (companySlug) {
-      // For company-specific routes, match the path after the company slug
+      // For company-specific routes, check if the path starts with the company path
       const companyPath = `/${companySlug}${path}`;
+      // Special handling for template-editor to match both /template-editor and /template-editor/:id
+      if (path === '/template-editor') {
+        return location.pathname.startsWith(companyPath);
+      }
       return location.pathname === companyPath;
     }
-    // For global routes, match the exact path
+    // For global routes, check if path matches exactly
     return location.pathname === path;
   };
   
@@ -70,7 +74,7 @@ const Navbar = () => {
               <Link to={getLink("/dashboard")} className={`transition-colors ${isActive("/dashboard") ? "text-[#907527]" : "text-gray-700 hover:text-[#907527]"}`}>
                 Dashboard
               </Link>
-              <Link to={getLink("/templates")} className={`transition-colors ${isActive("/templates") ? "text-[#907527]" : "text-gray-700 hover:text-[#907527]"}`}>
+              <Link to={getLink("/template-editor")} className={`transition-colors ${isActive("/template-editor") ? "text-[#907527]" : "text-gray-700 hover:text-[#907527]"}`}>
                 <div className="flex items-center gap-1">
                   <FileText className="h-4 w-4" />
                   <span>Templates</span>
@@ -170,7 +174,7 @@ const Navbar = () => {
                 <Link to={getLink("/dashboard")} className={`transition-colors py-2 ${isActive("/dashboard") ? "text-[#907527]" : "text-gray-700 hover:text-[#907527]"}`}>
                   Dashboard
                 </Link>
-                <Link to={getLink("/templates")} className={`transition-colors py-2 ${isActive("/templates") ? "text-[#907527]" : "text-gray-700 hover:text-[#907527]"}`}>
+                <Link to={getLink("/template-editor")} className={`transition-colors py-2 ${isActive("/template-editor") ? "text-[#907527]" : "text-gray-700 hover:text-[#907527]"}`}>
                   <div className="flex items-center gap-1">
                     <FileText className="h-4 w-4" />
                     <span>Templates</span>

@@ -4,22 +4,23 @@ import { cn } from '@/lib/utils';
 
 export const MainNav = () => {
   const location = useLocation();
+  const companySlug = location.pathname.split('/')[1];
   
   const items = [
     {
-      href: "/dashboard",
+      href: `/${companySlug}/dashboard`,
       label: "Dashboard",
     },
     {
-      href: "/templates",
+      href: `/${companySlug}/template-editor`,
       label: "Templates",
     },
     {
-      href: "/users",
+      href: `/${companySlug}/users`,
       label: "Users",
     },
     {
-      href: "/reports",
+      href: `/${companySlug}/reports`,
       label: "Reports",
     },
   ];
