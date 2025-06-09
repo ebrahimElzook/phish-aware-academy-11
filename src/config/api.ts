@@ -24,11 +24,15 @@ export const API_ENDPOINTS = {
   ANALYTICS_TREND: `${API_BASE_URL}/api/email/analytics/temporal-trend/`,
   
   // Course endpoints
-  COURSES: `${API_BASE_URL}/get_courses_for_company/`,
+  COURSES: `${API_BASE_URL}/api/courses/courses/`,
+  LIST_WITH_VIDEOS: (companySlug?: string) => 
+    companySlug 
+      ? `${API_BASE_URL}/api/courses/courses/list_with_videos/?company_slug=${companySlug}`
+      : `${API_BASE_URL}/api/courses/courses/list_with_videos/`,
   
   // User endpoints
-  USERS: `${API_BASE_URL}/get_users_for_company/`,
-};
+  USERS: `${API_BASE_URL}/api/users/`,
+} as const;
 
 // Helper function to get authorization headers
 export const getAuthHeaders = () => {
@@ -41,9 +45,7 @@ export const getAuthHeaders = () => {
     
   if (!token) {
     console.warn('No access token found in storage');
-    console.log('Current localStorage:', { ...localStorage });
-    console.log('Current sessionStorage:', { ...sessionStorage });
-    return {};
+    return { 'Content-Type': 'application/json' };
   }
   
   return {

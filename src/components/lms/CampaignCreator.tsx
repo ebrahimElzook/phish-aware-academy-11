@@ -26,32 +26,53 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover';
-import { format } from 'date-fns';
+import { format, isBefore, startOfToday } from 'date-fns';
+import { Calendar as CalendarIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Checkbox } from '@/components/ui/checkbox';
 import axios from 'axios';
 import API_ENDPOINTS, { getAuthHeaders } from '../../config/api';
 import { useAuth } from '@/contexts/AuthContext';
+import { userService } from '@/services/api';
 
 // Interface for courses from API
 interface Course {
-  id: number;
+  id: number | string;
   name: string;
+  title?: string;
 }
 
 // Interface for users from API
 interface User {
-  id: number;
+  id: number | string;
   name: string;
+  username?: string;
+  email?: string;
 }
+
+// Interface for API response
+type ApiResponse<T> = {
+  data?: T;
+  results?: T;
+  detail?: string;
+  message?: string;
+};
 
 export const CampaignCreator = () => {
   const { toast } = useToast();
   const { isAuthenticated } = useAuth();
   const [open, setOpen] = React.useState<boolean>(false);
   const [campaignName, setCampaignName] = React.useState<string>("");
+  const today = startOfToday();
   const [startDate, setStartDate] = React.useState<Date>();
   const [endDate, setEndDate] = React.useState<Date>();
+  
+  // Update end date if it's before start date when start date changes
+  React.useEffect(() => {
+    if (startDate && endDate && isBefore(endDate, startDate)) {
+      setEndDate(undefined);
+    }
+  }, [startDate, endDate]);
   const [selectedTargetType, setSelectedTargetType] = React.useState<string>("all");
   const [enableCertificate, setEnableCertificate] = React.useState<boolean>(true);
   const [currentStep, setCurrentStep] = React.useState<number>(1);
@@ -88,16 +109,42 @@ export const CampaignCreator = () => {
     try {
       setLoadingCourses(true);
       setError(null);
-      const response = await axios.get(API_ENDPOINTS.COURSES, {
+      
+      const response = await fetch(API_ENDPOINTS.COURSES, {
+        method: 'GET',
         headers: getAuthHeaders()
       });
-      setCourses(response.data);
+
+      if (!response.ok) {
+        const errorData: ApiResponse<unknown> = await response.json().catch(() => ({}));
+        throw new Error(
+          errorData.detail || 
+          errorData.message || 
+          `Failed to fetch courses: ${response.status} ${response.statusText}`
+        );
+      }
+      
+      const responseData = await response.json() as Course[] | ApiResponse<Course[]>;
+      
+      // Handle different response formats
+      const coursesData = Array.isArray(responseData) 
+        ? responseData 
+        : (responseData.results || responseData.data || []);
+      
+      // Format courses with required properties
+      const formattedCourses = coursesData.map((course) => ({
+        id: course.id,
+        name: course.name || course.title || `Course ${course.id}`
+      }));
+      
+      setCourses(formattedCourses);
     } catch (err) {
       console.error('Error fetching courses:', err);
-      setError('Failed to load courses. Please try again.');
+      const errorMessage = err instanceof Error ? err.message : 'Failed to load courses';
+      setError(errorMessage);
       toast({
         title: 'Error',
-        description: 'Failed to load courses. Please try again.',
+        description: errorMessage,
         variant: 'destructive'
       });
     } finally {
@@ -105,21 +152,30 @@ export const CampaignCreator = () => {
     }
   };
   
-  // Fetch users from API
+  // Fetch users from API using userService
   const fetchUsers = async () => {
     try {
       setLoadingUsers(true);
       setError(null);
-      const response = await axios.get(API_ENDPOINTS.USERS, {
-        headers: getAuthHeaders()
-      });
-      setUsers(response.data);
+      
+      const usersData = await userService.getUsers();
+      
+      // Format users with required properties
+      const formattedUsers = usersData.map((user) => ({
+        id: user.id,
+        name: `${user.first_name || ''} ${user.last_name || ''}`.trim() || user.email || `User ${user.id}`,
+        email: user.email || '',
+        username: user.username || ''
+      }));
+      
+      setUsers(formattedUsers);
     } catch (err) {
       console.error('Error fetching users:', err);
-      setError('Failed to load users. Please try again.');
+      const errorMessage = err instanceof Error ? err.message : 'Failed to load users';
+      setError(errorMessage);
       toast({
         title: 'Error',
-        description: 'Failed to load users. Please try again.',
+        description: errorMessage,
         variant: 'destructive'
       });
     } finally {
@@ -127,11 +183,12 @@ export const CampaignCreator = () => {
     }
   };
 
-  const handleCreateCampaign = async () => {
-    // Validate form
-    if (!campaignName) {
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!campaignName.trim()) {
       toast({
-        title: "Missing Campaign Name",
+        title: "Campaign Name Required",
         description: "Please enter a name for the campaign.",
         variant: "destructive",
       });
@@ -165,18 +222,35 @@ export const CampaignCreator = () => {
       return;
     }
     
-    // Prepare data for API
-    const formData = {
-      name: campaignName,
-      course_id: selectedCourse,
-      start_date: startDate ? format(startDate, "yyyy-MM-dd") : null,
-      end_date: endDate ? format(endDate, "yyyy-MM-dd") : null,
-      selected_users: selectedUsers
-    };
-    
-    // Submit to API
     try {
       setIsSubmitting(true);
+      
+      // Prepare form data
+      const formData: any = {
+        name: campaignName,
+        course_id: selectedCourse,
+        start_date: startDate ? format(startDate, "yyyy-MM-dd") : null,
+        end_date: endDate ? format(endDate, "yyyy-MM-dd") : null,
+        target_type: selectedTargetType,
+      };
+      
+      // Handle user selection based on target type
+      if (selectedTargetType === 'all') {
+        // For 'All Users', fetch all users and include their IDs
+        const allUsers = await userService.getUsers();
+        if (allUsers.length === 0) {
+          throw new Error('No users found to assign to this campaign');
+        }
+        formData.selected_users = allUsers.map(user => user.id.toString());
+      } else {
+        // For 'Custom' selection, use the selected users
+        if (selectedUsers.length === 0) {
+          throw new Error('Please select at least one user');
+        }
+        formData.selected_users = selectedUsers;
+      }
+      
+      // Submit the campaign
       await axios.post(API_ENDPOINTS.CREATE_CAMPAIGN, formData, {
         headers: getAuthHeaders()
       });
@@ -188,11 +262,21 @@ export const CampaignCreator = () => {
       
       // Close dialog and reset form
       setOpen(false);
+      
+      // Reset form
+      setCampaignName('');
+      setSelectedCourse('');
+      setStartDate(undefined);
+      setEndDate(undefined);
+      setSelectedTargetType('all');
+      setSelectedUsers([]);
+      setCurrentStep(1);
     } catch (err) {
       console.error('Error creating campaign:', err);
+      const errorMessage = err instanceof Error ? err.message : 'Failed to create campaign';
       toast({
         title: "Error",
-        description: "Failed to create campaign. Please try again.",
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {
@@ -200,13 +284,17 @@ export const CampaignCreator = () => {
     }
   };
 
-  const handleTargetTypeChange = (value: string) => {
+  const handleTargetTypeChange = async (value: 'all' | 'custom') => {
     setSelectedTargetType(value);
-    if (value === "all") {
-      setSelectedUsers([]);
-    } else if (value === "custom" && users.length === 0) {
-      // Fetch users if not already loaded
-      fetchUsers();
+    // If switching to custom and users aren't loaded yet, fetch them
+    if (value === 'custom' && users.length === 0) {
+      await fetchUsers();
+    }
+    setSelectedUsers([]);
+    
+    // Fetch users when custom target type is selected
+    if (value === 'custom' && users.length === 0) {
+      await fetchUsers();
     }
   };
 
@@ -318,7 +406,7 @@ export const CampaignCreator = () => {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Users</SelectItem>
-                  <SelectItem value="custom">Custom User Selection</SelectItem>
+                  <SelectItem value="custom">User Selection</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -371,7 +459,7 @@ export const CampaignCreator = () => {
                       !startDate && "text-muted-foreground"
                     )}
                   >
-                    <Calendar className="mr-2 h-4 w-4" />
+                    <CalendarIcon className="mr-2 h-4 w-4" />
                     {startDate ? format(startDate, "PPP") : <span>Pick a date</span>}
                   </Button>
                 </PopoverTrigger>
@@ -379,8 +467,24 @@ export const CampaignCreator = () => {
                   <CalendarComponent
                     mode="single"
                     selected={startDate}
-                    onSelect={setStartDate}
+                    onSelect={(date) => {
+                      if (date) {
+                        // Don't allow selecting past dates
+                        const selectedDate = new Date(date);
+                        if (isBefore(selectedDate, today)) {
+                          toast({
+                            title: "Invalid Date",
+                            description: "Start date cannot be before today.",
+                            variant: "destructive",
+                          });
+                          return;
+                        }
+                        setStartDate(selectedDate);
+                      }
+                    }}
+                    disabled={(date) => isBefore(date, today)}
                     initialFocus
+                    className="rounded-md border"
                   />
                 </PopoverContent>
               </Popover>
@@ -396,7 +500,7 @@ export const CampaignCreator = () => {
                       !endDate && "text-muted-foreground"
                     )}
                   >
-                    <Calendar className="mr-2 h-4 w-4" />
+                    <CalendarIcon className="mr-2 h-4 w-4" />
                     {endDate ? format(endDate, "PPP") : <span>Pick a date</span>}
                   </Button>
                 </PopoverTrigger>
@@ -404,9 +508,30 @@ export const CampaignCreator = () => {
                   <CalendarComponent
                     mode="single"
                     selected={endDate}
-                    onSelect={setEndDate}
-                    fromDate={startDate}
+                    onSelect={(date) => {
+                      if (date) {
+                        // Don't allow selecting dates before start date or today
+                        const selectedDate = new Date(date);
+                        const minDate = startDate || today;
+                        
+                        if (isBefore(selectedDate, minDate)) {
+                          toast({
+                            title: "Invalid Date",
+                            description: `End date cannot be before ${format(minDate, 'MMM d, yyyy')}.`,
+                            variant: "destructive",
+                          });
+                          return;
+                        }
+                        setEndDate(selectedDate);
+                      }
+                    }}
+                    disabled={(date) => {
+                      // Disable dates before today or before start date if set
+                      const minDate = startDate || today;
+                      return isBefore(date, minDate);
+                    }}
                     initialFocus
+                    className="rounded-md border"
                   />
                 </PopoverContent>
               </Popover>
@@ -485,7 +610,7 @@ export const CampaignCreator = () => {
           ) : (
             <Button 
               type="button" 
-              onClick={handleCreateCampaign} 
+              onClick={handleSubmit} 
               disabled={isSubmitting}
               className="bg-[#907527] hover:bg-[#7a6421]"
             >
