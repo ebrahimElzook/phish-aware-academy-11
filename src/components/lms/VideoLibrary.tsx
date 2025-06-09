@@ -66,7 +66,7 @@ export const VideoLibrary = () => {
         const formattedCourses = Array.isArray(data) 
           ? data.map((course: any) => ({
               id: course.id,
-              name: course.title || `Course ${course.id}`,
+              name: course.name || `Course ${course.id}`,
               type: course.category || 'Uncategorized',
               description: course.description || '',
               video_url: course.video_url || course.video,
