@@ -48,6 +48,12 @@ interface User {
   name: string;
   username?: string;
   email?: string;
+  department?: string;
+}
+
+interface Department {
+  id: number | string;
+  name: string;
 }
 
 // Interface for API response
@@ -73,8 +79,20 @@ export const CampaignCreator = () => {
       setEndDate(undefined);
     }
   }, [startDate, endDate]);
+  
+  // Toggle user selection
+  const toggleUser = (userId: string) => {
+    setSelectedUsers(prev => 
+      prev.includes(userId)
+        ? prev.filter(id => id !== userId)
+        : [...prev, userId]
+    );
+  };
   const [selectedTargetType, setSelectedTargetType] = React.useState<string>("all");
   const [enableCertificate, setEnableCertificate] = React.useState<boolean>(true);
+  const [departments, setDepartments] = React.useState<Department[]>([]);
+  const [selectedDepartments, setSelectedDepartments] = React.useState<string[]>([]);
+  const [loadingDepartments, setLoadingDepartments] = React.useState<boolean>(false);
   const [currentStep, setCurrentStep] = React.useState<number>(1);
   const [selectedCourse, setSelectedCourse] = React.useState<string>("");
   const [selectedUsers, setSelectedUsers] = React.useState<string[]>([]);
@@ -87,7 +105,7 @@ export const CampaignCreator = () => {
   const [loadingUsers, setLoadingUsers] = React.useState<boolean>(false);
   const [error, setError] = React.useState<string | null>(null);
 
-  // Fetch courses and users when dialog opens
+  // Fetch courses, users, and departments when dialog opens
   React.useEffect(() => {
     if (open) {
       // Reset form state when dialog opens
@@ -96,6 +114,7 @@ export const CampaignCreator = () => {
       setEndDate(undefined);
       setSelectedTargetType("all");
       setSelectedUsers([]);
+      setSelectedDepartments([]);
       setSelectedCourse("");
       setCurrentStep(1);
       
@@ -152,6 +171,24 @@ export const CampaignCreator = () => {
     }
   };
   
+  // Fetch departments from API
+  const fetchDepartments = async () => {
+    try {
+      setLoadingDepartments(true);
+      const departments = await userService.getDepartments();
+      setDepartments(Array.isArray(departments) ? departments :[]);
+    } catch (err) {
+      console.error('Error fetching departments:', err);
+      toast({
+        title: 'Error',
+        description: 'Failed to load departments',
+        variant: 'destructive'
+      });
+    } finally {
+      setLoadingDepartments(false);
+    }
+  };
+
   // Fetch users from API using userService
   const fetchUsers = async () => {
     try {
@@ -242,6 +279,21 @@ export const CampaignCreator = () => {
           throw new Error('No users found to assign to this campaign');
         }
         formData.selected_users = allUsers.map(user => user.id.toString());
+      } else if (selectedTargetType === 'department') {
+        // For 'Department' selection, fetch users in selected departments
+        if (selectedDepartments.length === 0) {
+          throw new Error('Please select at least one department');
+        }
+        const allUsers = await userService.getUsers();
+        const departmentUsers = allUsers.filter(user => 
+          user.department && selectedDepartments.includes(user.department.toString())
+        );
+        
+        if (departmentUsers.length === 0) {
+          throw new Error('No users found in the selected departments');
+        }
+        
+        formData.selected_users = departmentUsers.map(user => user.id.toString());
       } else {
         // For 'Custom' selection, use the selected users
         if (selectedUsers.length === 0) {
@@ -284,27 +336,22 @@ export const CampaignCreator = () => {
     }
   };
 
-  const handleTargetTypeChange = async (value: 'all' | 'custom') => {
+  const handleTargetTypeChange = async (value: 'all' | 'custom' | 'department') => {
     setSelectedTargetType(value);
-    // If switching to custom and users aren't loaded yet, fetch them
-    if (value === 'custom' && users.length === 0) {
-      await fetchUsers();
-    }
-    setSelectedUsers([]);
     
-    // Fetch users when custom target type is selected
+    // Reset selections when changing target type
+    setSelectedUsers([]);
+    setSelectedDepartments([]);
+    
+    // Load necessary data based on target type
     if (value === 'custom' && users.length === 0) {
       await fetchUsers();
+    } else if (value === 'department' && departments.length === 0) {
+      await fetchDepartments();
     }
   };
 
-  const toggleUser = (userId: string) => {
-    setSelectedUsers(prev => 
-      prev.includes(userId)
-        ? prev.filter(id => id !== userId)
-        : [...prev, userId]
-    );
-  };
+
 
   const nextStep = () => {
     if (currentStep < 3) {
@@ -406,11 +453,51 @@ export const CampaignCreator = () => {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Users</SelectItem>
-                  <SelectItem value="custom">User Selection</SelectItem>
+                  <SelectItem value="department">By Department</SelectItem>
+                  <SelectItem value="custom">Custom User Selection</SelectItem>
                 </SelectContent>
               </Select>
             </div>
             
+            {selectedTargetType === "department" && (
+              <div className="grid gap-2">
+                <Label>Select Departments</Label>
+                {loadingDepartments ? (
+                  <div className="flex items-center justify-center py-2">
+                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                    <span className="text-sm">Loading departments...</span>
+                  </div>
+                ) : (
+                  <div className="border rounded-md p-3 space-y-2 max-h-60 overflow-y-auto">
+                    {departments.length === 0 ? (
+                      <div className="text-center text-sm text-gray-500 py-2">
+                        No departments available
+                      </div>
+                    ) : (
+                      departments.map((dept) => (
+                        <div key={dept.id} className="flex items-center space-x-2">
+                          <Checkbox 
+                            id={`dept-${dept.id}`} 
+                            checked={selectedDepartments.includes(dept.id.toString())}
+                            onCheckedChange={() => {
+                              setSelectedDepartments(prev => 
+                                prev.includes(dept.id.toString())
+                                  ? prev.filter(id => id !== dept.id.toString())
+                                  : [...prev, dept.id.toString()]
+                              );
+                            }}
+                          />
+                          <Label htmlFor={`dept-${dept.id}`} className="text-sm font-normal">
+                            {dept.name}
+                          </Label>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+
             {selectedTargetType === "custom" && (
               <div className="grid gap-2">
                 <Label>Select Users</Label>
@@ -434,7 +521,7 @@ export const CampaignCreator = () => {
                             onCheckedChange={() => toggleUser(user.id.toString())}
                           />
                           <Label htmlFor={`user-${user.id}`} className="text-sm font-normal">
-                            {user.name}
+                            {user.name} {user.department ? `(${user.department})` : ''}
                           </Label>
                         </div>
                       ))

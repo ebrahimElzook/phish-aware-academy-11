@@ -616,38 +616,26 @@ export const userService = {
 
   // Get all departments for a company
   getDepartments: async (): Promise<Department[]> => {
-    const token = localStorage.getItem('token');
-    
-    if (!token) {
-      throw new Error('No authentication token found');
-    }
-
     try {
-      // Check if we're in a company-specific context
       const companySlug = getCompanySlug();
-      
-      // Check if the user is a Super Admin
       const superAdmin = isSuperAdmin();
       
-      let endpoint;
-      
-      if (companySlug) {
-        endpoint = `${API_URL}/auth/${companySlug}/departments/`;
-      } else {
+      if (!companySlug) {
         throw new Error('Company context is required to fetch departments');
       }
       
-      const response = await fetch(endpoint, {
+      const endpoint = `${API_URL}/auth/${companySlug}/departments/`;
+      
+      const response = await fetchWithAuth(endpoint, {
         headers: {
-          'Authorization': `Bearer ${token}`,
           ...(superAdmin ? { 'X-Super-Admin': 'true' } : {}),
         },
       });
-
+  
       if (!response.ok) {
-        throw new Error('Failed to fetch departments');
+        throw new Error(`Failed to fetch departments: ${response.status} ${response.statusText}`);
       }
-
+  
       return await response.json();
     } catch (error) {
       console.error('Get departments error:', error);
