@@ -9,7 +9,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { getAuthHeaders } from '@/config/api';
+import { API_ENDPOINTS, getAuthHeaders } from '@/config/api';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -23,7 +23,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { useIsMobile } from '@/hooks/use-mobile';
 import Navbar from '@/components/Navbar';
-import API_BASE_URL from '@/config/api';
 
 const TemplateEditor = () => {
   const isMobile = useIsMobile();
@@ -266,11 +265,11 @@ const TemplateEditor = () => {
 
   const handleSaveTemplate = async () => {
     try {
-
-      
       const isNew = templateMode === 'new' || !template.id;
-      const endpoint = isNew ? '/email/templates/create/' : `/email/templates/${template.id}/`;
-      const url = `${API_BASE_URL}${endpoint}`;
+      const endpoint = isNew 
+        ? API_ENDPOINTS.EMAIL_TEMPLATES_CREATE 
+        : `${API_ENDPOINTS.EMAIL_TEMPLATES}${template.id}/`;
+      
       const method = isNew ? 'post' : 'put';
       const requestData: any = {
         name: template.name,
@@ -288,7 +287,7 @@ const TemplateEditor = () => {
       
       const response = await axios({
         method,
-        url,
+        url: endpoint,
         headers: {
           ...getAuthHeaders(),
           'Content-Type': 'application/json',

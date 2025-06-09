@@ -32,6 +32,10 @@ export const API_ENDPOINTS = {
   
   // User endpoints
   USERS: `${API_BASE_URL}/api/users/`,
+  
+  // Email template endpoints
+  EMAIL_TEMPLATES: `${API_BASE_URL}/api/email/templates/`,
+  EMAIL_TEMPLATES_CREATE: `${API_BASE_URL}/api/email/templates/create/`,
 } as const;
 
 // Helper function to get authorization headers
