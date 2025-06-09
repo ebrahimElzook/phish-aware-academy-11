@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import axios from 'axios';
@@ -107,7 +106,7 @@ const TemplateEditor = () => {
       }
 
       try {
-        const response = await axios.get(`/api/email/templates/`, {
+        const response = await axios.get(API_ENDPOINTS.EMAIL_TEMPLATES, {
           headers: getAuthHeaders(),
           withCredentials: true,
           params: {
@@ -149,7 +148,7 @@ const TemplateEditor = () => {
       const { data } = await queryClient.fetchQuery({
         queryKey: ['emailTemplates', companySlug],
         queryFn: async () => {
-          const response = await axios.get(`/api/email/templates/`, {
+          const response = await axios.get(API_ENDPOINTS.EMAIL_TEMPLATES, {
             headers: getAuthHeaders(),
             withCredentials: true,
             params: { company_slug: companySlug }
