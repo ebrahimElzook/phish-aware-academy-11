@@ -23,6 +23,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { useIsMobile } from '@/hooks/use-mobile';
 import Navbar from '@/components/Navbar';
+import API_BASE_URL from '@/config/api';
 
 const TemplateEditor = () => {
   const isMobile = useIsMobile();
@@ -265,13 +266,12 @@ const TemplateEditor = () => {
 
   const handleSaveTemplate = async () => {
     try {
+
+      
       const isNew = templateMode === 'new' || !template.id;
-      const url = isNew 
-        ? '/api/email/templates/create/'
-        : `/api/email/templates/${template.id}/`;
-      
+      const endpoint = isNew ? '/email/templates/create/' : `/email/templates/${template.id}/`;
+      const url = `${API_BASE_URL}${endpoint}`;
       const method = isNew ? 'post' : 'put';
-      
       const requestData: any = {
         name: template.name,
         subject: template.subject,
