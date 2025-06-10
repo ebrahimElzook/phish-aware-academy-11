@@ -151,7 +151,7 @@ const ProfileSettings = () => {
         if (companySlug) {
           window.location.href = `/${companySlug}/login`;
         } else {
-          window.location.href = '/select-company';
+          window.location.href = '/';
         }
       }, 1500);
       
@@ -178,7 +178,7 @@ const ProfileSettings = () => {
     if (companySlug) {
       navigate(`/${companySlug}/login`);
     } else {
-      navigate('/select-company');
+      navigate('/');
     }
   };
 

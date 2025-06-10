@@ -21,7 +21,7 @@ const getCompanySlug = (): string | null => {
   // List of known routes that are not company slugs
   const knownRoutes = [
     'login', 'register', 'dashboard', 'templates', 'campaigns',
-    'analytics', 'users', 'profile', 'admin', 'select-company',
+    'analytics', 'users', 'profile', 'admin', '',
     'reset-password', 'super-admin', 'lms-campaigns', 'user-management',
     'employee-courses', 'profile-settings', 'unauthorized'
   ];

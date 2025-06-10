@@ -23,7 +23,7 @@ const Login = () => {
     // If accessing the login page directly without a company slug
     if (!companySlug && location.pathname === '/login') {
       // Redirect to company selection page
-      navigate('/select-company');
+      navigate('/');
     }
   }, [companySlug, navigate, location]);
   
@@ -53,7 +53,7 @@ const Login = () => {
         }
       } else {
         // If no valid company slug, redirect to company selection
-        navigate('/select-company', { replace: true });
+        navigate('/', { replace: true });
       }
     }
   }, [isAuthenticated, user, authLoading, companySlug, navigate]);
@@ -103,7 +103,7 @@ const Login = () => {
         }
       } else {
         // If no valid company slug found, redirect to company selection
-        redirectPath = '/select-company';
+        redirectPath = '/';
         
         toast({
           title: "Login successful",

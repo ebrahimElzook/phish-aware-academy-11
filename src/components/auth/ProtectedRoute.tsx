@@ -85,7 +85,7 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
         return <Navigate to={`/${validCompanySlug}/employee-courses`} replace />;
       } else {
         // If no valid company slug, redirect to company selection
-        return <Navigate to="/select-company" replace />;
+        return <Navigate to="/" replace />;
       }
     }
   }
@@ -103,7 +103,7 @@ export const withAuth = (Component: React.ComponentType, allowedRoles: string[] 
       if (companySlug) {
         return `/${companySlug}/login`;
       }
-      return '/select-company';
+      return '/';
     };
 
     if (loading) {

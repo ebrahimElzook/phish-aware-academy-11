@@ -26,7 +26,7 @@ const UserRoleRedirect: React.FC = () => {
     }
     
     // If no company slug found, return a default (will be handled by redirect)
-    return 'select-company';
+    return '';
   };
   
   const validCompanySlug = getValidCompanySlug();

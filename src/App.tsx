@@ -53,7 +53,7 @@ const App = () => (
           <Route path="/" element={<Index />} />
           
           {/* Global routes */}
-          <Route path="/select-company" element={<SelectCompany />} />
+          <Route path="/" element={<SelectCompany />} />
           <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="/super-admin" element={<SuperAdminPanel />} />
           <Route path="/unauthorized" element={<Unauthorized />} />
@@ -77,12 +77,12 @@ const App = () => (
               <Route path="user-management" element={<UserManagement />} />
               <Route path="sender" element={<Sender />} />
               <Route path="lms-campaigns" element={<LMSCampaigns />} />
-              <Route path="employee-courses" element={<EmployeeCourses />} />
-              <Route path="profile-settings" element={<ProfileSettings />} />
             </Route>
             
             {/* Routes accessible to all authenticated users */}
             <Route element={<ProtectedRoute restrictUserRole={false} />}>
+              <Route path="employee-courses" element={<EmployeeCourses />} />
+              <Route path="profile-settings" element={<ProfileSettings />} />
               {/* Additional non-admin routes can go here */}
             </Route>
           </Route>

@@ -143,7 +143,7 @@ const Navbar = () => {
               </DropdownMenuContent>
             </DropdownMenu>
           ) : (
-            <Link to={companySlug ? `/${companySlug}/login` : "/select-company"}>
+            <Link to={companySlug ? `/${companySlug}/login` : "/"}>
               <Button variant="default" className="bg-[#907527] hover:bg-[#705b1e]">Login</Button>
             </Link>
           )}
@@ -241,7 +241,7 @@ const Navbar = () => {
                 </Button>
               </div>
             ) : (
-              <Link to={companySlug ? `/${companySlug}/login` : "/select-company"}>
+              <Link to={companySlug ? `/${companySlug}/login` : "/"}>
                 <Button variant="default" className="bg-[#907527] hover:bg-[#705b1e] w-full">Login</Button>
               </Link>
             )}

@@ -51,7 +51,7 @@ export const CompanyRoute = () => {
       }
 
       // Skip validation for special routes
-      if (companySlug === 'unauthorized' || companySlug === 'select-company') {
+      if (companySlug === 'unauthorized' ) {
         setIsValidCompany(true);
         setIsValidating(false);
         return;
@@ -134,7 +134,7 @@ export const CompanyRoute = () => {
     }
     
     // If not authenticated or no stored company, redirect to company selection
-    return <Navigate to="/select-company" replace />;
+    return <Navigate to="/" replace />;
   }
 
   // If company is valid, render the child routes

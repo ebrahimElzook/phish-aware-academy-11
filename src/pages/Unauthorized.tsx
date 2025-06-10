@@ -10,8 +10,13 @@ const Unauthorized: React.FC = () => {
   const companySlug = localStorage.getItem('companySlug');
   
   const handleGoBack = () => {
-    // Always go to the company selection page to avoid redirect loops
-    navigate('/select-company');
+    // Redirect to employee-courses page if company slug is available
+    if (companySlug) {
+      navigate(`/${companySlug}/employee-courses`);
+    } else {
+      // Fallback to if no company slug is found
+      navigate('/');
+    }
   };
   
   return (

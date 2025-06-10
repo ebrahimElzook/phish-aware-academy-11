@@ -17,14 +17,7 @@ const Index = () => {
           <div className="flex items-center gap-2">
             <img src="/lovable-uploads/876a553e-d478-4016-a8f0-1580f492ca19.png" alt="CSWORD Logo" className="h-10" />
           </div>
-          <div className="flex items-center gap-4">
-            <Link to="/select-company">
-              <Button variant="outline" className="flex items-center gap-2 border-[#907527] text-[#907527] hover:bg-[#f5f3e8]">
-                <Building className="h-4 w-4" />
-                <span>Select Company</span>
-              </Button>
-            </Link>
-          </div>
+          
         </div>
       </header>
       

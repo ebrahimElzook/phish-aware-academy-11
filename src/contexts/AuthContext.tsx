@@ -32,7 +32,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         const possibleCompanySlug = pathParts[1];
         
         // Skip known system routes that aren't company slugs
-        const systemRoutes = ['unauthorized', 'select-company', 'login', 'register', 'reset-password'];
+        const systemRoutes = ['unauthorized', '', 'login', 'register', 'reset-password'];
         
         if (systemRoutes.includes(possibleCompanySlug)) {
           // We're on a system route, use the stored company slug if available
@@ -98,7 +98,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       if (currentCompanySlug) {
         navigate(`/${currentCompanySlug}/dashboard`);
       } else {
-        navigate('/select-company');
+        navigate('/');
       }
     } catch (error) {
       console.error('Login failed:', error);
@@ -113,7 +113,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     if (currentCompanySlug) {
       navigate(`/${currentCompanySlug}/login`);
     } else {
-      navigate('/select-company');
+      navigate('/');
     }
   };
 
@@ -128,7 +128,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       // Use window.location to force a full page reload
       window.location.href = `/${currentCompanySlug}/login`;
     } else {
-      window.location.href = '/select-company';
+      window.location.href = '/';
     }
   };
 
