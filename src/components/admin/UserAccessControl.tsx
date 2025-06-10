@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { 
@@ -17,6 +16,7 @@ import { ShieldCheck, Search, Check, X, RefreshCw } from 'lucide-react';
 import { userService, User as UserType } from '@/services/api';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useAuth } from '@/contexts/AuthContext';
+import { API_BASE_URL } from '@/config';
 
 // We're using the User type from the API service now
 
@@ -97,6 +97,63 @@ export const UserAccessControl: React.FC = () => {
     }
   };
 
+  const handleResetPassword = async (userId: string, userName: string) => {
+    if (!window.confirm(`Are you sure you want to reset the password for ${userName}? A new temporary password will be sent to their email.`)) {
+      return;
+    }
+  
+    try {
+      // Get company slug from the URL path
+      const pathParts = window.location.pathname.split('/');
+      const companySlug = pathParts.find(part => 
+        part && !['api', 'auth', 'users', 'reset-password', 'admin'].includes(part)
+      ) || 'default-company';
+  
+      console.log('Attempting to reset password with:', {
+        userId,
+        companySlug,
+        url: `${API_BASE_URL}/auth/users/${companySlug}/reset-password/`
+      });
+  
+      const response = await fetch(
+        `${API_BASE_URL}/auth/users/${companySlug}/reset-password/`, 
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${localStorage.getItem('token')}`
+          },
+          body: JSON.stringify({
+            user_id: userId
+          })
+        }
+      );
+  
+      const responseData = await response.json().catch(() => ({}));
+      
+      if (!response.ok) {
+        console.error('Backend error:', responseData);
+        throw new Error(
+          responseData.detail || 
+          responseData.message || 
+          `Failed to reset password (${response.status} ${response.statusText})`
+        );
+      }
+      
+      toast({
+        title: 'Password Reset',
+        description: responseData.detail || `A new temporary password has been sent to ${userName}'s email.`,
+      });
+      
+    } catch (error) {
+      console.error('Error resetting password:', error);
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to reset password. Please try again.',
+        variant: 'destructive',
+      });
+    }
+  };
   // Filter users based on search term
   const filteredUsers = searchTerm 
     ? users.filter(user => 
@@ -219,6 +276,14 @@ export const UserAccessControl: React.FC = () => {
                             Activate
                           </Button>
                         )}
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100"
+                          onClick={() => handleResetPassword(user.id, `${user.first_name} ${user.last_name}`)}
+                        >
+                          Reset Password
+                        </Button>
                       </TableCell>
                     </TableRow>
                   ))

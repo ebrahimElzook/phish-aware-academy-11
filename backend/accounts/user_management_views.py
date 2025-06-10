@@ -12,6 +12,13 @@ import io
 import csv
 import uuid
 from email_service.password_reset import send_password_reset_email, generate_random_password
+from django.contrib.auth.tokens import default_token_generator
+from django.utils.http import urlsafe_base64_encode
+from django.utils.encoding import force_bytes
+from django.core.mail import send_mail
+from django.conf import settings
+import secrets
+import string
 
 User = get_user_model()
 
@@ -180,18 +187,10 @@ class UserManagementView(APIView):
                     user.set_password(original_password)
                     user.save()
                     
-                    # Send password reset email
-                    try:
-                        email_sent = send_password_reset_email(user, original_password, company_slug)
-                        response_data = UserSerializer(user).data
-                        response_data['email_sent'] = email_sent
-                        
-                        if not email_sent:
-                            response_data['email_error'] = "Password reset email could not be sent, but user was created successfully."
-                    except Exception as e:
-                        response_data = UserSerializer(user).data
-                        response_data['email_sent'] = False
-                        response_data['email_error'] = f"Error sending email: {str(e)}"
+                    # Skip sending password reset email
+                    response_data = UserSerializer(user).data
+                    response_data['email_sent'] = False
+                    response_data['email_skipped'] = "Welcome email sending is disabled"
                     
                     return Response(response_data, status=status.HTTP_201_CREATED)
                 except Exception as e:
@@ -321,13 +320,10 @@ class UserManagementView(APIView):
                             user.set_password(password)
                             user.save()
                             
-                            # Send password reset email
-                            try:
-                                email_sent = send_password_reset_email(user, password, company_slug)
-                                if not email_sent:
-                                    results['errors'].append(f"User {row['email']} created but password reset email could not be sent.")
-                            except Exception as e:
-                                results['errors'].append(f"User {row['email']} created but error sending email: {str(e)}")
+                            # Skip sending password reset email
+                            response_data = UserSerializer(user).data
+                            response_data['email_sent'] = False
+                            response_data['email_skipped'] = "Welcome email sending is disabled"
                             
                             results['created'] += 1
                         except Exception as e:
@@ -632,3 +628,82 @@ class UserDepartmentUpdateView(APIView):
             {"detail": "Company context is required."},
             status=status.HTTP_400_BAD_REQUEST
         )
+
+class UserPasswordResetView(APIView):
+    def post(self, request, company_slug=None):
+        try:
+            # Get user_id from request data
+            user_id = request.data.get('user_id')
+            if not user_id:
+                return Response(
+                    {"detail": "User ID is required."},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+
+            # Get the user
+            try:
+                user = User.objects.get(id=user_id)
+            except User.DoesNotExist:
+                return Response(
+                    {"detail": "User not found."},
+                    status=status.HTTP_404_NOT_FOUND
+                )
+
+            # If company_slug is provided, verify the user belongs to that company
+            if company_slug:
+                try:
+                    company = Company.objects.get(slug=company_slug)
+                    if user.company != company:
+                        return Response(
+                            {"detail": "User does not belong to the specified company."},
+                            status=status.HTTP_403_FORBIDDEN
+                        )
+                except Company.DoesNotExist:
+                    return Response(
+                        {"detail": "Company not found."},
+                        status=status.HTTP_404_NOT_FOUND
+                    )
+
+            # Generate a random password
+            import string
+            import random
+            new_password = ''.join(random.choices(string.ascii_letters + string.digits, k=12))
+            
+            # Set the new password
+            user.set_password(new_password)
+            user.save()
+
+            # Send password reset email
+            try:
+                email_sent = send_password_reset_email(user, new_password, company_slug or '')
+                if email_sent:
+                    return Response(
+                        {"detail": "Password reset email sent successfully."},
+                        status=status.HTTP_200_OK
+                    )
+                else:
+                    return Response(
+                        {
+                            "detail": "Password was reset but email could not be sent.",
+                            "temporary_password": new_password
+                        },
+                        status=status.HTTP_200_OK
+                    )
+            except Exception as e:
+                return Response(
+                    {
+                        "detail": "Password was reset but there was an error sending the email.",
+                        "error": str(e),
+                        "temporary_password": new_password
+                    },
+                    status=status.HTTP_200_OK
+                )
+
+        except Exception as e:
+            import traceback
+            print(f"Error in UserPasswordResetView: {str(e)}")
+            print(traceback.format_exc())
+            return Response(
+                {"detail": "An error occurred while processing your request."},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )

@@ -2,7 +2,7 @@ from django.urls import path, include
 from rest_framework_simplejwt.views import TokenRefreshView
 from . import views
 from .company_views import CompanyListView
-from .user_management_views import UserManagementView, UserDetailView, UserDepartmentUpdateView
+from .user_management_views import UserManagementView, UserDetailView, UserDepartmentUpdateView, UserPasswordResetView
 from .department_views import DepartmentListView, DepartmentDetailView
 
 # Standard auth endpoints
@@ -13,6 +13,7 @@ auth_patterns = [
     path('profile/', views.UserProfileView.as_view(), name='profile'),
     path('users/', views.CompanyListView.as_view(), name='user-list'),
     path('change-password/', views.ChangePasswordView.as_view(), name='change-password'),
+    path('users/<slug:company_slug>/reset-password/', UserPasswordResetView.as_view(), name='user-reset-password'),
 ]
 
 # Company-specific auth endpoints
@@ -24,6 +25,7 @@ company_patterns = [
     # User management endpoints
     path('users/', UserManagementView.as_view(), name='company_user_list'),
     path('users/<str:user_id>/', UserDetailView.as_view(), name='company_user_detail'),
+    path('users/<slug:company_slug>/reset-password/', UserPasswordResetView.as_view(), name='company_user_reset_password'),
     path('users/<str:user_id>/update-department/', UserDepartmentUpdateView.as_view(), name='company_user_update_department'),
     # Department management endpoints
     path('departments/', DepartmentListView.as_view(), name='company_department_list'),
