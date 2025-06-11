@@ -103,7 +103,7 @@ def get_lms_campaigns(request):
         campaign_data = {
             "id": campaign.id,
             "title": campaign.name,
-            "course": campaign.course.name if campaign.course else "",
+            "course": ", ".join([course.name for course in campaign.courses.all()]) if campaign.courses.exists() else "",
             "audience": "All Employees",  # This could be more specific based on your requirements
             "videoCount": 1,  # This could be calculated based on course content
             "startDate": campaign.start_date.strftime("%Y-%m-%d") if campaign.start_date else "",
@@ -140,33 +140,34 @@ def create_lms_campaign(request):
     try:
         data = request.data
         name = data.get('name')
-        course_id = data.get('course_id')
+        course_ids = data.get('course_ids', [])  # Changed from course_id to course_ids
         start_date = data.get('start_date')
         end_date = data.get('end_date')
         selected_users = data.get('selected_users', [])
         
         # Validate required fields
-        if not name or not course_id:
-            return Response({"error": "Name and course are required"}, status=status.HTTP_400_BAD_REQUEST)
-        
-        # Get the course
-        try:
-            course = Course.objects.get(id=course_id)
-            # Verify course belongs to company
-            if not course.companies.filter(id=company.id).exists():
-                return Response({"error": "Course does not belong to your company"}, status=status.HTTP_400_BAD_REQUEST)
-        except Course.DoesNotExist:
-            return Response({"error": "Course not found"}, status=status.HTTP_404_NOT_FOUND)
+        if not name or not course_ids:  # Check for course_ids instead of course_id
+            return Response({"error": "Name and at least one course are required"}, status=status.HTTP_400_BAD_REQUEST)
         
         # Create the campaign
         campaign = LMSCampaign.objects.create(
             name=name,
-            course=course,
             company=company,
             created_by=user,
             start_date=start_date,
             end_date=end_date
         )
+        
+        # Add courses to the campaign
+        for course_id in course_ids:
+            try:
+                course = Course.objects.get(id=course_id)
+                # Verify course belongs to company
+                if not course.companies.filter(id=company.id).exists():
+                    return Response({"error": f"Course {course.name} does not belong to your company"}, status=status.HTTP_400_BAD_REQUEST)
+                campaign.courses.add(course)
+            except Course.DoesNotExist:
+                return Response({"error": f"Course with ID {course_id} not found"}, status=status.HTTP_404_NOT_FOUND)
         
         # Add selected users to the campaign
         for user_id in selected_users:
@@ -203,25 +204,36 @@ def get_user_campaigns(request):
     current_date = timezone.now().date()
     
     try:
+        print(f"[DEBUG] Getting campaigns for user: {user.email}, company: {company.name}")
+        
         # Get campaigns assigned to this user that are in the same company
-        # and where current date is between start_date and end_date
         user_campaign_relations = LMSCampaignUser.objects.filter(
             user=user,
             campaign__company=company
-        ).select_related('campaign', 'campaign__course')
+        ).select_related('campaign').prefetch_related('campaign__courses')
+        
+        print(f"[DEBUG] Found {user_campaign_relations.count()} campaign relations")
         
         # Filter campaigns by date if start_date and end_date are set
         active_campaigns = []
         for relation in user_campaign_relations:
             campaign = relation.campaign
+            print(f"[DEBUG] Processing campaign: {campaign.name}")
+            print(f"[DEBUG] Campaign dates - Start: {campaign.start_date}, End: {campaign.end_date}, Current: {current_date}")
+            
             # Only include campaigns where current date is between start_date and end_date
             # If dates are not set, include the campaign
-            if (campaign.start_date is None or campaign.start_date <= current_date) and \
-               (campaign.end_date is None or campaign.end_date >= current_date):
+            date_condition = (campaign.start_date is None or campaign.start_date <= current_date) and \
+                           (campaign.end_date is None or campaign.end_date >= current_date)
+            print(f"[DEBUG] Date condition: {date_condition}")
+            
+            if date_condition:
                 active_campaigns.append({
                     "relation": relation,
                     "campaign": campaign
                 })
+        
+        print(f"[DEBUG] Found {len(active_campaigns)} active campaigns after date filtering")
         
         # Format data for response
         data = []
@@ -229,30 +241,48 @@ def get_user_campaigns(request):
             campaign = item["campaign"]
             relation = item["relation"]
             
-            # Get course details
-            course = campaign.course
-            course_data = {
-                "id": str(course.id),
-                "title": course.name,
-                "description": course.description,
-                "thumbnail": request.build_absolute_uri(course.thumbnail.url) if course.thumbnail else "",
-                "video": request.build_absolute_uri(course.video.url) if course.video else ""
-            }
+            # Get all courses for this campaign
+            campaign_courses = list(campaign.courses.all())  # Force evaluation of the queryset
+            print(f"[DEBUG] Campaign {campaign.name} has {len(campaign_courses)} courses")
             
-            # Format campaign data
+            # If no courses, skip this campaign
+            if not campaign_courses:
+                print(f"[DEBUG] No courses found for campaign: {campaign.name}")
+                continue
+                
+            # Prepare list of course data
+            courses_data = []
+            for course in campaign_courses:
+                print(f"[DEBUG] Processing course: {course.name} (ID: {course.id})")
+                # Get course details
+                course_data = {
+                    "id": str(course.id),
+                    "title": course.name,
+                    "description": course.description or "",
+                    "thumbnail": request.build_absolute_uri(course.thumbnail.url) if course.thumbnail else "",
+                    "video": request.build_absolute_uri(course.video.url) if course.video else ""
+                }
+                courses_data.append(course_data)
+            
+            # Format campaign data with multiple courses
             campaign_data = {
                 "id": str(campaign.id),
                 "title": campaign.name,
-                "description": course.description,  # Using course description for now
+                "description": courses_data[0]["description"] if courses_data else "",
                 "dueDate": campaign.end_date.strftime("%Y-%m-%d") if campaign.end_date else "",
                 "progress": 100 if relation.completed else (50 if relation.started else 0),
                 "completed": relation.completed,
-                "certificateAvailable": relation.completed,  # Only if completed
-                "course": course_data,
-                # Add any other fields needed for the frontend
+                "certificateAvailable": relation.completed,
+                "courses": courses_data,
+                "totalCourses": len(courses_data),
+                "completedCourses": len(courses_data) if relation.completed else 0,
             }
             data.append(campaign_data)
         
+        print(f"[DEBUG] Returning {len(data)} campaigns with courses")
         return Response(data)
     except Exception as e:
+        print(f"[ERROR] Error in get_user_campaigns: {str(e)}")
+        import traceback
+        traceback.print_exc()
         return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

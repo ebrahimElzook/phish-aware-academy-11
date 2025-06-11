@@ -65,17 +65,20 @@ class LMSCampaignAdminForm(forms.ModelForm):
                 
         return cleaned_data
 
+# Update the LMSCampaignAdmin class
+
 @admin.register(LMSCampaign)
 class LMSCampaignAdmin(admin.ModelAdmin):
     form = LMSCampaignAdminForm
-    list_display = ('name', 'course', 'company', 'start_date', 'end_date', 'created_by', 'created_at')
-    list_filter = ('company', 'course', 'created_at')
-    search_fields = ('name', 'course__name', 'company__name')
+    list_display = ('name', 'get_courses', 'company', 'start_date', 'end_date', 'created_by', 'created_at')
+    list_filter = ('company', 'courses', 'created_at')
+    search_fields = ('name', 'courses__name', 'company__name')
     inlines = [QuestionSelectInline, LMSCampaignUserInline]
     exclude = ('questions',)  # Exclude questions field since we're using the inline
+    filter_horizontal = ('courses',)  # Add this to enable a better UI for selecting multiple courses
     fieldsets = (
         (None, {
-            'fields': ('name', 'company', 'course', 'created_by')
+            'fields': ('name', 'company', 'courses', 'created_by')
         }),
         ('Schedule', {
             'fields': ('start_date', 'end_date'),
@@ -83,6 +86,11 @@ class LMSCampaignAdmin(admin.ModelAdmin):
             'description': 'Set the campaign schedule (optional)'
         }),
     )
+    
+    def get_courses(self, obj):
+        return ", ".join([course.name for course in obj.courses.all()[:3]]) + (
+            f" and {obj.courses.count() - 3} more" if obj.courses.count() > 3 else "")
+    get_courses.short_description = 'Courses'
     
     class Media:
         js = ('admin/js/vendor/jquery/jquery.min.js', 'admin/js/jquery.init.js', 'js/lms_campaign_admin.js')

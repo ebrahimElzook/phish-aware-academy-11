@@ -6,7 +6,8 @@ from courses.models import Course, Question
 class LMSCampaign(models.Model):
     """Model for LMS campaigns that assign courses to users"""
     name = models.CharField(max_length=255)
-    course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name='lms_campaigns')
+    # Replace ForeignKey with ManyToManyField
+    courses = models.ManyToManyField(Course, related_name='lms_campaigns')
     questions = models.ManyToManyField(Question, related_name='lms_campaigns')
     company = models.ForeignKey(Company, on_delete=models.CASCADE, related_name='lms_campaigns')
     start_date = models.DateField(null=True, blank=True, help_text="Start date of the campaign")
@@ -21,7 +22,11 @@ class LMSCampaign(models.Model):
         ordering = ['-created_at']
     
     def __str__(self):
-        return f"{self.name} - {self.course.name}"
+        # Update string representation to handle multiple courses
+        course_names = ", ".join([course.name for course in self.courses.all()[:3]])
+        if self.courses.count() > 3:
+            course_names += f" and {self.courses.count() - 3} more"
+        return f"{self.name} - {course_names}"
 
 
 class LMSCampaignUser(models.Model):

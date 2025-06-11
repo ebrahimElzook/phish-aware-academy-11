@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useToast } from "@/components/ui/use-toast";
 import { Button } from "@/components/ui/button";
@@ -75,8 +74,34 @@ interface Course {
   videos: Video[];
 }
 
+interface CourseBase {
+  id: string;
+  title: string;
+  description: string;
+  thumbnail?: string;
+  video?: string;
+  completed?: boolean;
+  progress?: number;
+  dueDate?: string;
+  certificateAvailable?: boolean;
+}
+
+interface Campaign {
+  id: string;
+  title: string;
+  description: string;
+  dueDate: string;
+  progress: number;
+  completed: boolean;
+  certificateAvailable: boolean;
+  courses: CourseBase[];
+  totalCourses: number;
+  completedCourses: number;
+}
+
 const EmployeeCourses = () => {
   const { toast } = useToast();
+  const [activeCampaign, setActiveCampaign] = useState<Campaign | null>(null);
   const [activeCourse, setActiveCourse] = useState<Course | null>(null);
   const [activeVideo, setActiveVideo] = useState<Video | null>(null);
   const [showQuiz, setShowQuiz] = useState(false);
@@ -84,7 +109,7 @@ const EmployeeCourses = () => {
   const [selectedAnswers, setSelectedAnswers] = useState<{[key: string]: string}>({});
   const [quizCompleted, setQuizCompleted] = useState(false);
   const [score, setScore] = useState(0);
-  const [courses, setCourses] = useState<Course[]>([]);
+  const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -94,7 +119,6 @@ const EmployeeCourses = () => {
       try {
         setLoading(true);
         
-        // Check authentication
         const token = localStorage.getItem('token');
         
         if (!token) {
@@ -104,50 +128,40 @@ const EmployeeCourses = () => {
         const campaignData = await lmsService.getUserCampaigns();
         
         if (campaignData && Array.isArray(campaignData) && campaignData.length > 0) {
-          // Transform campaign data to match the Course interface
-          const transformedCourses: Course[] = campaignData.map((campaign: any) => {
-            // Make sure we have the course data
-            if (!campaign.course) {
-              return null;
-            }
-            
-            // Create a video object from the course data
-            const video: Video = {
-              id: campaign.course.id,
-              title: campaign.course.title || campaign.title,
-              duration: '10:00', // Default duration if not provided by API
-              completed: campaign.completed,
-              thumbnail: campaign.course.thumbnail || '/placeholder.svg',
-              questions: [] // We'll need to fetch questions separately if needed
-            };
-            
-            return {
-              id: campaign.id,
-              title: campaign.title,
-              description: campaign.description,
-              dueDate: campaign.dueDate || 'No due date',
-              progress: campaign.progress || 0,
-              completed: campaign.completed || false,
-              certificateAvailable: campaign.certificateAvailable || false,
-              videos: [video] // For now, assuming one video per course
-            };
-          }).filter(Boolean);
+          // Transform the data to match our Campaign interface
+          const transformedCampaigns: Campaign[] = campaignData.map((campaign: any) => ({
+            id: campaign.id,
+            title: campaign.title,
+            description: campaign.description || "",
+            dueDate: campaign.dueDate || 'No due date',
+            progress: campaign.progress || 0,
+            completed: campaign.completed || false,
+            certificateAvailable: campaign.certificateAvailable || false,
+            courses: campaign.courses?.map((course: any) => ({
+              id: course.id,
+              title: course.title,
+              description: course.description || "",
+              thumbnail: course.thumbnail || '/placeholder.svg',
+              video: course.video || ''
+            })) || [],
+            totalCourses: campaign.totalCourses || 0,
+            completedCourses: campaign.completedCourses || 0
+          }));
           
-          setCourses(transformedCourses);
+          setCampaigns(transformedCampaigns);
+          
           toast({
             title: "Success",
-            description: `Loaded ${transformedCourses.length} courses from the server.`,
+            description: `Loaded ${transformedCampaigns.length} campaigns with courses.`,
           });
         } else {
-          // No campaigns returned
-          setCourses([]);
+          setCampaigns([]);
           toast({
             title: "Notice",
-            description: "No courses found for your account.",
+            description: "No campaigns with courses found for your account.",
           });
         }
       } catch (err) {
-        // Check if this is a super admin without company error
         const errorMessage = err instanceof Error ? err.message : String(err);
         if (errorMessage.includes('User does not belong to any company') || 
             errorMessage.includes('Company context required')) {
@@ -156,12 +170,14 @@ const EmployeeCourses = () => {
             description: "Courses are only available for company users. Super admins don't have assigned courses.",
           });
         } else {
+          console.error('Error fetching campaigns:', err);
           toast({
-            title: "Notice",
-            description: "No courses found for your account.",
+            title: "Error",
+            description: "Failed to load campaigns. Please try again later.",
+            variant: "destructive"
           });
         }
-        setCourses([]);
+        setCampaigns([]);
       } finally {
         setLoading(false);
       }
@@ -170,187 +186,73 @@ const EmployeeCourses = () => {
     fetchUserCampaigns();
   }, [toast]);
 
-  // Mock courses data as fallback
-  const mockCourses: Course[] = [
-    {
-      id: '1',
-      title: 'Security Awareness Basics',
-      description: 'Learn the fundamentals of cybersecurity and how to protect yourself and your organization.',
-      dueDate: '2025-05-30',
-      progress: 25,
-      completed: false,
-      certificateAvailable: false,
-      videos: [
-        {
-          id: 'v1',
-          title: 'Password Security',
-          duration: '8:32',
-          completed: false,
-          thumbnail: '/placeholder.svg',
-          questions: [
-            {
-              id: 'q1',
-              text: 'What is the recommended minimum password length?',
-              options: [
-                { id: 'a1', text: '6 characters', isCorrect: false },
-                { id: 'a2', text: '8 characters', isCorrect: false },
-                { id: 'a3', text: '12 characters', isCorrect: true },
-                { id: 'a4', text: '4 characters', isCorrect: false }
-              ]
-            },
-            {
-              id: 'q2',
-              text: 'Which of the following is the most secure password?',
-              options: [
-                { id: 'a1', text: 'password123', isCorrect: false },
-                { id: 'a2', text: 'P@$$w0rd!', isCorrect: true },
-                { id: 'a3', text: 'abcdef', isCorrect: false },
-                { id: 'a4', text: '123456', isCorrect: false }
-              ]
-            }
-          ]
-        },
-        {
-          id: 'v2',
-          title: 'Email Safety',
-          duration: '12:15',
-          completed: false,
-          thumbnail: '/placeholder.svg',
-          questions: [
-            {
-              id: 'q1',
-              text: 'What is phishing?',
-              options: [
-                { id: 'a1', text: 'A fishing technique', isCorrect: false },
-                { id: 'a2', text: 'A type of computer virus', isCorrect: false },
-                { id: 'a3', text: 'An attempt to trick users into revealing sensitive information', isCorrect: true },
-                { id: 'a4', text: 'A hacking tool', isCorrect: false }
-              ]
-            }
-          ]
-        },
-        {
-          id: 'v3',
-          title: 'Social Engineering',
-          duration: '15:45',
-          completed: false,
-          thumbnail: '/placeholder.svg',
-          questions: [
-            {
-              id: 'q1',
-              text: 'What is social engineering?',
-              options: [
-                { id: 'a1', text: 'Building social networks', isCorrect: false },
-                { id: 'a2', text: 'Manipulating people to divulge confidential information', isCorrect: true },
-                { id: 'a3', text: 'Engineering social media platforms', isCorrect: false },
-                { id: 'a4', text: 'A type of firewall', isCorrect: false }
-              ]
-            }
-          ]
-        }
-      ]
-    },
-    {
-      id: '2',
-      title: 'Data Protection Essentials',
-      description: 'Understand how to protect sensitive data and comply with regulations.',
-      dueDate: '2025-06-15',
-      progress: 0,
-      completed: false,
-      certificateAvailable: false,
-      videos: [
-        {
-          id: 'v1',
-          title: 'Data Classification',
-          duration: '10:20',
-          completed: false,
-          thumbnail: '/placeholder.svg',
-          questions: [
-            {
-              id: 'q1',
-              text: 'What is the purpose of data classification?',
-              options: [
-                { id: 'a1', text: 'To organize data by size', isCorrect: false },
-                { id: 'a2', text: 'To identify sensitive information and apply appropriate protections', isCorrect: true },
-                { id: 'a3', text: 'To delete unnecessary data', isCorrect: false },
-                { id: 'a4', text: 'To increase storage space', isCorrect: false }
-              ]
-            }
-          ]
-        }
-      ]
-    },
-    {
-      id: '3',
-      title: 'Phishing Prevention',
-      description: 'Learn to identify and avoid phishing attempts.',
-      dueDate: '2025-05-20',
-      progress: 100,
-      completed: true,
-      certificateAvailable: true,
-      videos: [
-        {
-          id: 'v1',
-          title: 'Recognizing Phishing Emails',
-          duration: '9:45',
-          completed: true,
-          thumbnail: '/placeholder.svg',
-          questions: []
-        },
-        {
-          id: 'v2',
-          title: 'What to Do When You Suspect Phishing',
-          duration: '6:30',
-          completed: true,
-          thumbnail: '/placeholder.svg',
-          questions: []
-        }
-      ]
-    }
-  ];
-  
-  const handleStartVideo = (course: Course, video: Video) => {
-    setActiveCourse(course);
-    setActiveVideo(video);
+  const handleStartVideo = (campaign: Campaign, course: CourseBase) => {
+    setActiveCampaign(campaign);
+    setActiveCourse(null);
+    setActiveVideo(null);
     setShowQuiz(false);
     setQuizCompleted(false);
+    
+    // Create a video object from the course data
+    const video: Video = {
+      id: course.id,
+      title: course.title,
+      duration: '10:00', // Default duration if not provided by API
+      completed: false,
+      thumbnail: course.thumbnail || '/placeholder.svg',
+      questions: [] // We'll need to fetch questions separately if needed
+    };
+    
+    setActiveVideo(video);
   };
   
   const markVideoAsCompleted = () => {
-    if (!activeVideo || !activeCourse) return;
+    if (!activeVideo || !activeCampaign) return;
     
     // In a real app, this would save to the backend
     // For now, we just update the mock data
-    const updatedCourses = courses.map(course => {
-      if (course.id === activeCourse.id) {
-        const updatedVideos = course.videos.map(video => {
-          if (video.id === activeVideo.id) {
-            return { ...video, completed: true };
+    const updatedCampaigns = campaigns.map(campaign => {
+      if (campaign.id === activeCampaign.id) {
+        const updatedCourses = campaign.courses.map(course => {
+          if (course.id === activeVideo.id) {
+            return { 
+              ...course, 
+              completed: true,
+              progress: 100
+            };
           }
-          return video;
+          return course;
         });
         
-        const completedCount = updatedVideos.filter(v => v.completed).length;
-        const newProgress = Math.round((completedCount / updatedVideos.length) * 100);
-        const allCompleted = completedCount === updatedVideos.length;
+        const completedCount = updatedCourses.filter(c => c.completed).length;
+        const totalCourses = updatedCourses.length;
+        const newProgress = Math.round((completedCount / totalCourses) * 100);
+        const allCompleted = completedCount === totalCourses;
         
-        return { 
-          ...course, 
-          videos: updatedVideos, 
+        const updatedCampaign = { 
+          ...campaign, 
+          courses: updatedCourses, 
           progress: newProgress,
           completed: allCompleted,
-          certificateAvailable: allCompleted
+          certificateAvailable: allCompleted,
+          completedCourses: completedCount,
+          totalCourses: totalCourses
         };
+
+        // Update active campaign with new data
+        setActiveCampaign(updatedCampaign);
+        
+        return updatedCampaign;
       }
-      return course;
+      return campaign;
     });
     
-    setCourses(updatedCourses);
+    setCampaigns(updatedCampaigns);
     
-    // Update active course with new data
-    const updatedCourse = updatedCourses.find(c => c.id === activeCourse.id);
-    if (updatedCourse) {
-      setActiveCourse(updatedCourse);
+    // Update active campaign with new data
+    const updatedCampaign = updatedCampaigns.find(c => c.id === activeCampaign.id);
+    if (updatedCampaign) {
+      setActiveCampaign(updatedCampaign);
     }
     
     toast({
@@ -444,7 +346,7 @@ const EmployeeCourses = () => {
     setQuizCompleted(false);
   };
   
-  const downloadCertificate = (courseId: string) => {
+  const downloadCertificate = (campaignId: string) => {
     toast({
       title: "Certificate Downloaded",
       description: "Your certificate has been downloaded successfully.",
@@ -467,57 +369,102 @@ const EmployeeCourses = () => {
             </TabsList>
             
             <TabsContent value="active">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {courses.filter(course => !course.completed).map(course => (
-                  <CourseCard 
-                    key={course.id}
-                    course={course}
-                    onStartVideo={(video) => handleStartVideo(course, video)}
-                  />
+              <div className="space-y-6">
+                {campaigns.filter(campaign => !campaign.completed).map(campaign => (
+                  <Card key={campaign.id} className="overflow-hidden">
+                    <CardHeader>
+                      <CardTitle>{campaign.title}</CardTitle>
+                      <CardDescription>{campaign.description}</CardDescription>
+                      <div className="pt-4">
+                        <div className="flex justify-between items-center mb-1">
+                          <span className="text-sm font-medium text-gray-600">Progress</span>
+                          <span className="text-sm font-bold text-primary">{campaign.progress}%</span>
+                        </div>
+                        <Progress value={campaign.progress} />
+                        <div className="flex justify-between items-center mt-2 text-xs text-muted-foreground">
+                          <span>{campaign.completedCourses} of {campaign.totalCourses} courses completed</span>
+                          <span>Due: {campaign.dueDate === 'No due date' ? 'N/A' : new Date(campaign.dueDate).toLocaleDateString()}</span>
+                        </div>
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      <h3 className="text-md font-semibold mb-3">Courses</h3>
+                      <ul className="space-y-3">
+                        {campaign.courses.map(course => (
+                          <li key={course.id} className="flex items-center justify-between p-3 rounded-lg border bg-gray-50/50">
+                            <div className="flex items-center">
+                              {course.completed ? (
+                                <Check className="h-5 w-5 text-green-500 mr-3 flex-shrink-0" />
+                              ) : (
+                                <Video className="h-5 w-5 text-gray-400 mr-3 flex-shrink-0" />
+                              )}
+                              <span className={`text-sm ${course.completed ? 'line-through text-muted-foreground' : ''}`}>{course.title}</span>
+                            </div>
+                            {!course.completed && (
+                              <Button variant="outline" size="sm" onClick={() => handleStartVideo(campaign, course)}>
+                                Start
+                              </Button>
+                            )}
+                          </li>
+                        ))}
+                      </ul>
+                    </CardContent>
+                  </Card>
                 ))}
-                
-                {courses.filter(course => !course.completed).length === 0 && (
-                  <div className="col-span-2 text-center p-8">
+                {campaigns.filter(campaign => !campaign.completed).length === 0 && (
+                  <div className="text-center p-8 border-2 border-dashed rounded-lg">
                     <BookOpen className="h-12 w-12 mx-auto text-gray-300 mb-2" />
                     <h3 className="text-lg font-medium">No Active Courses</h3>
-                    <p className="text-muted-foreground">
-                      You don't have any active courses assigned to you at the moment.
-                    </p>
+                    <p className="text-muted-foreground">You don't have any active courses at the moment.</p>
                   </div>
                 )}
               </div>
             </TabsContent>
             
             <TabsContent value="completed">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {courses.filter(course => course.completed).map(course => (
-                  <CourseCard 
-                    key={course.id}
-                    course={course}
-                    onStartVideo={(video) => handleStartVideo(course, video)}
-                    onDownloadCertificate={course.certificateAvailable ? () => downloadCertificate(course.id) : undefined}
-                  />
+              <div className="space-y-6">
+                {campaigns.filter(campaign => campaign.completed).map(campaign => (
+                  <Card key={campaign.id} className="overflow-hidden border-green-200">
+                    <CardHeader className="bg-green-50/50">
+                      <CardTitle>{campaign.title}</CardTitle>
+                      <CardDescription>{campaign.description}</CardDescription>
+                      <div className="pt-4">
+                        <div className="flex justify-between items-center mb-1">
+                          <span className="text-sm font-medium text-gray-600">Progress</span>
+                          <span className="text-sm font-bold text-green-600">100%</span>
+                        </div>
+                        <Progress value={100} className="[&>div]:bg-green-500" />
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      <h3 className="text-md font-semibold mb-3">Courses</h3>
+                      <ul className="space-y-3">
+                        {campaign.courses.map(course => (
+                          <li key={course.id} className="flex items-center p-3 rounded-lg bg-gray-50">
+                            <Check className="h-5 w-5 text-green-500 mr-3 flex-shrink-0" />
+                            <span className="text-sm line-through text-muted-foreground">{course.title}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </CardContent>
+                  </Card>
                 ))}
-                
-                {courses.filter(course => course.completed).length === 0 && (
-                  <div className="col-span-2 text-center p-8">
-                    <BookOpen className="h-12 w-12 mx-auto text-gray-300 mb-2" />
+                {campaigns.filter(campaign => campaign.completed).length === 0 && (
+                  <div className="text-center p-8 border-2 border-dashed rounded-lg">
+                    <Check className="h-12 w-12 mx-auto text-gray-300 mb-2" />
                     <h3 className="text-lg font-medium">No Completed Courses</h3>
-                    <p className="text-muted-foreground">
-                      You haven't completed any courses yet. Start learning to see your progress here.
-                    </p>
+                    <p className="text-muted-foreground">You haven't completed any courses yet.</p>
                   </div>
                 )}
               </div>
             </TabsContent>
-            
             <TabsContent value="certificates">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {courses.filter(course => course.certificateAvailable).map(course => (
-                  <Card key={course.id} className="overflow-hidden">
+                {campaigns.filter(campaign => campaign.certificateAvailable).map(campaign => (
+                  <Card key={campaign.id} className="overflow-hidden">
                     <CardHeader className="bg-amber-50">
                       <div className="flex items-center justify-between">
-                        <CardTitle>{course.title}</CardTitle>
+                        <CardTitle>{campaign.title}</CardTitle>
                         <Award className="h-5 w-5 text-yellow-600" />
                       </div>
                     </CardHeader>
@@ -530,7 +477,7 @@ const EmployeeCourses = () => {
                       <Button 
                         variant="default" 
                         className="w-full"
-                        onClick={() => downloadCertificate(course.id)}
+                        onClick={() => downloadCertificate(campaign.id)}
                       >
                         Download Certificate
                       </Button>
@@ -538,7 +485,7 @@ const EmployeeCourses = () => {
                   </Card>
                 ))}
                 
-                {courses.filter(course => course.certificateAvailable).length === 0 && (
+                {campaigns.filter(campaign => campaign.certificateAvailable).length === 0 && (
                   <div className="col-span-2 text-center p-8">
                     <Award className="h-12 w-12 mx-auto text-gray-300 mb-2" />
                     <h3 className="text-lg font-medium">No Certificates Yet</h3>

@@ -104,7 +104,7 @@ export const CampaignCreator = () => {
   const [loadingCourses, setLoadingCourses] = React.useState<boolean>(false);
   const [loadingUsers, setLoadingUsers] = React.useState<boolean>(false);
   const [error, setError] = React.useState<string | null>(null);
-
+  const [selectedCourses, setSelectedCourses] = React.useState<string[]>([]);
   // Fetch courses, users, and departments when dialog opens
   React.useEffect(() => {
     if (open) {
@@ -115,13 +115,58 @@ export const CampaignCreator = () => {
       setSelectedTargetType("all");
       setSelectedUsers([]);
       setSelectedDepartments([]);
-      setSelectedCourse("");
+      setSelectedCourses([]);  // Update this line
       setCurrentStep(1);
       
       // Fetch courses
       fetchCourses();
     }
   }, [open]);
+  
+  // Replace the Course selection dropdown with a multi-select component
+  <div className="grid gap-2">
+    <Label>Courses</Label>
+    {loadingCourses ? (
+      <div className="flex items-center justify-center py-2">
+        <Loader2 className="h-4 w-4 animate-spin mr-2" />
+        <span className="text-sm">Loading courses...</span>
+      </div>
+    ) : (
+      <div className="border rounded-md p-2">
+        {courses.length === 0 ? (
+          <div className="p-2 text-center text-sm text-gray-500">
+            No courses available
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {courses.map((course) => (
+              <div key={course.id} className="flex items-center space-x-2">
+                <Checkbox
+                  id={`course-${course.id}`}
+                  checked={selectedCourses.includes(course.id.toString())}
+                  onCheckedChange={(checked) => {
+                    if (checked) {
+                      setSelectedCourses([...selectedCourses, course.id.toString()]);
+                    } else {
+                      setSelectedCourses(
+                        selectedCourses.filter((id) => id !== course.id.toString())
+                      );
+                    }
+                  }}
+                />
+                <Label
+                  htmlFor={`course-${course.id}`}
+                  className="text-sm font-normal"
+                >
+                  {course.name}
+                </Label>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    )}
+  </div>
   
   // Fetch courses from API
   const fetchCourses = async () => {
@@ -232,6 +277,16 @@ export const CampaignCreator = () => {
       return;
     }
     
+    // Add the validation for selectedCourses here
+    if (selectedCourses.length === 0) {
+      toast({
+        title: "Missing Courses",
+        description: "Please select at least one course for the campaign.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     if (!selectedCourse) {
       toast({
         title: "Missing Course",
@@ -262,10 +317,10 @@ export const CampaignCreator = () => {
     try {
       setIsSubmitting(true);
       
-      // Prepare form data
+      // Update the formData to use selectedCourses
       const formData: any = {
         name: campaignName,
-        course_id: selectedCourse,
+        course_ids: selectedCourses,  // Use selectedCourses instead of selectedCourse
         start_date: startDate ? format(startDate, "yyyy-MM-dd") : null,
         end_date: endDate ? format(endDate, "yyyy-MM-dd") : null,
         target_type: selectedTargetType,
