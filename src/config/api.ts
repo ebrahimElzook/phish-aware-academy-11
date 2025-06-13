@@ -23,6 +23,9 @@ export const API_ENDPOINTS = {
   ANALYTICS_DEPARTMENT: `${API_BASE_URL}/api/email/analytics/department-performance/`,
   ANALYTICS_TREND: `${API_BASE_URL}/api/email/analytics/temporal-trend/`,
   
+  // LMS Analytics endpoints
+  LMS_ANALYTICS_OVERVIEW: `${API_BASE_URL}/api/lms/analytics/overview/`,
+  
   // Course endpoints
   COURSES: `${API_BASE_URL}/api/courses/courses/`,
   LIST_WITH_VIDEOS: (companySlug?: string) => 

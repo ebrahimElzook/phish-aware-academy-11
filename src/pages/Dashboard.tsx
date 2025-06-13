@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { Link, useParams } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -19,6 +19,7 @@ import { PlusCircle, Mail, AlertCircle, CheckCircle, TrendingUp, Users } from 'l
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import Video from '@/components/Video';
+import { API_ENDPOINTS, getAuthHeaders } from '@/config/api';
 
 // Mock data for charts
 const campaignData = [
@@ -70,9 +71,49 @@ const campaigns = [
   }
 ];
 
+interface LMSOverviewDashboard {
+  campaigns_count: number;
+  enrolled_users: number;
+  average_completion: number;
+}
+
 const Dashboard = () => {
+  const { companySlug } = useParams<{ companySlug?: string }>();
+  const lmsCampaignsLink = companySlug ? `/${companySlug}/lms-campaigns` : '/lms-campaigns';
+
   const [activeTab, setActiveTab] = useState('phishing');
-  
+
+  const [lmsStats, setLmsStats] = useState<LMSOverviewDashboard | null>(null);
+  const [lmsError, setLmsError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchLmsStats = async () => {
+      try {
+        const res = await fetch(API_ENDPOINTS.LMS_ANALYTICS_OVERVIEW, {
+          headers: {
+            ...getAuthHeaders(),
+            'Content-Type': 'application/json',
+          },
+        });
+        if (!res.ok) {
+          throw new Error(`HTTP error ${res.status}`);
+        }
+        const data = await res.json();
+        setLmsStats({
+          campaigns_count: data.campaigns_count ?? 0,
+          enrolled_users: data.enrolled_users ?? 0,
+          average_completion: data.average_completion ?? 0,
+        });
+      } catch (err) {
+        console.error('Failed fetch LMS stats', err);
+        setLmsError('Failed to load');
+      }
+    };
+
+    // fetch once on mount
+    fetchLmsStats();
+  }, []);
+
   return (
     <div className="min-h-screen flex flex-col">
       <Navbar />
@@ -298,8 +339,10 @@ const Dashboard = () => {
                   <CardContent className="p-6">
                     <div className="flex items-center justify-between">
                       <div>
-                        <p className="text-sm font-medium text-gray-500">Active Courses</p>
-                        <p className="text-3xl font-bold">5</p>
+                        <p className="text-sm font-medium text-gray-500">Active Campaigns</p>
+                        <p className="text-3xl font-bold">
+                          {lmsStats ? lmsStats.campaigns_count : lmsError || '...'}
+                        </p>
                       </div>
                       <div className="bg-blue-50 p-3 rounded-lg">
                         <Video className="h-5 w-5 text-blue-500" />
@@ -313,7 +356,9 @@ const Dashboard = () => {
                     <div className="flex items-center justify-between">
                       <div>
                         <p className="text-sm font-medium text-gray-500">Enrolled Users</p>
-                        <p className="text-3xl font-bold">156</p>
+                        <p className="text-3xl font-bold">
+                          {lmsStats ? lmsStats.enrolled_users : lmsError || '...'}
+                        </p>
                       </div>
                       <div className="bg-green-50 p-3 rounded-lg">
                         <Users className="h-5 w-5 text-green-500" />
@@ -327,7 +372,9 @@ const Dashboard = () => {
                     <div className="flex items-center justify-between">
                       <div>
                         <p className="text-sm font-medium text-gray-500">Completion Rate</p>
-                        <p className="text-3xl font-bold">72%</p>
+                        <p className="text-3xl font-bold">
+                          {lmsStats ? `${lmsStats.average_completion.toFixed(2)}%` : lmsError || '...'}
+                        </p>
                       </div>
                       <div className="bg-yellow-50 p-3 rounded-lg">
                         <TrendingUp className="h-5 w-5 text-yellow-500" />
@@ -337,7 +384,7 @@ const Dashboard = () => {
                 </Card>
 
                 <Button asChild className="h-full bg-phish-50 hover:bg-phish-100 text-phish-600">
-                  <Link to="/employee-courses" className="flex flex-col items-center justify-center gap-2">
+                  <Link to={lmsCampaignsLink} className="flex flex-col items-center justify-center gap-2">
                     <Video className="h-6 w-6" />
                     <span>View All Courses</span>
                   </Link>

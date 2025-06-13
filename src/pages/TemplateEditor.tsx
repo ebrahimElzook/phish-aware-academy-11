@@ -22,6 +22,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { useIsMobile } from '@/hooks/use-mobile';
 import Navbar from '@/components/Navbar';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 const TemplateEditor = () => {
   const isMobile = useIsMobile();
@@ -41,6 +42,9 @@ const TemplateEditor = () => {
   const previewRef = useRef<HTMLDivElement>(null);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
   const [templateMode, setTemplateMode] = useState<'new' | 'existing'>('new');
+  // Preview dialog state for global templates
+  const [previewTemplate, setPreviewTemplate] = useState<EmailTemplate | null>(null);
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
 
   // Define interfaces first
   interface TemplateData {
@@ -192,7 +196,6 @@ const TemplateEditor = () => {
       label: template.is_global 
         ? `${template.name || `Template ${template.id || 'New'}`} (Global)`
         : template.name || `Template ${template.id || 'New'}`,
-      disabled: template.is_global, // Disable selection of global templates
       isGlobal: template.is_global
     }));
   }, [templatesData, isLoadingTemplates, isTemplatesError, templatesError, isAuthenticated]);
@@ -257,6 +260,14 @@ const TemplateEditor = () => {
       });
       setTemplateMode('new');
     } else {
+      // Find selected template
+      const selected = templatesData?.find(t => t.id?.toString() === value);
+      if (selected && selected.is_global) {
+        // Open preview dialog for global templates
+        setPreviewTemplate(selected as EmailTemplate);
+        setIsPreviewOpen(true);
+        return;
+      }
       loadTemplate(value);
       setTemplateMode('existing');
     }
@@ -537,7 +548,6 @@ const TemplateEditor = () => {
                                 <SelectItem 
                                   key={option.value} 
                                   value={option.value}
-                                  disabled={option.isGlobal}
                                   className={option.isGlobal ? 'opacity-50' : ''}
                                 >
                                   {option.label}
@@ -683,6 +693,17 @@ const TemplateEditor = () => {
           </div>
         </div>
       </div>
+      {/* Global template preview dialog */}
+      <Dialog open={isPreviewOpen} onOpenChange={setIsPreviewOpen}>
+        <DialogContent className="sm:max-w-[800px] max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>{previewTemplate?.name || previewTemplate?.subject || 'Template Preview'}</DialogTitle>
+          </DialogHeader>
+          {previewTemplate && (
+            <div className="prose max-w-none" dangerouslySetInnerHTML={{ __html: previewTemplate.content }} />
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

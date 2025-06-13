@@ -9,7 +9,7 @@ from courses.models import Course, Question
 from accounts.models import Company, User
 from .models import LMSCampaign, LMSCampaignUser, UserCourseProgress
 from django.utils import timezone
-from django.db.models import Q
+from django.db.models import Q, Avg, Count
 import json
 
 
@@ -363,3 +363,92 @@ def mark_course_completed(request):
         return Response({"error": "Course not found."}, status=status.HTTP_404_NOT_FOUND)
     except Exception as e:
         return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def lms_analytics_overview(request):
+    """API endpoint to provide aggregated LMS analytics data for the current user's company."""
+    user = request.user
+    company = user.company
+
+    try:
+        # All campaigns for this company
+        campaigns_qs = LMSCampaign.objects.filter(company=company)
+
+        # Build list of course counts per campaign
+        campaign_course_counts = [
+            {
+                'campaign_id': str(campaign.id),
+                'campaign_name': campaign.name,
+                'courses_count': campaign.courses.count(),
+            }
+            for campaign in campaigns_qs
+        ]
+
+        # Progress records for this company
+        progress_qs = UserCourseProgress.objects.filter(campaign_user__campaign__company=company)
+
+        # Restrict to completed progress records
+        progress_completed_qs = progress_qs.filter(completed=True)
+        
+        # Total number of progress records and number of completed ones
+        total_progress = progress_qs.count()
+        completed_progress = progress_completed_qs.count()
+
+        # Total views equals number of COMPLETED progress records as requested
+        total_views = completed_progress
+
+        # Average completion = completed progress / total progress (%). Avoid divide-by-zero.
+        average_completion_value = 0
+        if total_progress > 0:
+            average_completion_value = round((completed_progress / total_progress) * 100, 2)
+
+        # Total distinct enrolled users across campaigns (for dashboard)
+        participants_count = (
+            LMSCampaignUser.objects
+            .filter(campaign__company=company)
+            .values('user')
+            .distinct()
+            .count()
+        )
+
+        # Top videos with new completion metric (completed progress / total progress per course)
+        top_course_stats = (
+            progress_completed_qs
+            .values('course__id', 'course__name')
+            .annotate(views=Count('id'))
+            .order_by('-views')[:3]
+        )
+
+        top_videos = []
+        for stat in top_course_stats:
+            course_id = stat['course__id']
+            completed_views = stat['views']  # from progress_completed_qs
+            total_course_progress = progress_qs.filter(course_id=course_id).count()
+
+            percentage = 0
+            if total_course_progress > 0:
+                percentage = round((completed_views / total_course_progress) * 100, 2)
+
+            top_videos.append({
+                'title': stat['course__name'],
+                'views': completed_views,
+                'completion': percentage,
+            })
+
+        data = {
+            'campaign_course_counts': campaign_course_counts,
+            'campaigns_count': campaigns_qs.count(),
+            'enrolled_users': participants_count,
+            'total_views': total_views,
+            'average_completion': average_completion_value,
+            'top_videos': top_videos,
+            'participation_total': total_progress,
+        }
+        return Response(data, status=status.HTTP_200_OK)
+
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

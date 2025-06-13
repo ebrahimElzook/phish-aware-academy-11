@@ -10,4 +10,5 @@ urlpatterns = [
     path('api/campaigns/create/', views.create_lms_campaign, name='create_lms_campaign'),
     path('api/user-campaigns/', views.get_user_campaigns, name='get_user_campaigns'),
     path('api/mark-course-completed/', views.mark_course_completed, name='mark_course_completed'),
+    path('api/lms/analytics/overview/', views.lms_analytics_overview, name='lms_analytics_overview'),
 ]
