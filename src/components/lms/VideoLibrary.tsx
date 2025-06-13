@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { ExternalLink, FileVideo, Loader2, Play, RefreshCw, X } from 'lucide-react';
@@ -192,18 +191,6 @@ export const VideoLibrary = () => {
         <DialogContent className="max-w-4xl p-0 overflow-hidden">
           <div className="flex justify-between items-center px-6 pt-6 pb-2 border-b">
             <DialogTitle className="text-lg font-semibold">{selectedVideo?.title}</DialogTitle>
-            <Button 
-              variant="ghost" 
-              size="icon" 
-              onClick={() => {
-                setSelectedVideo(null);
-                setVideoError(null);
-              }}
-              className="h-8 w-8"
-            >
-              <X className="h-4 w-4" />
-              <span className="sr-only">Close</span>
-            </Button>
           </div>
           
           <div className="aspect-video bg-black relative">

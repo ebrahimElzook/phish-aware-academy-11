@@ -1,8 +1,8 @@
 
-import React from 'react';
 import { Link } from 'react-router-dom';
 import { VideoLibrary } from '@/components/lms/VideoLibrary';
 import { CampaignList } from '@/components/lms/CampaignList';
+import React, { useState } from 'react';
 import { CampaignCreator } from '@/components/lms/CampaignCreator';
 import { Card } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -13,6 +13,7 @@ import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 
 const LMSCampaigns = () => {
+  const [refreshKey, setRefreshKey] = useState(0);
   const {
     toast
   } = useToast();
@@ -79,8 +80,8 @@ const LMSCampaigns = () => {
 
             <TabsContent value="campaigns">
               <div className="grid grid-cols-1 gap-6">
-                <CampaignCreator />
-                <CampaignList />
+                <CampaignCreator onCreate={() => setRefreshKey(k => k + 1)} />
+                <CampaignList key={refreshKey} />
               </div>
             </TabsContent>
 

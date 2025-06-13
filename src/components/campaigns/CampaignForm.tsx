@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -61,6 +60,7 @@ interface EmailTemplate {
   company: number | null;
   company_name: string | null;
   is_global: boolean;
+  name: string;
 }
 
 interface CampaignFormProps {
@@ -223,6 +223,7 @@ const CampaignForm: React.FC<CampaignFormProps> = ({ companySlug, onClose, onCre
             body: personalizedBody,
             phishing_campaign_id: campaignId,
             sender_id: parseInt(currentUser.id),  // Ensure it's a number
+            email_service_config_id: selectedConfigId,
           };
           
 
@@ -308,7 +309,7 @@ const CampaignForm: React.FC<CampaignFormProps> = ({ companySlug, onClose, onCre
     }
     
     // Validate dates
-    if (startDate >= endDate) {
+    if (startDate > endDate) {
       toast({
         title: "Invalid Date Range",
         description: "End date must be after start date",
@@ -444,6 +445,9 @@ const CampaignForm: React.FC<CampaignFormProps> = ({ companySlug, onClose, onCre
     return <div className="flex justify-center p-8">Loading campaign form...</div>;
   }
 
+  const currentCompanyId = Number(currentUser.company);
+  const selectedTemplate = emailTemplates.find(t => t.id === selectedTemplateId);
+
   return (
     <div className="space-y-4">
       <div className="space-y-2">
@@ -475,23 +479,41 @@ const CampaignForm: React.FC<CampaignFormProps> = ({ companySlug, onClose, onCre
         </Select>
       </div>
 
-      <div className="space-y-2">
-        <Label>Email Template <span className="text-red-500">*</span></Label>
-        <Select 
-          value={selectedTemplateId?.toString() || ''} 
-          onValueChange={(value) => setSelectedTemplateId(Number(value))}
-        >
-          <SelectTrigger>
-            <SelectValue placeholder="Select a template" />
-          </SelectTrigger>
-          <SelectContent>
-            {emailTemplates.map((template) => (
-              <SelectItem key={template.id} value={template.id.toString()}>
-                {template.subject} {template.company_name ? `(${template.company_name})` : ''}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+      {/* Template selection and preview side-by-side */}
+      <div className="flex flex-col md:flex-row gap-4">
+        {/* Template selector */}
+        <div className="space-y-2 flex-1">
+          <Label>Email Template <span className="text-red-500">*</span></Label>
+          <Select 
+            value={selectedTemplateId?.toString() || ''} 
+            onValueChange={(value) => setSelectedTemplateId(Number(value))}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Select a template" />
+            </SelectTrigger>
+            <SelectContent>
+              {emailTemplates
+                .filter((template) => template.is_global || (currentCompanyId !== null && template.company === currentCompanyId))
+                .map((template) => (
+                  <SelectItem key={template.id} value={template.id.toString()}>
+                    {template.name || template.subject} ({template.company_name})
+                  </SelectItem>
+                ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        {/* Preview pane */}
+        <div className="flex-1 space-y-2">
+          <Label>Preview</Label>
+          <div className="border rounded p-4 max-h-96 overflow-y-auto text-sm">
+            {selectedTemplate ? (
+              <div dangerouslySetInnerHTML={{ __html: selectedTemplate.content }} />
+            ) : (
+              <p className="text-muted-foreground">Select a template to preview its content.</p>
+            )}
+          </div>
+        </div>
       </div>
       
       <div className="grid grid-cols-2 gap-4">

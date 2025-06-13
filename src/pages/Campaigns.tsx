@@ -78,6 +78,7 @@ const Campaigns = () => {
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [refreshKey, setRefreshKey] = useState(0);
 
   // Function to fetch detailed campaign data
   const fetchCampaignDetails = async (campaignId: number) => {
@@ -214,7 +215,7 @@ const Campaigns = () => {
     };
 
     fetchCampaigns();
-  }, [toast]);
+  }, [toast, refreshKey]);
 
   // Helper functions for date handling
   const startOfDay = (date: Date | string) => {
@@ -283,6 +284,7 @@ const Campaigns = () => {
                   companySlug={companySlug || ''}
                   onClose={() => {}} 
                   onCreate={() => {
+                    setRefreshKey(k=>k+1);
                     toast({
                       title: "Campaign Created",
                       description: "Your new campaign has been created successfully"

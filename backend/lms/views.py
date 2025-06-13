@@ -334,7 +334,13 @@ def mark_course_completed(request):
             course=course,
             defaults={'completed': True, 'completed_at': timezone.now()}
         )
-        
+
+        # Mark campaign as started on first completed course
+        if not campaign_user.started:
+            campaign_user.started = True
+            campaign_user.started_at = timezone.now()
+            campaign_user.save(update_fields=['started', 'started_at'])
+
         # After marking a course as complete, check if the whole campaign is complete
         all_courses_in_campaign = campaign_user.campaign.courses.all()
         

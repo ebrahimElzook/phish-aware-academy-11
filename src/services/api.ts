@@ -777,11 +777,16 @@ export const userService = {
 
 // Add an interceptor to handle token refresh
 export const fetchWithAuth = async (url: string, options: RequestInit = {}): Promise<Response> => {
+  const redirectToLogin = () => {
+    const slug = getCompanySlug() || localStorage.getItem('companySlug') || '';
+    authService.logout();
+    window.location.href = slug ? `/${slug}/login` : '/login';
+  };
+
   const token = localStorage.getItem('token');
   
   if (!token) {
-    authService.logout();
-    window.location.href = '/login';
+    redirectToLogin();
     throw new Error('No authentication token found');
   }
 
@@ -827,6 +832,7 @@ export const fetchWithAuth = async (url: string, options: RequestInit = {}): Pro
         
         if (retryResponse.status === 401) {
           // If we still get 401 after refresh, force logout
+          redirectToLogin();
           throw new Error('Session expired after token refresh');
         }
         
@@ -834,8 +840,7 @@ export const fetchWithAuth = async (url: string, options: RequestInit = {}): Pro
       } catch (refreshError) {
         console.error('Token refresh failed:', refreshError);
         // Refresh failed, force logout and redirect to login
-        authService.logout();
-        window.location.href = '/login';
+        redirectToLogin();
         throw new Error('Session expired. Please login again.');
       }
     }

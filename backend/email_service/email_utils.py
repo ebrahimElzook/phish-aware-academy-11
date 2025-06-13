@@ -47,6 +47,7 @@ def save_email(request):
         body = data.get('body')
         sender_id = data.get('sender_id')
         phishing_campaign_id = data.get('phishing_campaign_id')
+        email_service_config_id = data.get('email_service_config_id')
         
         # Validate required fields
         if not all([to_email, from_email, subject, body, sender_id]):
@@ -91,6 +92,15 @@ def save_email(request):
                 'read': False,
                 'clicked': False
             }
+            
+            # Attach email service config if provided
+            if email_service_config_id:
+                from .models import CSWordEmailServ
+                try:
+                    email_config_obj = CSWordEmailServ.objects.get(id=email_service_config_id)
+                    email_data['email_service_config'] = email_config_obj
+                except CSWordEmailServ.DoesNotExist:
+                    logger.warning(f"Email service config with ID {email_service_config_id} not found. Using default active config.")
             
             # Add phishing campaign if provided
             if phishing_campaign_id:

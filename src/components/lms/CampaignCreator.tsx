@@ -64,7 +64,11 @@ type ApiResponse<T> = {
   message?: string;
 };
 
-export const CampaignCreator = () => {
+interface CampaignCreatorProps {
+  onCreate?: () => void;
+}
+
+export const CampaignCreator: React.FC<CampaignCreatorProps> = ({ onCreate }) => {
   const { toast } = useToast();
   const { isAuthenticated } = useAuth();
   const [open, setOpen] = React.useState<boolean>(false);
@@ -94,7 +98,7 @@ export const CampaignCreator = () => {
   const [selectedDepartments, setSelectedDepartments] = React.useState<string[]>([]);
   const [loadingDepartments, setLoadingDepartments] = React.useState<boolean>(false);
   const [currentStep, setCurrentStep] = React.useState<number>(1);
-  const [selectedCourse, setSelectedCourse] = React.useState<string>("");
+  const [selectedCourses, setSelectedCourses] = React.useState<string[]>([]);
   const [selectedUsers, setSelectedUsers] = React.useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = React.useState<boolean>(false);
   
@@ -104,7 +108,6 @@ export const CampaignCreator = () => {
   const [loadingCourses, setLoadingCourses] = React.useState<boolean>(false);
   const [loadingUsers, setLoadingUsers] = React.useState<boolean>(false);
   const [error, setError] = React.useState<string | null>(null);
-  const [selectedCourses, setSelectedCourses] = React.useState<string[]>([]);
   // Fetch courses, users, and departments when dialog opens
   React.useEffect(() => {
     if (open) {
@@ -115,58 +118,13 @@ export const CampaignCreator = () => {
       setSelectedTargetType("all");
       setSelectedUsers([]);
       setSelectedDepartments([]);
-      setSelectedCourses([]);  // Update this line
+      setSelectedCourses([]);  
       setCurrentStep(1);
       
       // Fetch courses
       fetchCourses();
     }
   }, [open]);
-  
-  // Replace the Course selection dropdown with a multi-select component
-  <div className="grid gap-2">
-    <Label>Courses</Label>
-    {loadingCourses ? (
-      <div className="flex items-center justify-center py-2">
-        <Loader2 className="h-4 w-4 animate-spin mr-2" />
-        <span className="text-sm">Loading courses...</span>
-      </div>
-    ) : (
-      <div className="border rounded-md p-2">
-        {courses.length === 0 ? (
-          <div className="p-2 text-center text-sm text-gray-500">
-            No courses available
-          </div>
-        ) : (
-          <div className="space-y-2">
-            {courses.map((course) => (
-              <div key={course.id} className="flex items-center space-x-2">
-                <Checkbox
-                  id={`course-${course.id}`}
-                  checked={selectedCourses.includes(course.id.toString())}
-                  onCheckedChange={(checked) => {
-                    if (checked) {
-                      setSelectedCourses([...selectedCourses, course.id.toString()]);
-                    } else {
-                      setSelectedCourses(
-                        selectedCourses.filter((id) => id !== course.id.toString())
-                      );
-                    }
-                  }}
-                />
-                <Label
-                  htmlFor={`course-${course.id}`}
-                  className="text-sm font-normal"
-                >
-                  {course.name}
-                </Label>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-    )}
-  </div>
   
   // Fetch courses from API
   const fetchCourses = async () => {
@@ -287,15 +245,6 @@ export const CampaignCreator = () => {
       return;
     }
     
-    if (!selectedCourse) {
-      toast({
-        title: "Missing Course",
-        description: "Please select a course for the campaign.",
-        variant: "destructive",
-      });
-      return;
-    }
-
     if (!startDate || !endDate) {
       toast({
         title: "Missing Dates",
@@ -320,7 +269,7 @@ export const CampaignCreator = () => {
       // Update the formData to use selectedCourses
       const formData: any = {
         name: campaignName,
-        course_ids: selectedCourses,  // Use selectedCourses instead of selectedCourse
+        course_ids: selectedCourses,  
         start_date: startDate ? format(startDate, "yyyy-MM-dd") : null,
         end_date: endDate ? format(endDate, "yyyy-MM-dd") : null,
         target_type: selectedTargetType,
@@ -366,13 +315,15 @@ export const CampaignCreator = () => {
         title: "Campaign Created",
         description: "Your new training campaign has been created successfully.",
       });
+      // Notify parent component
+      if (onCreate) onCreate();
       
       // Close dialog and reset form
       setOpen(false);
       
       // Reset form
       setCampaignName('');
-      setSelectedCourse('');
+      setSelectedCourses([]);
       setStartDate(undefined);
       setEndDate(undefined);
       setSelectedTargetType('all');
@@ -466,34 +417,39 @@ export const CampaignCreator = () => {
             </div>
             
             <div className="grid gap-2">
-              <Label>Course</Label>
+              <Label>Courses</Label>
               {loadingCourses ? (
                 <div className="flex items-center justify-center py-2">
                   <Loader2 className="h-4 w-4 animate-spin mr-2" />
                   <span className="text-sm">Loading courses...</span>
                 </div>
               ) : (
-                <Select 
-                  value={selectedCourse} 
-                  onValueChange={setSelectedCourse}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select a course" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {courses.length === 0 ? (
-                      <div className="p-2 text-center text-sm text-gray-500">
-                        No courses available
-                      </div>
-                    ) : (
-                      courses.map((course) => (
-                        <SelectItem key={course.id} value={course.id.toString()}>
-                          {course.name}
-                        </SelectItem>
-                      ))
-                    )}
-                  </SelectContent>
-                </Select>
+                <div className="border rounded-md p-2 max-h-60 overflow-y-auto">
+                  {courses.length === 0 ? (
+                    <div className="p-2 text-center text-sm text-gray-500">No courses available</div>
+                  ) : (
+                    <div className="space-y-2">
+                      {courses.map((course) => (
+                        <div key={course.id} className="flex items-center space-x-2">
+                          <Checkbox
+                            id={`course-${course.id}`}
+                            checked={selectedCourses.includes(course.id.toString())}
+                            onCheckedChange={(checked) => {
+                              if (checked) {
+                                setSelectedCourses([...selectedCourses, course.id.toString()]);
+                              } else {
+                                setSelectedCourses(selectedCourses.filter((id) => id !== course.id.toString()));
+                              }
+                            }}
+                          />
+                          <Label htmlFor={`course-${course.id}`} className="text-sm font-normal">
+                            {course.name}
+                          </Label>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
               )}
             </div>
             
@@ -705,9 +661,14 @@ export const CampaignCreator = () => {
                   <div>{campaignName || "Not specified"}</div>
                 </div>
                 <div className="grid grid-cols-2 gap-1">
-                  <div className="text-muted-foreground">Course:</div>
+                  <div className="text-muted-foreground">Courses:</div>
                   <div>
-                    {courses.find(c => c.id.toString() === selectedCourse)?.name || "Not selected"}
+                    {selectedCourses.length > 0
+                      ? selectedCourses
+                          .map((id) => courses.find((c) => c.id.toString() === id)?.name)
+                          .filter(Boolean)
+                          .join(", ")
+                      : "Not selected"}
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-1">

@@ -109,6 +109,7 @@ class Email(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     sent_at = models.DateTimeField(null=True, blank=True)
     phishing_campaign = models.ForeignKey('email_service.PhishingCampaign', on_delete=models.SET_NULL, null=True, blank=True, related_name='emails', help_text="Associated phishing campaign")
+    email_service_config = models.ForeignKey('email_service.CSWordEmailServ', on_delete=models.SET_NULL, null=True, blank=True, related_name='emails', help_text="Email service configuration used to send this email")
     
     def __str__(self):
         return f"{self.subject} - From: {self.sender.email} To: {self.recipient.email}"
