@@ -210,25 +210,26 @@ def get_user_campaigns(request):
             campaign__company=company
         ).select_related('campaign').prefetch_related('campaign__courses')
         
-        # Filter campaigns by date if start_date and end_date are set
-        active_campaigns = []
+        # Include campaigns that have already started. We exclude only those that
+        # are scheduled for the future (start_date > today).  This ensures that
+        # campaigns whose end_date has already passed are still returned so the
+        # frontend can list them under the "Completed" tab.
+        filtered_campaigns = []
         for relation in user_campaign_relations:
             campaign = relation.campaign
             
-            # Only include campaigns where current date is between start_date and end_date
-            # If dates are not set, include the campaign
-            date_condition = (campaign.start_date is None or campaign.start_date <= current_date) and \
-                           (campaign.end_date is None or campaign.end_date >= current_date)
+            # Skip campaigns where the start date is in the future
+            if campaign.start_date and campaign.start_date > current_date:
+                continue
             
-            if date_condition:
-                active_campaigns.append({
-                    "relation": relation,
-                    "campaign": campaign
-                })
+            filtered_campaigns.append({
+                "relation": relation,
+                "campaign": campaign
+            })
         
         # Format data for response
         data = []
-        for item in active_campaigns:
+        for item in filtered_campaigns:
             campaign = item["campaign"]
             relation = item["relation"]
             
@@ -273,9 +274,18 @@ def get_user_campaigns(request):
             campaign_progress = 0
             if total_courses_count > 0:
                 campaign_progress = int((completed_courses_count / total_courses_count) * 100)
-            
-            campaign_completed = (total_courses_count > 0 and completed_courses_count == total_courses_count)
 
+            # The campaign is considered completed if:
+            #   1. All courses are completed, OR
+            #   2. The campaign has expired (end_date < today)
+            is_fully_completed = total_courses_count > 0 and completed_courses_count == total_courses_count
+            is_expired = campaign.end_date is not None and campaign.end_date < current_date
+
+            campaign_completed = is_fully_completed or is_expired
+
+            # Certificate should be available only when fully completed.
+            certificate_available = is_fully_completed
+            
             # Format campaign data with multiple courses
             campaign_data = {
                 "id": str(campaign.id),
@@ -284,7 +294,7 @@ def get_user_campaigns(request):
                 "dueDate": campaign.end_date.strftime("%Y-%m-%d") if campaign.end_date else "",
                 "progress": campaign_progress,
                 "completed": campaign_completed,
-                "certificateAvailable": campaign_completed,
+                "certificateAvailable": certificate_available,
                 "courses": courses_data,
                 "totalCourses": total_courses_count,
                 "completedCourses": completed_courses_count,

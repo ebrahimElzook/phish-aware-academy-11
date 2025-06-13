@@ -439,25 +439,43 @@ const EmployeeCourses = () => {
             <TabsContent value="completed">
               <div className="space-y-6">
                 {campaigns.filter(campaign => campaign.completed).map(campaign => (
-                  <Card key={campaign.id} className="overflow-hidden border-green-200">
+                  <Card key={campaign.id} className="overflow-hidden">
                     <CardHeader className="bg-green-50/50">
                       <CardTitle>{campaign.title}</CardTitle>
                       <CardDescription>{campaign.description}</CardDescription>
                       <div className="pt-4">
                         <div className="flex justify-between items-center mb-1">
                           <span className="text-sm font-medium text-gray-600">Progress</span>
-                          <span className="text-sm font-bold text-green-600">100%</span>
+                          <span className="text-sm font-bold text-green-600">
+                            {campaign.progress}%
+                          </span>
                         </div>
-                        <Progress value={100} className="[&>div]:bg-green-500" />
+                        <Progress
+                          value={campaign.progress}
+                          className={campaign.progress === 100 ? "[&>div]:bg-green-500" : ""}
+                        />
                       </div>
                     </CardHeader>
                     <CardContent>
                       <h3 className="text-md font-semibold mb-3">Courses</h3>
                       <ul className="space-y-3">
                         {campaign.courses.map(course => (
-                          <li key={course.id} className="flex items-center p-3 rounded-lg bg-gray-50">
-                            <Check className="h-5 w-5 text-green-500 mr-3 flex-shrink-0" />
-                            <span className="text-sm line-through text-muted-foreground">{course.title}</span>
+                          <li
+                            key={course.id}
+                            className="flex items-center justify-between p-3 rounded-lg border bg-gray-50/50"
+                          >
+                            <div className="flex items-center">
+                              {course.completed ? (
+                                <Check className="h-5 w-5 text-green-500 mr-3 flex-shrink-0" />
+                              ) : (
+                                <Video className="h-5 w-5 text-gray-400 mr-3 flex-shrink-0" />
+                              )}
+                              <span
+                                className={`text-sm ${course.completed ? "line-through text-muted-foreground" : ""}`}
+                              >
+                                {course.title}
+                              </span>
+                            </div>
                           </li>
                         ))}
                       </ul>
