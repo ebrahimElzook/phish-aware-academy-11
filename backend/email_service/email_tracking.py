@@ -36,9 +36,6 @@ def mark_email_read(request, email_id):
     referer = request.META.get('HTTP_REFERER', 'Unknown')
     ip_address = request.META.get('REMOTE_ADDR', 'Unknown')
     
-    logger.info(f"Received read tracking request for email_id: {email_id}, uid: {uid}, method: {method}")
-    logger.info(f"Tracking request details - User-Agent: {user_agent}, Referer: {referer}, IP: {ip_address}")
-    
     # Handle OPTIONS request for CORS preflight
     if request.method == 'OPTIONS':
         response = HttpResponse()
@@ -54,22 +51,13 @@ def mark_email_read(request, email_id):
         
         # Try to get and update the email
         try:
-            # Log the attempt to find the email
-            logger.info(f"Looking up email with ID: {email_id}")
-            
             # Get the email from the database
             email = Email.objects.get(id=email_id)
-            
-            # Log that we found the email
-            logger.info(f"Found email: {email.id}, subject: {email.subject}, current read status: {email.read}")
             
             # Mark it as read if it's not already
             if not email.read:
                 email.mark_as_read()
-                logger.info(f"Email {email_id} marked as read via tracking pixel")
-            else:
-                logger.info(f"Email {email_id} was already marked as read")
-                
+            
         except Email.DoesNotExist:
             logger.warning(f"Attempted to mark non-existent email {email_id} as read")
         except Exception as e:
@@ -79,20 +67,12 @@ def mark_email_read(request, email_id):
         method = request.GET.get('method', 'pixel')
         
         if method == 'link':
-            # If it's a link click, redirect to a success page or back to the site
-            logger.info(f"Returning redirect for email {email_id} (link method)")
             response = HttpResponse('<html><body><h1>Email Opened</h1><p>You can close this window.</p></body></html>')
         elif method == 'svg':
-            # For SVG tracking, return an SVG image
-            logger.info(f"Returning SVG tracking pixel for email {email_id}")
             response = HttpResponse(SVG_PIXEL, content_type='image/svg+xml')
         elif method == 'css':
-            # For CSS tracking, return a PNG image
-            logger.info(f"Returning PNG tracking pixel for email {email_id} (CSS method)")
             response = HttpResponse(PNG_PIXEL, content_type='image/png')
         else:
-            # For standard pixel tracking, return the transparent GIF
-            logger.info(f"Returning GIF tracking pixel for email {email_id}")
             response = HttpResponse(TRANSPARENT_PIXEL, content_type='image/gif')
         
         # Set cache-busting headers
@@ -159,7 +139,6 @@ def mark_email_clicked(request, email_id):
         try:
             email = Email.objects.get(id=email_id)
             email.mark_as_clicked()
-            logger.info(f"Email {email_id} marked as clicked")
         except Email.DoesNotExist:
             logger.warning(f"Attempted to mark non-existent email {email_id} as clicked")
         except Exception as e:

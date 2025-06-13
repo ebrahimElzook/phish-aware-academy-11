@@ -33,8 +33,6 @@ def create_test_email():
                 'last_name': 'Sender'
             }
         )
-        if created:
-            logger.info(f"Created test sender user: {sender.email}")
         
         recipient, created = User.objects.get_or_create(
             email=recipient_email,
@@ -44,8 +42,6 @@ def create_test_email():
                 'last_name': 'Recipient'
             }
         )
-        if created:
-            logger.info(f"Created test recipient user: {recipient.email}")
         
         # Create email content with links
         html_content = """
@@ -81,12 +77,10 @@ def create_test_email():
         email.content = tracked_content
         email.save()
         
-        logger.info(f"Created test email with ID: {email.id}")
-        logger.info(f"Tracking URL base: {settings.EMAIL_TRACKING_URL}")
+        
         
         # Print browser view URL
         browser_url = f"{settings.EMAIL_TRACKING_URL}/api/email/view-in-browser/{email.id}/"
-        logger.info(f"Browser view URL: {browser_url}")
         
         return email
     
@@ -95,12 +89,8 @@ def create_test_email():
         return None
 
 if __name__ == "__main__":
-    logger.info("Starting email tracking test")
     email = create_test_email()
     if email:
-        logger.info(f"Test email created successfully with ID: {email.id}")
         backend_url = settings.BACKEND_URL
-        logger.info(f"To view the email in browser, visit: {backend_url}/api/email/view-in-browser/{email.id}/")
-        logger.info(f"To test pixel tracking, visit: {backend_url}/api/email/mark-read/{email.id}/?method=pixel")
     else:
         logger.error("Failed to create test email")

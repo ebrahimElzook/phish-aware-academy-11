@@ -97,9 +97,6 @@ def send_password_reset_email(user, password, company_slug):
             else:
                 base_url = 'http://localhost:3000'
                 
-        # Log the URL being used
-        logger.info(f"Using frontend URL: {base_url} for password reset email (Production: {is_production})")
-        
         # Ensure the URL doesn't have a trailing slash
         if base_url.endswith('/'):
             base_url = base_url[:-1]
@@ -161,7 +158,6 @@ def send_password_reset_email(user, password, company_slug):
         # Send the email
         email.send(fail_silently=False)
         
-        logger.info(f"Password reset email sent to {to_email}")
         return True
         
     except Exception as e:

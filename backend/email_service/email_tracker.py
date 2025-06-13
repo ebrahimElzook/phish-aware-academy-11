@@ -48,9 +48,6 @@ def add_tracking_pixel(body, email_id):
     view_in_browser_path = f"/api/email/view-in-browser/{email_id}/"
     view_in_browser_url = f"{tracking_url}/api/email/mark-clicked/{email_id}/?url={quote(tracking_url + view_in_browser_path)}"
     
-    # Log the tracking information for debugging
-    logger.info(f"Added multiple tracking methods for email {email_id}: {tracking_url}/api/email/mark-read/{email_id}/")
-    
     # Add all tracking methods at strategic locations in the body
     if '</body>' in body:
         # For HTML emails, add tracking elements before the closing body tag

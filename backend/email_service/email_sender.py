@@ -45,7 +45,6 @@ def send_email(request):
         return response
     
     try:
-        logger.info(f"Received email request with body: {request.body}")
         
         # Parse JSON data
         try:
@@ -74,8 +73,6 @@ def send_email(request):
                 {'error': error_msg}, 
                 status=400
             )
-        
-        logger.info(f"Sending email from {from_email} to {to_email} with subject: {subject}")
         
         # Get active email configuration from database
         try:
@@ -124,7 +121,6 @@ def send_email(request):
             
             # Send the email
             email.send(fail_silently=False)
-            logger.info(f"Successfully sent email to {to_email}")
             
             # If this email was saved in the database, mark it as sent
             if email_id:
@@ -132,7 +128,6 @@ def send_email(request):
                     from accounts.models import Email
                     saved_email = Email.objects.get(id=email_id)
                     saved_email.mark_as_sent()
-                    logger.info(f"Marked email with ID {email_id} as sent")
                 except Exception as e:
                     logger.error(f"Error marking email as sent: {str(e)}")
             

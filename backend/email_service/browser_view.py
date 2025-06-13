@@ -24,14 +24,10 @@ def view_email_in_browser(request, email_id):
         referer = request.META.get('HTTP_REFERER', 'Unknown')
         ip_address = request.META.get('REMOTE_ADDR', 'Unknown')
         
-        logger.info(f"Browser view request for email {email_id} - User-Agent: {user_agent}, Referer: {referer}, IP: {ip_address}")
         
         # Mark it as read if it's not already
         if not email.read:
             email.mark_as_read()
-            logger.info(f"Email {email_id} marked as read via browser view")
-        else:
-            logger.info(f"Email {email_id} was already marked as read (browser view)")
         
         # Generate unique tracking IDs
         tracking_id = str(uuid.uuid4())

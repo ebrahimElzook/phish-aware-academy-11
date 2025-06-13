@@ -27,7 +27,6 @@ def send_email(request):
         return response
     
     try:
-        logger.info(f"Received email request with body: {request.body}")
         
         # Parse JSON data
         try:
@@ -57,7 +56,6 @@ def send_email(request):
                 status=400
             )
         
-        logger.info(f"Sending email from {from_email} to {to_email} with subject: {subject}")
         
         # Get active email configuration from database
         try:
@@ -110,11 +108,6 @@ def send_email(request):
             
             # Email sending is now handled by a scheduled task.
             # The 'email' object prepared above is not sent here directly.
-            logger.info(f"Email to {to_email} (ID: {email_id}) has been prepared and is queued for sending by the scheduler.")
-            
-            # Marking email as sent is now handled by the scheduled task after successful sending.
-            if email_id:
-                logger.info(f"Email with ID {email_id} will be marked as sent by the scheduler upon successful dispatch.")
             
             return JsonResponseWithCors({
                 'success': True,

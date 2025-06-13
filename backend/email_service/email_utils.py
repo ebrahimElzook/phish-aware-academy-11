@@ -28,8 +28,6 @@ def save_email(request):
         return response
         
     try:
-        logger.info(f"Received save email request with body: {request.body}")
-        
         # Parse JSON data
         try:
             data = json.loads(request.body.decode('utf-8'))
@@ -80,7 +78,6 @@ def save_email(request):
                     role=User.Role.USER,
                     company=sender.company  # Assign to the same company as the sender
                 )
-                logger.info(f"Created placeholder user for external recipient: {to_email}")
             
             # Create email data dictionary
             email_data = {
@@ -114,7 +111,6 @@ def save_email(request):
             # Create a new Email object
             email = Email.objects.create(**email_data)
             
-            logger.info(f"Successfully saved email with ID {email.id}")
             
             return JsonResponseWithCors({
                 'success': True,

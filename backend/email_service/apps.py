@@ -17,7 +17,6 @@ class EmailServiceConfig(AppConfig):
         # or if it's a Django reload process.
         management_commands = {'makemigrations', 'migrate', 'test'}
         if any(cmd in sys.argv for cmd in management_commands) or os.environ.get('RUN_MAIN') == 'true':
-            logger.info(f"Scheduler start skipped for management command: {' '.join(sys.argv)} or reload process.")
             return
 
         run_once = os.environ.get('DJANGO_SCHEDULER_RUN_ONCE')
@@ -29,7 +28,6 @@ class EmailServiceConfig(AppConfig):
         # We can refine this if issues persist.
         # os.environ['DJANGO_SCHEDULER_RUN_ONCE'] = 'True' # Temporarily commenting this out to simplify logic
 
-        logger.info("Starting email scheduler...")
         try:
             from .email_tasks import send_queued_email_job
             from django_apscheduler.jobstores import DjangoJobStore
@@ -47,8 +45,6 @@ class EmailServiceConfig(AppConfig):
                 max_instances=1,
                 replace_existing=True,
             )
-            logger.info("Added job 'send_queued_email_job' to run every 2 minutes.")
             scheduler.start()
-            logger.info("Scheduler started successfully.")
         except Exception as e:
             logger.error(f"Failed to start scheduler: {e}", exc_info=True)

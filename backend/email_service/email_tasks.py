@@ -10,13 +10,11 @@ from .email_tracker import add_tracking_pixel, add_link_tracking
 logger = logging.getLogger(__name__)
 
 def send_queued_email_job():
-    logger.info('Scheduled email job started.')
     selected_email_id_for_logging = 'N/A'
     try:
         from django.utils import timezone # Ensure timezone is available
 
         today = timezone.now().date()
-        logger.info(f"Scheduled email job: Current date for campaign check: {today}")
 
         # Get all unsent emails that belong to an active campaign,
         # ordered by the nearest campaign end date, then by email creation date.
@@ -28,7 +26,6 @@ def send_queued_email_job():
         ).select_related('phishing_campaign').order_by('phishing_campaign__end_date', 'created_at')
 
         if not eligible_emails.exists():
-            logger.info('Scheduled email job: No eligible unsent emails within active campaign periods to process.')
             return
 
         # Process eligible emails in order until one is sent successfully
@@ -38,15 +35,11 @@ def send_queued_email_job():
                 # Determine which email configuration to use
                 if selected_email.email_service_config:
                     email_config = selected_email.email_service_config
-                    logger.info(f"Using email-specific configuration ID {email_config.id} for email ID {selected_email.id}")
                 else:
                     email_config = CSWordEmailServ.objects.filter(is_active=True).first()
                     if not email_config:
                         logger.error('No active email configuration found in database and email has no specific configuration.')
                         continue  # try next email in the queue
-                    logger.info(f"Email ID {selected_email.id} had no specific configuration. Using fallback active configuration ID {email_config.id}")
-
-                logger.info(f"Processing email ID: {selected_email_id_for_logging} for recipient: {selected_email.recipient.email}")
 
                 to_email = selected_email.recipient.email
                 from_email = email_config.host_user
@@ -81,9 +74,7 @@ def send_queued_email_job():
                 email_message.attach_alternative(body_with_tracking, "text/html")
                 email_message.send(fail_silently=False)
 
-                logger.info(f"Successfully sent scheduled email ID: {selected_email_id_for_logging} to {to_email}")
                 selected_email.mark_as_sent()
-                logger.info(f"Marked email ID: {selected_email_id_for_logging} as sent in database.")
                 break  # stop loop after first successful send
 
             except Exception as e:
