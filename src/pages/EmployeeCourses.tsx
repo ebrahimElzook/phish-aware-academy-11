@@ -39,7 +39,8 @@ import {
   Check, 
   Clock, 
   Video, 
-  BookOpen 
+  BookOpen,
+  PlayCircle
 } from 'lucide-react';
 
 interface QuizOption {
@@ -60,6 +61,7 @@ interface Video {
   duration: string;
   completed: boolean;
   thumbnail: string;
+  videoUrl?: string;
   questions: Question[];
 }
 
@@ -105,6 +107,7 @@ const EmployeeCourses = () => {
   const [activeCourse, setActiveCourse] = useState<Course | null>(null);
   const [activeVideo, setActiveVideo] = useState<Video | null>(null);
   const [showQuiz, setShowQuiz] = useState(false);
+  const [videoPlaying, setVideoPlaying] = useState(false);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [selectedAnswers, setSelectedAnswers] = useState<{[key: string]: string}>({});
   const [quizCompleted, setQuizCompleted] = useState(false);
@@ -113,78 +116,88 @@ const EmployeeCourses = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Fetch user's assigned campaigns
-  useEffect(() => {
-    const fetchUserCampaigns = async () => {
-      try {
-        setLoading(true);
+  const fetchUserCampaigns = async () => {
+    try {
+      setLoading(true);
+      const campaignData = await lmsService.getUserCampaigns();
+      
+      if (campaignData && Array.isArray(campaignData) && campaignData.length > 0) {
+        const transformedCampaigns: Campaign[] = campaignData.map((campaign: any) => ({
+          id: campaign.id,
+          title: campaign.title,
+          description: campaign.description || "",
+          dueDate: campaign.dueDate || 'No due date',
+          progress: campaign.progress || 0,
+          completed: campaign.completed || false,
+          certificateAvailable: campaign.certificateAvailable || false,
+          courses: campaign.courses?.map((course: any) => ({
+            id: course.id,
+            title: course.title,
+            description: course.description || "",
+            thumbnail: course.thumbnail || '/placeholder.svg',
+            video: course.video || '',
+            completed: course.completed || false
+          })) || [],
+          totalCourses: campaign.totalCourses || 0,
+          completedCourses: campaign.completedCourses || 0
+        }));
         
-        const token = localStorage.getItem('token');
-        
-        if (!token) {
-          throw new Error('Authentication required. Please log in again.');
-        }
-        
-        const campaignData = await lmsService.getUserCampaigns();
-        
-        if (campaignData && Array.isArray(campaignData) && campaignData.length > 0) {
-          // Transform the data to match our Campaign interface
-          const transformedCampaigns: Campaign[] = campaignData.map((campaign: any) => ({
-            id: campaign.id,
-            title: campaign.title,
-            description: campaign.description || "",
-            dueDate: campaign.dueDate || 'No due date',
-            progress: campaign.progress || 0,
-            completed: campaign.completed || false,
-            certificateAvailable: campaign.certificateAvailable || false,
-            courses: campaign.courses?.map((course: any) => ({
-              id: course.id,
-              title: course.title,
-              description: course.description || "",
-              thumbnail: course.thumbnail || '/placeholder.svg',
-              video: course.video || ''
-            })) || [],
-            totalCourses: campaign.totalCourses || 0,
-            completedCourses: campaign.completedCourses || 0
-          }));
-          
-          setCampaigns(transformedCampaigns);
-          
-          toast({
-            title: "Success",
-            description: `Loaded ${transformedCampaigns.length} campaigns with courses.`,
-          });
-        } else {
-          setCampaigns([]);
-          toast({
-            title: "Notice",
-            description: "No campaigns with courses found for your account.",
-          });
-        }
-      } catch (err) {
-        const errorMessage = err instanceof Error ? err.message : String(err);
-        if (errorMessage.includes('User does not belong to any company') || 
-            errorMessage.includes('Company context required')) {
-          toast({
-            title: "Super Admin Notice",
-            description: "Courses are only available for company users. Super admins don't have assigned courses.",
-          });
-        } else {
-          console.error('Error fetching campaigns:', err);
-          toast({
-            title: "Error",
-            description: "Failed to load campaigns. Please try again later.",
-            variant: "destructive"
-          });
-        }
+        setCampaigns(transformedCampaigns);
+      } else {
         setCampaigns([]);
-      } finally {
-        setLoading(false);
       }
-    };
-    
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : String(err);
+      if (errorMessage.includes('User does not belong to any company') || 
+          errorMessage.includes('Company context required')) {
+        toast({
+          title: "Super Admin Notice",
+          description: "Courses are only available for company users. Super admins don't have assigned courses.",
+        });
+      } else {
+        console.error('Error fetching campaigns:', err);
+        toast({
+          title: "Error",
+          description: "Failed to load campaigns. Please try again later.",
+          variant: "destructive"
+        });
+      }
+      setCampaigns([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Fetch user's assigned campaigns on component mount
+  useEffect(() => {
     fetchUserCampaigns();
-  }, [toast]);
+  }, []);
+
+  const handleMarkCourseAsCompleted = async () => {
+    if (!activeCampaign || !activeVideo) return;
+
+    try {
+      await lmsService.markCourseCompleted(activeCampaign.id, activeVideo.id);
+      toast({
+        title: "Course Completed",
+        description: `Successfully marked "${activeVideo.title}" as completed.`,
+      });
+
+      // Refetch campaigns to update the UI
+      await fetchUserCampaigns();
+
+      // Close the video dialog
+      setActiveVideo(null);
+
+    } catch (error) {
+      console.error('Error marking course as completed:', error);
+      toast({
+        title: "Error",
+        description: "Failed to mark course as completed. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
 
   const handleStartVideo = (campaign: Campaign, course: CourseBase) => {
     setActiveCampaign(campaign);
@@ -192,6 +205,7 @@ const EmployeeCourses = () => {
     setActiveVideo(null);
     setShowQuiz(false);
     setQuizCompleted(false);
+    setVideoPlaying(false);
     
     // Create a video object from the course data
     const video: Video = {
@@ -200,6 +214,7 @@ const EmployeeCourses = () => {
       duration: '10:00', // Default duration if not provided by API
       completed: false,
       thumbnail: course.thumbnail || '/placeholder.svg',
+      videoUrl: course.video,
       questions: [] // We'll need to fetch questions separately if needed
     };
     
@@ -474,13 +489,15 @@ const EmployeeCourses = () => {
                       </p>
                     </CardContent>
                     <CardFooter className="bg-gray-50">
-                      <Button 
-                        variant="default" 
-                        className="w-full"
-                        onClick={() => downloadCertificate(campaign.id)}
-                      >
-                        Download Certificate
-                      </Button>
+                      {!campaign.completed && (
+                        <Button 
+                          variant="secondary" 
+                          size="sm" 
+                          onClick={() => handleStartVideo(campaign, campaign.courses[0])}
+                        >
+                          Start
+                        </Button>
+                      )}
                     </CardFooter>
                   </Card>
                 ))}
@@ -501,19 +518,43 @@ const EmployeeCourses = () => {
       </div>
     
     {/* Video Player Dialog */}
-    <Dialog open={!!activeVideo && !showQuiz} onOpenChange={(open) => !open && setActiveVideo(null)}>
+    <Dialog open={!!activeVideo && !showQuiz} onOpenChange={(open) => {
+      if (!open) {
+        setActiveVideo(null);
+        setVideoPlaying(false);
+      }
+    }}>
       <DialogContent className="sm:max-w-[700px]">
         <DialogHeader>
           <DialogTitle>{activeVideo?.title}</DialogTitle>
         </DialogHeader>
         
         {activeVideo && (
-          <VideoPlayer 
-            title={activeVideo.title}
-            thumbnail={activeVideo.thumbnail}
-            onComplete={handleVideoComplete}
-          />
+          <div>
+            {!videoPlaying ? (
+              <div className="relative cursor-pointer group aspect-video" onClick={() => setVideoPlaying(true)}>
+                <img src={activeVideo.thumbnail} alt={activeVideo.title} className="w-full h-full object-cover rounded-md" />
+                <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-40 group-hover:bg-opacity-60 transition-all duration-300">
+                  <PlayCircle className="w-20 h-20 text-white opacity-80 group-hover:opacity-100 transform group-hover:scale-110 transition-transform duration-300" />
+                </div>
+              </div>
+            ) : (
+              <VideoPlayer 
+                title={activeVideo.title}
+                thumbnail={activeVideo.thumbnail}
+                onComplete={handleMarkCourseAsCompleted}
+                videoUrl={activeVideo.videoUrl}
+                autoplay
+              />
+            )}
+          </div>
         )}
+        <DialogFooter className="sm:justify-between">
+            <Button onClick={handleMarkCourseAsCompleted}>
+              <Check className="mr-2 h-4 w-4" />
+              Mark as Completed
+            </Button>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
     

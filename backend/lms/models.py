@@ -53,3 +53,22 @@ class LMSCampaignUser(models.Model):
         if self.user.company != self.campaign.company:
             raise ValueError("User must belong to the same company as the campaign")
         super().save(*args, **kwargs)
+
+
+class UserCourseProgress(models.Model):
+    """Model to track user progress for each course in an LMS campaign."""
+    campaign_user = models.ForeignKey(LMSCampaignUser, on_delete=models.CASCADE, related_name='course_progress')
+    course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name='user_progress_records')
+    progress = models.PositiveIntegerField(default=0, help_text="Progress percentage (0-100)")
+    completed = models.BooleanField(default=False)
+    completed_at = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = 'User Course Progress'
+        verbose_name_plural = 'User Course Progress'
+        unique_together = ['campaign_user', 'course']
+
+    def __str__(self):
+        return f"{self.campaign_user.user.email} - {self.course.name} ({self.campaign_user.campaign.name}) - {self.progress}%"

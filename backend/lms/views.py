@@ -7,7 +7,7 @@ from rest_framework.response import Response
 from rest_framework import status
 from courses.models import Course, Question
 from accounts.models import Company, User
-from .models import LMSCampaign, LMSCampaignUser
+from .models import LMSCampaign, LMSCampaignUser, UserCourseProgress
 from django.utils import timezone
 from django.db.models import Q
 import json
@@ -204,36 +204,27 @@ def get_user_campaigns(request):
     current_date = timezone.now().date()
     
     try:
-        print(f"[DEBUG] Getting campaigns for user: {user.email}, company: {company.name}")
-        
         # Get campaigns assigned to this user that are in the same company
         user_campaign_relations = LMSCampaignUser.objects.filter(
             user=user,
             campaign__company=company
         ).select_related('campaign').prefetch_related('campaign__courses')
         
-        print(f"[DEBUG] Found {user_campaign_relations.count()} campaign relations")
-        
         # Filter campaigns by date if start_date and end_date are set
         active_campaigns = []
         for relation in user_campaign_relations:
             campaign = relation.campaign
-            print(f"[DEBUG] Processing campaign: {campaign.name}")
-            print(f"[DEBUG] Campaign dates - Start: {campaign.start_date}, End: {campaign.end_date}, Current: {current_date}")
             
             # Only include campaigns where current date is between start_date and end_date
             # If dates are not set, include the campaign
             date_condition = (campaign.start_date is None or campaign.start_date <= current_date) and \
                            (campaign.end_date is None or campaign.end_date >= current_date)
-            print(f"[DEBUG] Date condition: {date_condition}")
             
             if date_condition:
                 active_campaigns.append({
                     "relation": relation,
                     "campaign": campaign
                 })
-        
-        print(f"[DEBUG] Found {len(active_campaigns)} active campaigns after date filtering")
         
         # Format data for response
         data = []
@@ -242,47 +233,117 @@ def get_user_campaigns(request):
             relation = item["relation"]
             
             # Get all courses for this campaign
-            campaign_courses = list(campaign.courses.all())  # Force evaluation of the queryset
-            print(f"[DEBUG] Campaign {campaign.name} has {len(campaign_courses)} courses")
+            campaign_courses = list(campaign.courses.all())
             
             # If no courses, skip this campaign
             if not campaign_courses:
-                print(f"[DEBUG] No courses found for campaign: {campaign.name}")
                 continue
                 
-            # Prepare list of course data
+            # Prepare list of course data and track completion
             courses_data = []
+            completed_courses_count = 0
+
             for course in campaign_courses:
-                print(f"[DEBUG] Processing course: {course.name} (ID: {course.id})")
+                # Check course completion status from UserCourseProgress
+                try:
+                    progress_record = UserCourseProgress.objects.get(
+                        campaign_user=relation,
+                        course=course
+                    )
+                    is_completed = progress_record.completed
+                except UserCourseProgress.DoesNotExist:
+                    is_completed = False
+                
+                if is_completed:
+                    completed_courses_count += 1
+
                 # Get course details
                 course_data = {
                     "id": str(course.id),
                     "title": course.name,
                     "description": course.description or "",
                     "thumbnail": request.build_absolute_uri(course.thumbnail.url) if course.thumbnail else "",
-                    "video": request.build_absolute_uri(course.video.url) if course.video else ""
+                    "video": request.build_absolute_uri(course.video.url) if course.video else "",
+                    "completed": is_completed
                 }
                 courses_data.append(course_data)
             
+            # Calculate campaign progress
+            total_courses_count = len(campaign_courses)
+            campaign_progress = 0
+            if total_courses_count > 0:
+                campaign_progress = int((completed_courses_count / total_courses_count) * 100)
+            
+            campaign_completed = (total_courses_count > 0 and completed_courses_count == total_courses_count)
+
             # Format campaign data with multiple courses
             campaign_data = {
                 "id": str(campaign.id),
                 "title": campaign.name,
                 "description": courses_data[0]["description"] if courses_data else "",
                 "dueDate": campaign.end_date.strftime("%Y-%m-%d") if campaign.end_date else "",
-                "progress": 100 if relation.completed else (50 if relation.started else 0),
-                "completed": relation.completed,
-                "certificateAvailable": relation.completed,
+                "progress": campaign_progress,
+                "completed": campaign_completed,
+                "certificateAvailable": campaign_completed,
                 "courses": courses_data,
-                "totalCourses": len(courses_data),
-                "completedCourses": len(courses_data) if relation.completed else 0,
+                "totalCourses": total_courses_count,
+                "completedCourses": completed_courses_count,
             }
             data.append(campaign_data)
         
-        print(f"[DEBUG] Returning {len(data)} campaigns with courses")
         return Response(data)
     except Exception as e:
-        print(f"[ERROR] Error in get_user_campaigns: {str(e)}")
         import traceback
         traceback.print_exc()
+        return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def mark_course_completed(request):
+    """API endpoint to mark a course as completed for the current user."""
+    user = request.user
+    
+    try:
+        data = request.data
+        campaign_id = data.get('campaign_id')
+        course_id = data.get('course_id')
+        
+        if not campaign_id or not course_id:
+            return Response({"error": "Campaign ID and Course ID are required"}, status=status.HTTP_400_BAD_REQUEST)
+            
+        # Get the specific campaign-user relation
+        campaign_user = LMSCampaignUser.objects.get(user=user, campaign_id=campaign_id)
+        
+        # Get the course
+        course = Course.objects.get(id=course_id)
+        
+        # Create or update the progress record
+        progress, created = UserCourseProgress.objects.update_or_create(
+            campaign_user=campaign_user,
+            course=course,
+            defaults={'completed': True, 'completed_at': timezone.now()}
+        )
+        
+        # After marking a course as complete, check if the whole campaign is complete
+        all_courses_in_campaign = campaign_user.campaign.courses.all()
+        
+        # Count completed courses for this user in this campaign
+        completed_courses_count = UserCourseProgress.objects.filter(
+            campaign_user=campaign_user,
+            completed=True
+        ).count()
+
+        if all_courses_in_campaign.count() > 0 and all_courses_in_campaign.count() == completed_courses_count:
+            campaign_user.completed = True
+            campaign_user.completed_at = timezone.now()
+            campaign_user.save()
+
+        return Response({"success": True, "message": "Course marked as completed."}, status=status.HTTP_200_OK)
+        
+    except LMSCampaignUser.DoesNotExist:
+        return Response({"error": "You are not enrolled in this campaign."}, status=status.HTTP_404_NOT_FOUND)
+    except Course.DoesNotExist:
+        return Response({"error": "Course not found."}, status=status.HTTP_404_NOT_FOUND)
+    except Exception as e:
         return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import LMSCampaign, LMSCampaignUser
+from .models import LMSCampaign, LMSCampaignUser, UserCourseProgress
 from courses.models import Question, Course
 from accounts.models import User
 
@@ -127,12 +127,24 @@ class LMSCampaignAdmin(admin.ModelAdmin):
         return super().formfield_for_foreignkey(db_field, request, **kwargs)
 
 
+class UserCourseProgressInline(admin.TabularInline):
+    model = UserCourseProgress
+    extra = 0  # Don't show empty forms
+    readonly_fields = ('course', 'progress', 'completed', 'completed_at', 'created_at', 'updated_at')
+    can_delete = False
+    max_num = 0  # Remove the "Add another" link
+    show_change_link = True
+    
+    def has_add_permission(self, request, obj=None):
+        return False
+
 @admin.register(LMSCampaignUser)
 class LMSCampaignUserAdmin(admin.ModelAdmin):
     list_display = ('get_user_email', 'campaign', 'started', 'completed', 'created_at')
     list_filter = ('campaign', 'started', 'completed', 'created_at')
     search_fields = ('user__email', 'user__username', 'campaign__name')
     readonly_fields = ('started_at', 'completed_at')
+    inlines = [UserCourseProgressInline]
     fieldsets = (
         (None, {
             'fields': ('campaign', 'user')
@@ -148,7 +160,6 @@ class LMSCampaignUserAdmin(admin.ModelAdmin):
     
     def formfield_for_foreignkey(self, db_field, request, **kwargs):
         if db_field.name == 'user':
-            # If campaign is already selected, filter users by that campaign's company
             campaign_id = request.GET.get('campaign')
             if campaign_id:
                 try:
@@ -160,3 +171,30 @@ class LMSCampaignUserAdmin(admin.ModelAdmin):
                 except LMSCampaign.DoesNotExist:
                     kwargs['queryset'] = User.objects.all()
         return super().formfield_for_foreignkey(db_field, request, **kwargs)
+
+
+@admin.register(UserCourseProgress)
+class UserCourseProgressAdmin(admin.ModelAdmin):
+    list_display = ('get_user', 'get_campaign', 'course', 'progress_percentage', 'completed', 'completed_at')
+    list_filter = ('course', 'completed', 'campaign_user__campaign')
+    search_fields = ('campaign_user__user__email', 'course__name', 'campaign_user__campaign__name')
+    readonly_fields = ('created_at', 'updated_at')
+    list_select_related = ('campaign_user__user', 'campaign_user__campaign', 'course')
+    
+    def get_user(self, obj):
+        return obj.campaign_user.user.email
+    get_user.short_description = 'User'
+    get_user.admin_order_field = 'campaign_user__user__email'
+    
+    def get_campaign(self, obj):
+        return obj.campaign_user.campaign.name
+    get_campaign.short_description = 'Campaign'
+    get_campaign.admin_order_field = 'campaign_user__campaign__name'
+    
+    def progress_percentage(self, obj):
+        return f"{obj.progress}%"
+    progress_percentage.short_description = 'Progress'
+    progress_percentage.admin_order_field = 'progress'
+    
+    def has_add_permission(self, request):
+        return False  # Prevent adding progress records directly from admin

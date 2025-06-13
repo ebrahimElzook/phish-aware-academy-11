@@ -924,6 +924,37 @@ export const lmsService = {
       }
       throw error;
     }
+  },
+
+  markCourseCompleted: async (campaignId: string, courseId: string) => {
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        throw new Error('No authentication token found');
+      }
+
+      const response = await fetch(`${API_URL}/mark-course-completed/`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ 
+          campaign_id: campaignId,
+          course_id: courseId
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to mark course as completed');
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error('Error marking course as completed:', error);
+      throw error;
+    }
   }
 };
 
