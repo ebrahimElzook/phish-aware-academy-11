@@ -1,8 +1,6 @@
-
 import React from 'react';
 import { Card, CardContent } from "@/components/ui/card";
-import { Award, Download } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Award } from "lucide-react";
 
 interface CertificatePreviewProps {
   courseName?: string;
@@ -15,22 +13,11 @@ export const CertificatePreview: React.FC<CertificatePreviewProps> = ({
   userName = "John Doe",
   completionDate = new Date().toLocaleDateString()
 }) => {
-  const handleDownload = () => {
-    // In a real implementation, this would generate and download a PDF certificate
-    alert("Certificate download functionality would be implemented here");
-  };
-
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h3 className="text-lg font-semibold flex items-center gap-2">
-          <Award className="h-5 w-5 text-yellow-500" />
-          Certificate Preview
-        </h3>
-        <Button variant="outline" size="sm" onClick={handleDownload} className="gap-1">
-          <Download className="h-4 w-4" />
-          Download
-        </Button>
+      <div className="flex items-center gap-2">
+        <Award className="h-5 w-5 text-yellow-500" />
+        <h3 className="text-lg font-semibold">Certificate Preview</h3>
       </div>
 
       <Card className="border-2 border-dashed">

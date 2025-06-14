@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useToast } from "@/components/ui/use-toast";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { lmsService } from '@/services/api';
+import { lmsService, authService } from '@/services/api';
 import { CourseCard } from "@/components/CourseCard";
 import { VideoPlayer } from "@/components/VideoPlayer";
 import { Quiz } from "@/components/Quiz";
@@ -42,6 +42,7 @@ import {
   BookOpen,
   PlayCircle
 } from 'lucide-react';
+import CertificateCard from '@/components/lms/CertificateCard';
 
 interface QuizOption {
   id: string;
@@ -101,6 +102,13 @@ interface Campaign {
   completedCourses: number;
 }
 
+interface Certificate {
+  id: string;
+  title: string;
+  userName: string;
+  completionDate: Date;
+}
+
 const EmployeeCourses = () => {
   const { toast } = useToast();
   const [activeCampaign, setActiveCampaign] = useState<Campaign | null>(null);
@@ -115,6 +123,9 @@ const EmployeeCourses = () => {
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [certificates, setCertificates] = useState<Certificate[]>([]);
+  const [loadingCertificates, setLoadingCertificates] = useState(true);
+  const [currentUserName, setCurrentUserName] = useState<string>('');
 
   const fetchUserCampaigns = async () => {
     try {
@@ -167,6 +178,46 @@ const EmployeeCourses = () => {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    const fetchCertificates = async () => {
+      try {
+        const data = await lmsService.getCertificates();
+        const parsed: Certificate[] = (data || []).map((c: any) => ({
+          id: c.id,
+          title: c.title,
+          userName: c.userName,
+          completionDate: c.completionDate ? new Date(c.completionDate) : new Date(),
+        }));
+        setCertificates(parsed);
+      } catch (err) {
+        console.error('Failed to load certificates', err);
+        toast({
+          title: 'Error',
+          description: 'Failed to load certificates.',
+          variant: 'destructive',
+        });
+      } finally {
+        setLoadingCertificates(false);
+      }
+    };
+
+    fetchCertificates();
+  }, []);
+
+  // Fetch profile to know current user's full name
+  useEffect(() => {
+    const fetchProfile = async () => {
+      try {
+        const profile = await authService.getProfile();
+        const fullName = `${profile.first_name} ${profile.last_name}`.trim();
+        setCurrentUserName(fullName);
+      } catch (err) {
+        console.error('Failed to fetch profile', err);
+      }
+    };
+    fetchProfile();
+  }, []);
 
   // Fetch user's assigned campaigns on component mount
   useEffect(() => {
@@ -492,43 +543,31 @@ const EmployeeCourses = () => {
               </div>
             </TabsContent>
             <TabsContent value="certificates">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {campaigns.filter(campaign => campaign.certificateAvailable).map(campaign => (
-                  <Card key={campaign.id} className="overflow-hidden">
-                    <CardHeader className="bg-amber-50">
-                      <div className="flex items-center justify-between">
-                        <CardTitle>{campaign.title}</CardTitle>
-                        <Award className="h-5 w-5 text-yellow-600" />
-                      </div>
-                    </CardHeader>
-                    <CardContent className="pt-4">
-                      <p className="text-sm">
-                        Issued on: {new Date().toLocaleDateString()}
-                      </p>
-                    </CardContent>
-                    <CardFooter className="bg-gray-50">
-                      {!campaign.completed && (
-                        <Button 
-                          variant="secondary" 
-                          size="sm" 
-                          onClick={() => handleStartVideo(campaign, campaign.courses[0])}
-                        >
-                          Start
-                        </Button>
-                      )}
-                    </CardFooter>
-                  </Card>
-                ))}
-                
-                {campaigns.filter(campaign => campaign.certificateAvailable).length === 0 && (
-                  <div className="col-span-2 text-center p-8">
-                    <Award className="h-12 w-12 mx-auto text-gray-300 mb-2" />
-                    <h3 className="text-lg font-medium">No Certificates Yet</h3>
-                    <p className="text-muted-foreground">
-                      Complete your assigned courses to earn certificates.
-                    </p>
-                  </div>
-                )}
+              <div className="space-y-6">
+                <div className="flex items-center gap-2">
+                  <Award className="h-5 w-5 text-yellow-500" />
+                  <h2 className="text-xl font-semibold">My Certificates</h2>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {loadingCertificates ? (
+                    <p>Loading certificates...</p>
+                  ) : certificates.filter(cert => cert.userName === currentUserName).length === 0 ? (
+                    <p>No certificates found.</p>
+                  ) : (
+                    certificates
+                      .filter(cert => cert.userName === currentUserName)
+                      .map(cert => (
+                        <CertificateCard
+                          key={cert.id}
+                          id={cert.id}
+                          title={cert.title}
+                          userName={cert.userName}
+                          completionDate={cert.completionDate}
+                        />
+                      ))
+                  )}
+                </div>
               </div>
             </TabsContent>
           </Tabs>

@@ -196,7 +196,8 @@ CSRF_COOKIE_SAMESITE = 'None'  # Allow cross-site requests
 CSRF_USE_SESSIONS = False  # Don't use sessions for CSRF
 CSRF_COOKIE_DOMAIN = '.up.railway.app'  # Allow sharing across Railway subdomains
 CORS_ORIGIN_WHITELIST.append(FRONTEND_URL)
-
+if  DEBUG:
+     CSRF_COOKIE_DOMAIN = None        # ← allow localhost
 # Email tracking settings
 EMAIL_TRACKING_ENABLED = True
 EMAIL_TRACKING_URL = BACKEND_URL
