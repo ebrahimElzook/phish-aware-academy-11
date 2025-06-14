@@ -444,17 +444,6 @@ const Analytics = () => {
                         </div>
                       </div>
                       
-                      <div className="flex">
-                        <div className="bg-teal-100 text-teal-700 p-2 rounded-lg mr-4">
-                          <TrendingUp className="h-5 w-5" />
-                        </div>
-                        <div>
-                          <h3 className="font-medium mb-1">Update Templates</h3>
-                          <p className="text-gray-600">
-                            The "Bonus Offer" template has the highest click rate at 42%. Create more variations of this scenario for better training.
-                          </p>
-                        </div>
-                      </div>
                     </div>
                   </CardContent>
                 </Card>
