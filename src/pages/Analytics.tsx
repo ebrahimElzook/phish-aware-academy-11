@@ -445,18 +445,6 @@ const Analytics = () => {
                       </div>
                       
                       <div className="flex">
-                        <div className="bg-amber-100 text-amber-700 p-2 rounded-lg mr-4">
-                          <TrendingUp className="h-5 w-5" />
-                        </div>
-                        <div>
-                          <h3 className="font-medium mb-1">Improve Reporting Time</h3>
-                          <p className="text-gray-600">
-                            25% of users still take more than 15 minutes to report phishing. Run quick response drills to improve this metric.
-                          </p>
-                        </div>
-                      </div>
-                      
-                      <div className="flex">
                         <div className="bg-teal-100 text-teal-700 p-2 rounded-lg mr-4">
                           <TrendingUp className="h-5 w-5" />
                         </div>

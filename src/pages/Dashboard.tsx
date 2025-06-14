@@ -21,24 +21,37 @@ import Footer from '@/components/Footer';
 import Video from '@/components/Video';
 import { API_ENDPOINTS, getAuthHeaders } from '@/config/api';
 
-// Mock data for charts
-const campaignData = [
-  { name: 'Week 1', clickRate: 32, reportRate: 18 },
-  { name: 'Week 2', clickRate: 28, reportRate: 22 },
-  { name: 'Week 3', clickRate: 24, reportRate: 28 },
-  { name: 'Week 4', clickRate: 19, reportRate: 34 },
-  { name: 'Week 5', clickRate: 15, reportRate: 42 },
-  { name: 'Week 6', clickRate: 12, reportRate: 48 },
-];
+// Interfaces for fetched analytics data
+interface SummaryStats {
+  total_campaigns: number;
+  total_emails_sent: number;
+  total_emails_clicked: number;
+  total_emails_read: number;
+  average_click_rate: number;
+  average_read_rate: number;
+}
 
-const departmentData = [
-  { name: 'IT', clickRate: 11 },
-  { name: 'Marketing', clickRate: 28 },
-  { name: 'Sales', clickRate: 24 },
-  { name: 'HR', clickRate: 19 },
-  { name: 'Finance', clickRate: 26 },
-  { name: 'Operations', clickRate: 22 },
-];
+interface TemporalTrendPoint {
+  period: string;
+  click_rate: number;
+  read_rate: number;
+}
+
+interface LMSOverviewDashboard {
+  campaigns_count: number;
+  enrolled_users: number;
+  average_completion: number;
+}
+
+interface DepartmentPerformance {
+  department_id: string | null;
+  department_name: string;
+  emails_sent: number;
+  emails_clicked: number;
+  emails_read: number;
+  click_rate: number;
+  read_rate: number;
+}
 
 // Mock campaign data
 const campaigns = [
@@ -49,7 +62,7 @@ const campaigns = [
     sentDate: '2025-04-10',
     targets: 85,
     clicks: 17,
-    reports: 8
+    reads: 8
   },
   { 
     id: 2, 
@@ -58,7 +71,7 @@ const campaigns = [
     sentDate: '2025-04-02',
     targets: 120,
     clicks: 36,
-    reports: 12
+    reads: 12
   },
   { 
     id: 3, 
@@ -67,15 +80,9 @@ const campaigns = [
     sentDate: '-',
     targets: 0,
     clicks: 0,
-    reports: 0
+    reads: 0
   }
 ];
-
-interface LMSOverviewDashboard {
-  campaigns_count: number;
-  enrolled_users: number;
-  average_completion: number;
-}
 
 const Dashboard = () => {
   const { companySlug } = useParams<{ companySlug?: string }>();
@@ -85,6 +92,20 @@ const Dashboard = () => {
 
   const [lmsStats, setLmsStats] = useState<LMSOverviewDashboard | null>(null);
   const [lmsError, setLmsError] = useState<string | null>(null);
+
+  // --- Phishing analytics state ---
+  const [summaryStats, setSummaryStats] = useState<SummaryStats | null>(null);
+  const [loadingSummary, setLoadingSummary] = useState(true);
+  const [errorSummary, setErrorSummary] = useState<string | null>(null);
+
+  const [temporalTrend, setTemporalTrend] = useState<TemporalTrendPoint[]>([]);
+  const [loadingTrend, setLoadingTrend] = useState(true);
+  const [errorTrend, setErrorTrend] = useState<string | null>(null);
+
+  // --- Department performance state ---
+  const [departmentPerformance, setDepartmentPerformance] = useState<DepartmentPerformance[]>([]);
+  const [loadingDept, setLoadingDept] = useState(true);
+  const [errorDept, setErrorDept] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchLmsStats = async () => {
@@ -114,6 +135,61 @@ const Dashboard = () => {
     fetchLmsStats();
   }, []);
 
+  // Fetch phishing analytics once on mount
+  useEffect(() => {
+    const fetchSummary = async () => {
+      setLoadingSummary(true);
+      try {
+        const res = await fetch(API_ENDPOINTS.ANALYTICS_SUMMARY, {
+          headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
+        });
+        if (!res.ok) throw new Error(`HTTP error ${res.status}`);
+        setSummaryStats(await res.json());
+      } catch (err) {
+        console.error('Failed to fetch summary stats', err);
+        setErrorSummary('Failed to load');
+      } finally {
+        setLoadingSummary(false);
+      }
+    };
+
+    const fetchTrend = async () => {
+      setLoadingTrend(true);
+      try {
+        const res = await fetch(`${API_ENDPOINTS.ANALYTICS_TREND}?range=6months`, {
+          headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
+        });
+        if (!res.ok) throw new Error(`HTTP error ${res.status}`);
+        setTemporalTrend(await res.json());
+      } catch (err) {
+        console.error('Failed to fetch temporal trend', err);
+        setErrorTrend('Failed to load');
+      } finally {
+        setLoadingTrend(false);
+      }
+    };
+
+    const fetchDeptPerf = async () => {
+      setLoadingDept(true);
+      try {
+        const res = await fetch(API_ENDPOINTS.ANALYTICS_DEPARTMENT, {
+          headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
+        });
+        if (!res.ok) throw new Error(`HTTP error ${res.status}`);
+        setDepartmentPerformance(await res.json());
+      } catch (err) {
+        console.error('Failed to fetch department data', err);
+        setErrorDept('Failed to load');
+      } finally {
+        setLoadingDept(false);
+      }
+    };
+
+    fetchSummary();
+    fetchTrend();
+    fetchDeptPerf();
+  }, []);
+
   return (
     <div className="min-h-screen flex flex-col">
       <Navbar />
@@ -141,8 +217,10 @@ const Dashboard = () => {
                   <CardContent className="p-6">
                     <div className="flex items-center justify-between">
                       <div>
-                        <p className="text-sm font-medium text-gray-500">Active Campaigns</p>
-                        <p className="text-3xl font-bold">3</p>
+                        <p className="text-sm font-medium text-gray-500">Total Campaigns</p>
+                        <p className="text-3xl font-bold">
+                          {loadingSummary ? '...' : summaryStats ? summaryStats.total_campaigns : 'N/A'}
+                        </p>
                       </div>
                       <div className="bg-phish-50 p-3 rounded-lg">
                         <Mail className="h-5 w-5 text-phish-600" />
@@ -159,8 +237,10 @@ const Dashboard = () => {
                   <CardContent className="p-6">
                     <div className="flex items-center justify-between">
                       <div>
-                        <p className="text-sm font-medium text-gray-500">Click Rate</p>
-                        <p className="text-3xl font-bold">24.8%</p>
+                        <p className="text-sm font-medium text-gray-500">Average Click Rate</p>
+                        <p className="text-3xl font-bold">
+                          {loadingSummary ? '...' : summaryStats ? `${summaryStats.average_click_rate.toFixed(2)}%` : 'N/A'}
+                        </p>
                       </div>
                       <div className="bg-red-50 p-3 rounded-lg">
                         <AlertCircle className="h-5 w-5 text-red-500" />
@@ -177,8 +257,10 @@ const Dashboard = () => {
                   <CardContent className="p-6">
                     <div className="flex items-center justify-between">
                       <div>
-                        <p className="text-sm font-medium text-gray-500">Report Rate</p>
-                        <p className="text-3xl font-bold">36.5%</p>
+                        <p className="text-sm font-medium text-gray-500">Average Read Rate</p>
+                        <p className="text-3xl font-bold">
+                          {loadingSummary ? '...' : summaryStats ? `${summaryStats.average_read_rate.toFixed(2)}%` : 'N/A'}
+                        </p>
                       </div>
                       <div className="bg-green-50 p-3 rounded-lg">
                         <CheckCircle className="h-5 w-5 text-green-500" />
@@ -195,8 +277,10 @@ const Dashboard = () => {
                   <CardContent className="p-6">
                     <div className="flex items-center justify-between">
                       <div>
-                        <p className="text-sm font-medium text-gray-500">Total Targets</p>
-                        <p className="text-3xl font-bold">205</p>
+                        <p className="text-sm font-medium text-gray-500">Total Emails Sent</p>
+                        <p className="text-3xl font-bold">
+                          {loadingSummary ? '...' : summaryStats ? summaryStats.total_emails_sent : 'N/A'}
+                        </p>
                       </div>
                       <div className="bg-blue-50 p-3 rounded-lg">
                         <Users className="h-5 w-5 text-blue-500" />
@@ -220,25 +304,25 @@ const Dashboard = () => {
                     <div className="h-80">
                       <ResponsiveContainer width="100%" height="100%">
                         <LineChart
-                          data={campaignData}
+                          data={temporalTrend}
                           margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
                         >
                           <CartesianGrid strokeDasharray="3 3" />
-                          <XAxis dataKey="name" />
-                          <YAxis />
+                          <XAxis dataKey="period" />
+                          <YAxis unit="%" domain={[0, 100]} />
                           <Tooltip />
                           <Legend />
                           <Line
                             type="monotone"
-                            dataKey="clickRate"
+                            dataKey="click_rate"
                             name="Click Rate (%)"
                             stroke="#ef4444"
                             activeDot={{ r: 8 }}
                           />
                           <Line
                             type="monotone"
-                            dataKey="reportRate"
-                            name="Report Rate (%)"
+                            dataKey="read_rate"
+                            name="Read Rate (%)"
                             stroke="#10b981"
                           />
                         </LineChart>
@@ -253,84 +337,33 @@ const Dashboard = () => {
                   </CardHeader>
                   <CardContent>
                     <div className="h-80">
-                      <ResponsiveContainer width="100%" height="100%">
-                        <BarChart
-                          data={departmentData}
-                          margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
-                        >
-                          <CartesianGrid strokeDasharray="3 3" />
-                          <XAxis dataKey="name" />
-                          <YAxis />
-                          <Tooltip />
-                          <Legend />
-                          <Bar
-                            dataKey="clickRate"
-                            name="Click Rate (%)"
-                            fill="#0ea5e9"
-                          />
-                        </BarChart>
-                      </ResponsiveContainer>
+                      {loadingDept ? (
+                        <p>Loading department data...</p>
+                      ) : errorDept ? (
+                        <p className="text-red-500 text-xs">Error: {errorDept}</p>
+                      ) : departmentPerformance.length === 0 ? (
+                        <p>No department data available.</p>
+                      ) : (
+                        <ResponsiveContainer width="100%" height="100%">
+                          <BarChart
+                            data={departmentPerformance}
+                            margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
+                          >
+                            <CartesianGrid strokeDasharray="3 3" />
+                            <XAxis dataKey="department_name" angle={-15} textAnchor="end" height={50} interval={0} />
+                            <YAxis unit="%" domain={[0, 100]} />
+                            <Tooltip formatter={(value:number) => `${value}%`} />
+                            <Legend />
+                            <Bar dataKey="click_rate" name="Click Rate (%)" fill="#ef4444" />
+                            <Bar dataKey="read_rate" name="Read Rate (%)" fill="#22C55E" />
+                          </BarChart>
+                        </ResponsiveContainer>
+                      )}
                     </div>
                   </CardContent>
                 </Card>
               </div>
               
-              {/* Recent Campaigns */}
-              <Card className="border-gray-100">
-                <CardHeader>
-                  <CardTitle>Recent Campaigns</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="overflow-x-auto">
-                    <table className="w-full">
-                      <thead>
-                        <tr className="text-left border-b border-gray-200">
-                          <th className="pb-3 font-medium text-gray-500">Campaign Name</th>
-                          <th className="pb-3 font-medium text-gray-500">Status</th>
-                          <th className="pb-3 font-medium text-gray-500">Sent Date</th>
-                          <th className="pb-3 font-medium text-gray-500">Targets</th>
-                          <th className="pb-3 font-medium text-gray-500">Click Rate</th>
-                          <th className="pb-3 font-medium text-gray-500">Report Rate</th>
-                          <th className="pb-3 font-medium text-gray-500">Actions</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {campaigns.map((campaign) => (
-                          <tr key={campaign.id} className="border-b border-gray-100">
-                            <td className="py-4 font-medium">{campaign.name}</td>
-                            <td className="py-4">
-                              <span 
-                                className={`px-2 py-1 rounded text-xs font-medium ${
-                                  campaign.status === 'Active' 
-                                    ? 'bg-green-100 text-green-800' 
-                                    : campaign.status === 'Draft'
-                                    ? 'bg-gray-100 text-gray-800'
-                                    : 'bg-blue-100 text-blue-800'
-                                }`}
-                              >
-                                {campaign.status}
-                              </span>
-                            </td>
-                            <td className="py-4 text-gray-600">{campaign.sentDate}</td>
-                            <td className="py-4 text-gray-600">{campaign.targets}</td>
-                            <td className="py-4 text-gray-600">
-                              {campaign.targets ? `${Math.round((campaign.clicks / campaign.targets) * 100)}%` : '-'}
-                            </td>
-                            <td className="py-4 text-gray-600">
-                              {campaign.targets ? `${Math.round((campaign.reports / campaign.targets) * 100)}%` : '-'}
-                            </td>
-                            <td className="py-4">
-                              <Button variant="ghost" size="sm" className="text-phish-600 hover:text-phish-700 hover:bg-phish-50">
-                                View
-                              </Button>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </CardContent>
-              </Card>
             </TabsContent>
 
             <TabsContent value="lms" className="space-y-4">
