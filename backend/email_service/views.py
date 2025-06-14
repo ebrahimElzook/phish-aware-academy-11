@@ -503,9 +503,31 @@ def phishing_analytics_summary(request):
         serializer = PhishingSummaryStatsSerializer(summary_data)
         return JsonResponseWithCors(serializer.data)
 
-    campaigns = PhishingCampaign.objects.filter(company=company)
-    emails_qs = Email.objects.filter(phishing_campaign__in=campaigns, sent=True)
+    # -------- New: optional date-range filtering --------
+    from django.utils import timezone
+    from datetime import timedelta
 
+    time_range_param = request.GET.get('range', '6months')  # default 6 months
+    end_date = timezone.now().date()
+
+    if time_range_param == '3months':
+        start_date = end_date - timedelta(days=3 * 30)
+    elif time_range_param == '1year':
+        start_date = end_date - timedelta(days=365)
+    else:  # 6 months
+        start_date = end_date - timedelta(days=6 * 30)
+
+    # ----------------------------------------------------
+
+    campaigns = PhishingCampaign.objects.filter(
+        company=company,
+        start_date__gte=start_date,
+    )
+
+    emails_qs = Email.objects.filter(
+        phishing_campaign__in=campaigns,
+        sent=True,
+    )
     total_campaigns = campaigns.count()
     total_emails_sent = emails_qs.count()
     total_emails_clicked = emails_qs.filter(clicked=True).count()
@@ -533,6 +555,20 @@ def department_performance_analytics(request):
         # Return empty array instead of error
         return JsonResponseWithCors([])
 
+    # -------- New: optional date-range filtering --------
+    from django.utils import timezone
+    from datetime import timedelta
+
+    time_range_param = request.GET.get('range', '6months')
+    end_date = timezone.now().date()
+    if time_range_param == '3months':
+        start_date = end_date - timedelta(days=3 * 30)
+    elif time_range_param == '1year':
+        start_date = end_date - timedelta(days=365)
+    else:
+        start_date = end_date - timedelta(days=6 * 30)
+    # ----------------------------------------------------
+
     departments = Department.objects.filter(company=company)
     # Include users with no department
     departments_data = []
@@ -540,9 +576,10 @@ def department_performance_analytics(request):
     # Handle users with no department
     users_no_department = User.objects.filter(company=company, department__isnull=True)
     emails_no_dept_qs = Email.objects.filter(
-        phishing_campaign__company=company, 
-        recipient__in=users_no_department, 
-        sent=True
+        phishing_campaign__company=company,
+        phishing_campaign__start_date__gte=start_date,
+        recipient__in=users_no_department,
+        sent=True,
     )
     sent_no_dept = emails_no_dept_qs.count()
     clicked_no_dept = emails_no_dept_qs.filter(clicked=True).count()
@@ -562,9 +599,10 @@ def department_performance_analytics(request):
     for dept in departments:
         users_in_dept = User.objects.filter(department=dept)
         emails_qs = Email.objects.filter(
-            phishing_campaign__company=company, 
-            recipient__in=users_in_dept, 
-            sent=True
+            phishing_campaign__company=company,
+            phishing_campaign__start_date__gte=start_date,
+            recipient__in=users_in_dept,
+            sent=True,
         )
         sent_count = emails_qs.count()
         clicked_count = emails_qs.filter(clicked=True).count()

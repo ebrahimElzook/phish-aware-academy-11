@@ -212,6 +212,7 @@ export const UserAccessControl: React.FC = () => {
                   <TableHead>Department</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Actions</TableHead>
+                  <TableHead>Reset</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -276,6 +277,8 @@ export const UserAccessControl: React.FC = () => {
                             Activate
                           </Button>
                         )}
+                        </TableCell>
+                        <TableCell>
                         <Button
                           variant="outline"
                           size="sm"
@@ -284,7 +287,7 @@ export const UserAccessControl: React.FC = () => {
                         >
                           Reset Password
                         </Button>
-                      </TableCell>
+                        </TableCell>
                     </TableRow>
                   ))
                 )}

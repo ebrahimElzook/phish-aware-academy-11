@@ -1,8 +1,7 @@
-
 import { Link } from 'react-router-dom';
 import { VideoLibrary } from '@/components/lms/VideoLibrary';
 import { CampaignList } from '@/components/lms/CampaignList';
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { CampaignCreator } from '@/components/lms/CampaignCreator';
 import { Card } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -11,6 +10,7 @@ import { Video, FileText, Users, Award } from 'lucide-react';
 import CertificateCard from '@/components/lms/CertificateCard';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
+import { lmsService } from '@/services/api';
 
 const LMSCampaigns = () => {
   const [refreshKey, setRefreshKey] = useState(0);
@@ -18,24 +18,45 @@ const LMSCampaigns = () => {
     toast
   } = useToast();
 
-  // Mock certificates data for demonstration
-  const mockCertificates = [{
-    id: "cert1",
-    title: "Password Security Basics",
-    userName: "Alex Johnson",
-    completionDate: new Date('2025-04-15')
-  }, {
-    id: "cert2",
-    title: "Social Engineering Awareness",
-    userName: "Alex Johnson",
-    completionDate: new Date('2025-03-28')
-  }, {
-    id: "cert3",
-    title: "Data Protection 101",
-    userName: "Alex Johnson",
-    completionDate: new Date('2025-02-10')
-  }];
-  
+  // Certificate type returned by the backend
+  interface Certificate {
+    id: string;
+    title: string;
+    userName: string;
+    completionDate: Date;
+  }
+
+  const [certificates, setCertificates] = useState<Certificate[]>([]);
+  const [loadingCertificates, setLoadingCertificates] = useState(true);
+
+  // Fetch certificates on component mount
+  useEffect(() => {
+    const fetchCertificates = async () => {
+      try {
+        const data = await lmsService.getCertificates();
+        // Convert ISO dates to Date objects for the UI
+        const parsed: Certificate[] = (data || []).map((c: any) => ({
+          id: c.id,
+          title: c.title,
+          userName: c.userName,
+          completionDate: c.completionDate ? new Date(c.completionDate) : new Date()
+        }));
+        setCertificates(parsed);
+      } catch (err) {
+        console.error('Failed to load certificates', err);
+        toast({
+          title: 'Error',
+          description: 'Failed to load certificates.',
+          variant: 'destructive'
+        });
+      } finally {
+        setLoadingCertificates(false);
+      }
+    };
+
+    fetchCertificates();
+  }, []);
+
   return (
     <div className="min-h-screen flex flex-col">
       <Navbar />
@@ -95,7 +116,21 @@ const LMSCampaigns = () => {
                 </div>
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {mockCertificates.map(cert => <CertificateCard key={cert.id} id={cert.id} title={cert.title} userName={cert.userName} completionDate={cert.completionDate} />)}
+                  {loadingCertificates ? (
+                    <p>Loading certificates...</p>
+                  ) : certificates.length === 0 ? (
+                    <p>No certificates found.</p>
+                  ) : (
+                    certificates.map(cert => (
+                      <CertificateCard
+                        key={cert.id}
+                        id={cert.id}
+                        title={cert.title}
+                        userName={cert.userName}
+                        completionDate={cert.completionDate}
+                      />
+                    ))
+                  )}
                 </div>
               </div>
             </TabsContent>

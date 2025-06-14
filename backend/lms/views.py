@@ -1,5 +1,5 @@
 from django.shortcuts import render
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponse
 from django.contrib.admin.views.decorators import staff_member_required
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
@@ -11,6 +11,14 @@ from .models import LMSCampaign, LMSCampaignUser, UserCourseProgress
 from django.utils import timezone
 from django.db.models import Q, Avg, Count
 import json
+
+# PDF generation using lightweight fpdf2
+try:
+    from io import BytesIO
+    from fpdf import FPDF  # type: ignore
+except ImportError:  # pragma: no cover
+    FPDF = None  # type: ignore
+    BytesIO = None  # type: ignore
 
 
 @staff_member_required
@@ -372,9 +380,24 @@ def lms_analytics_overview(request):
     user = request.user
     company = user.company
 
+    # -------- New: optional date-range filtering --------
+    from django.utils import timezone
+    from datetime import timedelta
+
+    time_range_param = request.GET.get('range', '6months')
+    end_date = timezone.now().date()
+
+    if time_range_param == '3months':
+        start_date = end_date - timedelta(days=3 * 30)
+    elif time_range_param == '1year':
+        start_date = end_date - timedelta(days=365)
+    else:  # default 6 months
+        start_date = end_date - timedelta(days=6 * 30)
+    # ---------------------------------------------------
+
     try:
         # All campaigns for this company
-        campaigns_qs = LMSCampaign.objects.filter(company=company)
+        campaigns_qs = LMSCampaign.objects.filter(company=company, start_date__gte=start_date)
 
         # Build list of course counts per campaign
         campaign_course_counts = [
@@ -387,7 +410,10 @@ def lms_analytics_overview(request):
         ]
 
         # Progress records for this company
-        progress_qs = UserCourseProgress.objects.filter(campaign_user__campaign__company=company)
+        progress_qs = UserCourseProgress.objects.filter(
+            campaign_user__campaign__company=company,
+            campaign_user__campaign__start_date__gte=start_date,
+        )
 
         # Restrict to completed progress records
         progress_completed_qs = progress_qs.filter(completed=True)
@@ -407,7 +433,10 @@ def lms_analytics_overview(request):
         # Total distinct enrolled users across campaigns (for dashboard)
         participants_count = (
             LMSCampaignUser.objects
-            .filter(campaign__company=company)
+            .filter(
+                campaign__company=company,
+                campaign__start_date__gte=start_date,
+            )
             .values('user')
             .distinct()
             .count()
@@ -452,3 +481,186 @@ def lms_analytics_overview(request):
         import traceback
         traceback.print_exc()
         return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+# New endpoint to fetch completed LMS campaign certificates for a company
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def company_certificates(request):
+    """Return certificates (completed campaign-user relations) for the current company.
+
+    Each item in the response corresponds to a user who has completed an LMS
+    campaign, meaning a certificate can be issued.  Super-admins may pass a
+    ?company_id=<id> query param to fetch certificates for any company; regular
+    users are limited to their own company.
+    """
+    user = request.user
+
+    # Determine company context
+    company = user.company
+    is_super_admin = False
+    if hasattr(user, 'role'):
+        is_super_admin = user.role == 'SUPER_ADMIN'
+    elif hasattr(user, 'is_superuser'):
+        is_super_admin = bool(user.is_superuser)
+
+    if is_super_admin and request.GET.get('company_id'):
+        try:
+            company = Company.objects.get(id=request.GET['company_id'])
+        except Company.DoesNotExist:
+            company = None
+
+    # Without a valid company we return an empty list (avoids leaking data)
+    if not company:
+        return Response([], status=status.HTTP_200_OK)
+
+    # Fetch all completed campaign↔user relations for this company
+    relations_qs = LMSCampaignUser.objects.filter(
+        campaign__company=company,
+        completed=True
+    ).select_related('user', 'campaign')
+
+    certificates = [
+        {
+            'id': str(rel.id),
+            'title': rel.campaign.name,
+            'userName': rel.user.get_full_name() or rel.user.username or rel.user.email,
+            'completionDate': rel.completed_at.date().isoformat() if rel.completed_at else '',
+        }
+        for rel in relations_qs
+    ]
+
+    return Response(certificates, status=status.HTTP_200_OK)
+
+
+# ------------------ Certificate Download ------------------
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def download_certificate(request, certificate_id):
+    """Generate a simple PDF certificate for the given completed campaign-user relation (certificate)."""
+    # Ensure ReportLab is available
+    if FPDF is None or BytesIO is None:
+        return Response({'error': 'PDF library not installed.'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    try:
+        cert = LMSCampaignUser.objects.select_related('user', 'campaign').get(id=certificate_id, completed=True)
+    except LMSCampaignUser.DoesNotExist:
+        return Response({'error': 'Certificate not found.'}, status=status.HTTP_404_NOT_FOUND)
+
+    # Authorization: Only the owner or company staff/super admin can download
+    user = request.user
+    is_super_admin = getattr(user, 'role', '') == 'SUPER_ADMIN' or getattr(user, 'is_superuser', False)
+    if not (is_super_admin or cert.user == user or (user.company and user.company == cert.campaign.company)):
+        return Response({'error': 'Not authorized to download this certificate.'}, status=status.HTTP_403_FORBIDDEN)
+
+    pdf = FPDF(orientation='P', unit='pt', format='letter')
+    pdf.add_page()
+
+    page_width = pdf.w
+    page_height = pdf.h
+    # Background fill (light gradient substitute)
+    pdf.set_fill_color(245, 248, 255)  # light bluish background
+    pdf.rect(30, 30, page_width-60, page_height-60, 'F')
+    # Border line
+    pdf.set_draw_color(200, 200, 200)
+    pdf.rect(30, 30, page_width-60, page_height-60)
+
+    # Logo image (if exists)
+    import os
+    from django.conf import settings
+    logo_path = os.path.normpath(os.path.join(settings.BASE_DIR, '..', 'public', 'lovable-uploads', '876a553e-d478-4016-a8f0-1580f492ca19.png'))
+    if os.path.exists(logo_path):
+        pdf.image(logo_path, x=(page_width/2)-25, y=60, w=50)
+
+    # Platform name & tagline under logo
+    pdf.set_y(120)
+    pdf.set_font('helvetica', 'B', 18)
+    pdf.cell(0, 24, 'CSWORD', 0, 1, 'C')
+    pdf.set_font('helvetica', '', 12)
+    pdf.set_text_color(100, 100, 100)
+    pdf.cell(0, 16, 'Security Awareness Platform', 0, 1, 'C')
+    pdf.set_text_color(0,0,0)
+
+    current_y = pdf.get_y() + 30
+
+    # Helper to strip/replace characters not supported by standard PDF-14 fonts (Latin-1 only)
+    def _latin1_safe(txt: str) -> str:
+        try:
+            txt.encode('latin-1')
+            return txt
+        except UnicodeEncodeError:
+            return txt.encode('latin-1', 'replace').decode('latin-1')
+
+    full_name_safe = _latin1_safe(cert.user.get_full_name() or cert.user.username or cert.user.email)
+    campaign_name_safe = _latin1_safe(cert.campaign.name)
+
+    # Title
+    pdf.set_y(current_y)
+    pdf.set_font('helvetica', 'B', 24)
+    pdf.cell(0, 30, 'Certificate of Completion', 0, 1, 'C')
+    pdf.set_line_width(0.3)
+    pdf.set_draw_color(210,210,210)
+    pdf.line(60, pdf.get_y(), page_width-60, pdf.get_y())
+    pdf.ln(10)
+
+    # Subtitle
+    pdf.set_font('helvetica', '', 14)
+    pdf.cell(0, 30, 'This certifies that', 0, 1, 'C')
+
+    # Recipient name
+    pdf.set_font('helvetica', 'B', 18)
+    pdf.set_text_color(30, 58, 138)
+    pdf.cell(0, 36, full_name_safe, 0, 1, 'C')
+    pdf.set_text_color(0,0,0)
+
+    # Course title
+    pdf.set_font('helvetica', '', 14)
+    pdf.cell(0, 30, 'has successfully completed the', 0, 1, 'C')
+
+    pdf.set_font('helvetica', 'B', 16)
+    pdf.set_text_color(50,50,50)
+    pdf.multi_cell(0, 28, campaign_name_safe, 0, 'C')
+    pdf.set_text_color(0,0,0)
+
+    # Completion date
+    completed_date = cert.completed_at.date().strftime('%B %d, %Y') if cert.completed_at else ''
+    pdf.set_font('helvetica', '', 14)
+    pdf.ln(5)
+    pdf.set_x(0)
+    pdf.multi_cell(0, 20, f'Completed on {completed_date}', 0, 'C')
+
+
+
+    # Footer lines (signature placeholders)
+    pdf.ln(30)
+    pdf.set_draw_color(180,180,180)
+    start_x = 120
+    sig_width = 120
+    pdf.line(start_x, pdf.get_y(), start_x+sig_width, pdf.get_y())
+    pdf.line(page_width-start_x-sig_width, pdf.get_y(), page_width-start_x, pdf.get_y())
+
+    pdf.set_y(pdf.get_y()+4)
+    pdf.set_font('helvetica','',10)
+    pdf.cell(start_x)
+    pdf.cell(sig_width,5,'Director Signature',0,0,'C')
+    pdf.cell(page_width-2*start_x-2*sig_width)
+    pdf.cell(sig_width,5,'Date',0,1,'C')
+
+    # --- Export PDF bytes (after all drawing) ---
+    try:
+        pdf_raw = pdf.output(dest='S')
+    except Exception as pdf_err:
+        import logging
+        logging.exception("FPDF generation failed: %s", pdf_err)
+        return Response({'error': 'Certificate generation failed.'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    # Convert to bytes if needed
+
+    if isinstance(pdf_raw, str):
+        pdf_raw = pdf_raw.encode('latin1')
+    elif isinstance(pdf_raw, bytearray):
+        pdf_raw = bytes(pdf_raw)
+
+    from django.http import FileResponse
+    response = FileResponse(BytesIO(pdf_raw), content_type='application/pdf', as_attachment=True, filename=f'certificate_{certificate_id}.pdf')
+    return response

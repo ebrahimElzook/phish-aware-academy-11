@@ -22,7 +22,11 @@ interface LMSOverview {
   top_videos: TopVideo[];
 }
 
-const LMSAnalytics = () => {
+interface Props {
+  timeRange: string;
+}
+
+const LMSAnalytics: React.FC<Props> = ({ timeRange }) => {
   const [overview, setOverview] = useState<LMSOverview | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
@@ -32,7 +36,7 @@ const LMSAnalytics = () => {
       setLoading(true);
       setError(null);
       try {
-        const response = await fetch(API_ENDPOINTS.LMS_ANALYTICS_OVERVIEW, {
+        const response = await fetch(`${API_ENDPOINTS.LMS_ANALYTICS_OVERVIEW}?range=${timeRange}`, {
           headers: {
             ...getAuthHeaders(),
             'Content-Type': 'application/json',
@@ -54,7 +58,7 @@ const LMSAnalytics = () => {
     };
 
     fetchOverview();
-  }, []);
+  }, [timeRange]);
 
   if (loading) {
     return <p>Loading LMS analytics...</p>;

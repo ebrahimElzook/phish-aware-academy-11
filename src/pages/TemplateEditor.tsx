@@ -501,9 +501,6 @@ const TemplateEditor = () => {
               </CardHeader>
               <CardContent>
                 <Tabs value="content" className="space-y-4">
-                  <TabsList>
-                    <TabsTrigger value="content">Content</TabsTrigger>
-                  </TabsList>
 
                   <TabsContent value="content" className="space-y-4">
                     <div className="space-y-4">

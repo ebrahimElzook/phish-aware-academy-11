@@ -1,5 +1,5 @@
-
 import React from 'react';
+import { lmsService } from '@/services/api';
 import { 
   Card, 
   CardContent, 
@@ -8,7 +8,7 @@ import {
   CardTitle
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Award, Download, Eye, FileText } from "lucide-react";
+import { Award, Download, Eye } from "lucide-react";
 import { format } from 'date-fns';
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 import { useToast } from '@/hooks/use-toast';
@@ -32,20 +32,34 @@ export const CertificateCard: React.FC<CertificateCardProps> = ({
 }) => {
   const { toast } = useToast();
 
-  const handleDownload = () => {
-    // In a real application, this would generate and download the certificate
-    toast({
-      title: "Download Initiated",
-      description: "Your certificate is being prepared for download.",
-    });
+  const handleDownload = async () => {
+    try {
+      toast({ title: "Preparing download..." });
 
-    // Simulate download delay
-    setTimeout(() => {
+      const blob = await lmsService.downloadCertificate(id);
+
+      // Create a temporary link to trigger download
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `${title.replace(/\s+/g, '_')}_certificate.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+
       toast({
         title: "Certificate Downloaded",
         description: "Your certificate has been downloaded successfully.",
       });
-    }, 1500);
+    } catch (error) {
+      console.error('Certificate download failed', error);
+      toast({
+        title: "Download Failed",
+        description: "Unable to download certificate. Please try again later.",
+        variant: 'destructive',
+      });
+    }
   };
 
   return (

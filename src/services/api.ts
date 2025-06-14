@@ -960,7 +960,61 @@ export const lmsService = {
       console.error('Error marking course as completed:', error);
       throw error;
     }
-  }
+  },
+
+  // Fetch certificates for completed campaigns in the current company
+  getCertificates: async () => {
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        throw new Error('No authentication token found');
+      }
+
+      const response = await fetch(`${API_URL}/lms/certificates/`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || `Failed to fetch certificates: ${response.status}`);
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error('Error fetching certificates:', error);
+      throw error;
+    }
+  },
+
+  // Download certificate PDF
+  downloadCertificate: async (certificateId: string) => {
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) throw new Error('No authentication token found');
+
+      const response = await fetch(`${API_URL}/lms/certificates/${certificateId}/download/`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || `Failed to download certificate: ${response.status}`);
+      }
+
+      // Return blob for caller to trigger download
+      return await response.blob();
+    } catch (error) {
+      console.error('Certificate download error:', error);
+      throw error;
+    }
+  },
 };
 
 export default authService;

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -30,6 +29,8 @@ import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import LMSAnalytics from '@/components/analytics/LMSAnalytics';
 import { API_ENDPOINTS, getAuthHeaders } from '@/config/api';
+import jsPDF from 'jspdf';
+import html2canvas from 'html2canvas';
 
 const departmentData = [
   { name: 'IT', clickRate: 11, reportRate: 55 }, // This will be replaced later
@@ -72,6 +73,7 @@ const Analytics = () => {
   const [summaryStats, setSummaryStats] = useState<SummaryStats | null>(null);
   const [departmentPerformance, setDepartmentPerformance] = useState<DepartmentPerformance[]>([]);
   const [temporalTrend, setTemporalTrend] = useState<TemporalTrendPoint[]>([]);
+  const [activeTab, setActiveTab] = useState<'phishing' | 'lms'>('phishing');
 
   const [loadingSummary, setLoadingSummary] = useState(true);
   const [loadingDeptPerf, setLoadingDeptPerf] = useState(true);
@@ -83,6 +85,10 @@ const Analytics = () => {
 
   const [mostVulnerableDept, setMostVulnerableDept] = useState<DepartmentPerformance | null>(null);
   const [mostEffectiveDept, setMostEffectiveDept] = useState<DepartmentPerformance | null>(null);
+
+  const buildUrlWithRange = (baseUrl: string) => {
+    return `${baseUrl}?range=${timeRange}`;
+  };
 
   useEffect(() => {
     const fetchData = async (endpoint: string) => {
@@ -109,7 +115,7 @@ const Analytics = () => {
       setLoadingSummary(true);
       setErrorSummary(null);
       try {
-        const data = await fetchData(API_ENDPOINTS.ANALYTICS_SUMMARY);
+        const data = await fetchData(buildUrlWithRange(API_ENDPOINTS.ANALYTICS_SUMMARY));
         setSummaryStats(data);
       } catch (error) {
         console.error('Error fetching summary data:', error);
@@ -123,7 +129,7 @@ const Analytics = () => {
       setLoadingDeptPerf(true);
       setErrorDeptPerf(null);
       try {
-        const data = await fetchData(API_ENDPOINTS.ANALYTICS_DEPARTMENT);
+        const data = await fetchData(buildUrlWithRange(API_ENDPOINTS.ANALYTICS_DEPARTMENT));
         setDepartmentPerformance(data);
       } catch (error) {
         console.error('Error fetching department performance:', error);
@@ -133,7 +139,6 @@ const Analytics = () => {
       }
     };
 
-    // Fetch data when component mounts
     const loadData = async () => {
       try {
         await Promise.all([
@@ -146,7 +151,7 @@ const Analytics = () => {
     };
 
     loadData();
-  }, []); // Empty dependency array means this runs once on mount
+  }, [timeRange]);
 
   useEffect(() => {
     const fetchTemporalData = async (range: string) => {
@@ -204,6 +209,44 @@ const Analytics = () => {
     }
   }, [departmentPerformance]);
   
+  const exportReport = async () => {
+    const input = document.getElementById('analytics-report');
+    if (!input) {
+      console.error('Analytics container not found');
+      return;
+    }
+    try {
+      const canvas = await html2canvas(input, { scale: 3 });
+      const imgData = canvas.toDataURL('image/jpeg', 0.8);  // 0.8 = 80 % quality
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = pdf.internal.pageSize.getHeight();
+
+      // Calculate height of the image in the PDF keeping aspect ratio
+      const imgProps = canvas.width / canvas.height;
+      let imgHeight = pdfWidth / imgProps;
+      let heightLeft = imgHeight;
+      let position = 0;
+
+      // Add first page
+      pdf.addImage(imgData, 'JPEG', 0, position, pdfWidth, imgHeight);
+      heightLeft -= pdfHeight;
+
+      // Add extra pages if necessary
+      while (heightLeft > 0) {
+        position = heightLeft - imgHeight;
+        pdf.addPage();
+        pdf.addImage(imgData, 'PNG', 0, position, pdfWidth, imgHeight);
+        heightLeft -= pdfHeight;
+      }
+
+      const baseName = activeTab === 'phishing' ? 'Phishing_Report' : 'LMS_Report';
+      pdf.save(`${baseName}_${new Date().toISOString().split('T')[0]}.pdf`);
+    } catch (error) {
+      console.error('Failed to export report as PDF', error);
+    }
+  };
+
   return (
     <div className="min-h-screen flex flex-col">
       <Navbar />
@@ -229,13 +272,18 @@ const Analytics = () => {
                   <option value="1year">Last Year</option>
                 </select>
               </div>
-              <Button variant="outline" className="flex items-center">
+              <Button variant="outline" className="flex items-center" onClick={exportReport}>
                 <Download className="h-4 w-4 mr-2" /> Export Report
               </Button>
             </div>
           </div>
           
-          <Tabs defaultValue="phishing" className="mt-6">
+          <Tabs
+            id="analytics-report"
+            value={activeTab}
+            onValueChange={(val: 'phishing' | 'lms') => setActiveTab(val)}
+            className="mt-6"
+          >
             <TabsList className="mb-8">
               <TabsTrigger value="phishing" className="flex items-center gap-2">
                 <FileText className="h-4 w-4" />
@@ -451,7 +499,7 @@ const Analytics = () => {
             </TabsContent>
 
             <TabsContent value="lms">
-              <LMSAnalytics />
+              <LMSAnalytics timeRange={timeRange} />
             </TabsContent>
           </Tabs>
         </div>
