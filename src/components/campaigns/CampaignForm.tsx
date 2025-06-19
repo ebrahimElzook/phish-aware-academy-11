@@ -336,7 +336,7 @@ const CampaignForm: React.FC<CampaignFormProps> = ({ companySlug, onClose, onCre
       }
       
       targetUsers = users
-        .filter(user => user.department && selectedDepartments.includes(user.department.id))
+        .filter(user => user.department && selectedDepartments.includes(user.department.toString()))
         .map(user => user.id);
     } else {
       // Get selected individual users
@@ -619,8 +619,8 @@ const CampaignForm: React.FC<CampaignFormProps> = ({ companySlug, onClose, onCre
                       <div key={dept.id} className="flex items-center space-x-2">
                         <Checkbox 
                           id={`dept-${dept.id}`} 
-                          checked={selectedDepartments.includes(dept.id)}
-                          onCheckedChange={() => toggleDepartment(dept.id)}
+                          checked={selectedDepartments.includes(dept.id.toString())}
+                          onCheckedChange={() => toggleDepartment(dept.id.toString())}
                         />
                         <Label htmlFor={`dept-${dept.id}`} className="text-sm font-medium">
                           {dept.name} ({dept.user_count || 0} users)
