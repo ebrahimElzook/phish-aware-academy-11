@@ -375,25 +375,6 @@ const CampaignForm: React.FC<CampaignFormProps> = ({ companySlug, onClose, onCre
       // 2. Send emails to all target users
       await sendEmails(campaignId, targetUsers);
 
-      // 3. Update campaign with email config and template
-      const updateUrl = PHISHING_CAMPAIGN_CREATE_API_ENDPOINT.replace('/create', '');
-      const updateResponse = await fetchWithAuth(`${updateUrl}${campaignId}/`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          email_config: selectedConfigId,
-          template: selectedTemplateId,
-          target_users: targetUsers,
-        }),
-      });
-
-      if (!updateResponse.ok) {
-        const errorData = await updateResponse.json().catch(() => ({}));
-        console.warn('Failed to update campaign with email settings:', errorData);
-        // Don't fail the whole operation if just the update fails
-      }
 
       toast({
         title: 'Success',
@@ -482,7 +463,7 @@ const CampaignForm: React.FC<CampaignFormProps> = ({ companySlug, onClose, onCre
                 .filter((template) => template.is_global || (currentCompanyId !== null && template.company === currentCompanyId))
                 .map((template) => (
                   <SelectItem key={template.id} value={template.id.toString()}>
-                    {template.name || template.subject} ({template.company_name})
+                    {template.name || template.subject} 
                   </SelectItem>
                 ))}
             </SelectContent>

@@ -109,12 +109,6 @@ export const UserAccessControl: React.FC = () => {
         part && !['api', 'auth', 'users', 'reset-password', 'admin'].includes(part)
       ) || 'default-company';
   
-      console.log('Attempting to reset password with:', {
-        userId,
-        companySlug,
-        url: `${API_BASE_URL}/auth/users/${companySlug}/reset-password/`
-      });
-  
       const response = await fetch(
         `${API_BASE_URL}/auth/users/${companySlug}/reset-password/`, 
         {

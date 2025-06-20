@@ -53,6 +53,11 @@ class User(AbstractUser):
         help_text=_('Designates whether this user should be treated as active. '
                     'Unselect this instead of deleting accounts.')
     )
+    activated = models.BooleanField(
+        _('activated'),
+        default=False,
+        help_text=_('Indicates whether the user has activated their account.')
+    )
     
     USERNAME_FIELD = 'username'
     REQUIRED_FIELDS = ['email']

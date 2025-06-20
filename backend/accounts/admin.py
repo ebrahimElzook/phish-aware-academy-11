@@ -40,19 +40,19 @@ class UserAdminForm(forms.ModelForm):
 class UserAdmin(BaseUserAdmin):
     form = UserAdminForm
     model = User
-    list_display = ('email_with_company', 'username', 'first_name', 'last_name', 'role', 'is_staff')
+    list_display = ('email_with_company', 'username', 'first_name', 'last_name', 'role', 'activated', 'is_staff')
     
     def email_with_company(self, obj):
         if obj.company:
             return f"{obj.email} ({obj.company.name})"
         return obj.email
     email_with_company.short_description = 'Email (Company)'
-    list_filter = ('is_staff', 'is_superuser', 'role')
+    list_filter = ('is_staff', 'is_superuser', 'role', 'activated')
     fieldsets = (
         (None, {'fields': ('email', 'password')}),
         (_('Personal info'), {'fields': ('username', 'first_name', 'last_name')}),
         (_('Permissions'), {
-            'fields': ('is_active', 'is_staff', 'is_superuser', 'groups', 'user_permissions'),
+            'fields': ('is_active', 'activated', 'is_staff', 'is_superuser', 'groups', 'user_permissions'),
         }),
         (_('Important dates'), {'fields': ('last_login', 'date_joined')}),
         (_('Custom fields'), {'fields': ('role', 'company', 'department')}),
@@ -60,7 +60,7 @@ class UserAdmin(BaseUserAdmin):
     add_fieldsets = (
         (None, {
             'classes': ('wide',),
-            'fields': ('email', 'username', 'password1', 'password2', 'role', 'company', 'department'),
+            'fields': ('email', 'username', 'password1', 'password2', 'role', 'company', 'department', 'activated'),
         }),
     )
     search_fields = ('email', 'username', 'first_name', 'last_name')
