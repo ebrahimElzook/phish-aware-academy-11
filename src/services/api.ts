@@ -808,8 +808,6 @@ export const fetchWithAuth = async (url: string, options: RequestInit = {}): Pro
     const response = await fetch(absoluteUrl, {
       ...options,
       headers,
-      // Ensure cookies (e.g., csrftoken) are sent & received in cross-origin requests
-      credentials: 'include',
     });
 
     if (response.status === 401) {
@@ -830,8 +828,6 @@ export const fetchWithAuth = async (url: string, options: RequestInit = {}): Pro
         const retryResponse = await fetch(absoluteUrl, {
           ...options,
           headers: newHeaders,
-          // Include cookies on retry as well
-          credentials: 'include',
         });
         
         if (retryResponse.status === 401) {

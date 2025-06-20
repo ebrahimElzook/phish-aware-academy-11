@@ -186,16 +186,6 @@ const CampaignForm: React.FC<CampaignFormProps> = ({ companySlug, onClose, onCre
         throw new Error('Selected email configuration not found');
       }
 
-      // Get CSRF token
-      let csrfToken = getCookie('csrftoken');
-      if (!csrfToken) {
-        const optionsCsrfResponse = await fetch(EMAIL_API_ENDPOINT, { method: 'OPTIONS', credentials: 'include' });
-        if (!optionsCsrfResponse.ok) throw new Error('Failed to establish secure connection for sending emails.');
-        csrfToken = getCookie('csrftoken');
-      }
-      if (!csrfToken) {
-        throw new Error('CSRF token not found for sending emails. Please refresh and try again.');
-      }
 
       const successfulSends: string[] = [];
       const failedSends: { email: string; error: string }[] = [];
@@ -231,8 +221,6 @@ const CampaignForm: React.FC<CampaignFormProps> = ({ companySlug, onClose, onCre
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
-              'X-CSRFToken': csrfToken,
-              'X-Requested-With': 'XMLHttpRequest',
             },
             credentials: 'include',
             body: JSON.stringify(savePayload),
@@ -257,8 +245,6 @@ const CampaignForm: React.FC<CampaignFormProps> = ({ companySlug, onClose, onCre
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
-              'X-CSRFToken': csrfToken,
-              'X-Requested-With': 'XMLHttpRequest',
             },
             credentials: 'include',
             body: JSON.stringify(sendPayload),
