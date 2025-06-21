@@ -83,7 +83,7 @@ const Navbar = () => {
               <Link to={getLink("/campaigns")} className={`transition-colors ${isActive("/campaigns") ? "text-[#907527]" : "text-gray-700 hover:text-[#907527]"}`}>
                 <div className="flex items-center gap-1">
                   <Mail className="h-4 w-4" />
-                  <span>Campaigns</span>
+                  <span>Phishing Simulation</span>
                 </div>
               </Link>
               <Link to={getLink("/analytics")} className={`transition-colors ${isActive("/analytics") ? "text-[#907527]" : "text-gray-700 hover:text-[#907527]"}`}>

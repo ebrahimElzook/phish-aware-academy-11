@@ -207,7 +207,7 @@ const Dashboard = () => {
           <Tabs defaultValue="phishing" className="space-y-4">
             <TabsList>
               <TabsTrigger value="phishing">Phishing Campaigns</TabsTrigger>
-              <TabsTrigger value="lms">Training Videos</TabsTrigger>
+              <TabsTrigger value="lms">LMS Campaign</TabsTrigger>
             </TabsList>
 
             <TabsContent value="phishing" className="space-y-4">

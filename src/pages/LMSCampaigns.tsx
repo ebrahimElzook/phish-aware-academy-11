@@ -81,13 +81,13 @@ const LMSCampaigns = () => {
 
           <Tabs defaultValue="videos" className="w-full">
             <TabsList className="grid w-full max-w-md mx-auto mb-6 grid-cols-3">
-              <TabsTrigger value="videos" className="flex items-center gap-1">
-                <Video className="h-4 w-4" />
-                <span>Videos</span>
-              </TabsTrigger>
               <TabsTrigger value="campaigns" className="flex items-center gap-1">
                 <FileText className="h-4 w-4" />
                 <span>Campaigns</span>
+              </TabsTrigger>
+              <TabsTrigger value="videos" className="flex items-center gap-1">
+                <Video className="h-4 w-4" />
+                <span>Videos</span>
               </TabsTrigger>
               <TabsTrigger value="certificates" className="flex items-center gap-1">
                 <Award className="h-4 w-4" />
