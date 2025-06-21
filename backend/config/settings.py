@@ -12,6 +12,16 @@ SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-default-key')
 
 DEBUG = os.getenv('DEBUG', 'True') == 'True'
 
+# Ensure Django builds absolute URIs with the correct HTTPS scheme when
+# running behind Railway's reverse-proxy / load balancer.
+# The proxy terminates TLS and forwards requests to Django over plain HTTP
+# but sets the `X-Forwarded-Proto: https` header.  Without the following
+# settings `request.is_secure()` returns False and `request.build_absolute_uri()`
+# generates "http://" links, leading to mixed-content errors in browsers.
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+USE_X_FORWARDED_HOST = True
+SECURE_SSL_REDIRECT = not DEBUG
+
 ALLOWED_HOSTS = ['*']  # Allow all hosts for initial deployment
 
 # CORS settings
