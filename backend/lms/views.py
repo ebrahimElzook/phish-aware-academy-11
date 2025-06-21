@@ -193,11 +193,11 @@ def create_lms_campaign(request):
                     else:
                         # Inactive user – generate temp password, set it, send reset email then reminder
                         temp_pwd = generate_random_password()
+                        send_password_reset_email(user, temp_pwd, company_slug)
+                        send_campaign_reminder_email(user, campaign, company_slug)
                         user.set_password(temp_pwd)
                         user.activated = True
                         user.save()
-                        send_password_reset_email(user, temp_pwd, company_slug)
-                        send_campaign_reminder_email(user, campaign, company_slug)
                 except Exception as email_err:
                     import logging
                     logging.exception("Error sending campaign emails for user %s: %s", user.id, email_err)

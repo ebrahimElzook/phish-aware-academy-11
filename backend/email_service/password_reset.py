@@ -104,8 +104,10 @@ def send_password_reset_email(user, password, company_slug):
         login_url = f"{base_url}/{company_slug}/login"
         
         # Get the template path
-        template_path = os.path.join(os.path.dirname(__file__), 'templates', 'password_reset_email.html')
-        
+        if not user.activated:
+         template_path = os.path.join(os.path.dirname(__file__), 'templates', 'password_reset_email.html')
+        else:
+         template_path = os.path.join(os.path.dirname(__file__), 'templates', 'password_reset_request_email.html')   
         # Read the template file
         with open(template_path, 'r') as template_file:
             template_content = template_file.read()
