@@ -18,8 +18,3 @@ if settings.DEBUG:
 else:
     # In production, these should be served by the web server (Nginx, Apache, etc.)
     urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
-    # TEMPORARY: Serve uploaded media files from Django when an external web server is not
-    # available (e.g. Railway).
-    # NOTE:  This should be replaced with a proper solution (e.g. S3/Nginx) for high-traffic
-    # deployments.
-    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

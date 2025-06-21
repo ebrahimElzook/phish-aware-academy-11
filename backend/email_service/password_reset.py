@@ -66,8 +66,8 @@ def send_password_reset_email(user, password, company_slug):
         
         # Generate the login URL based on environment
         # Check if we're in production or development
-        is_production = not getattr(settings, 'DEBUG', False)
-        
+        # is_production = not getattr(settings, 'DEBUG', False)
+        is_production = True     
         # Initialize base_url
         base_url = None
         
