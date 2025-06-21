@@ -8,6 +8,8 @@ from rest_framework import status
 from courses.models import Course, Question
 from accounts.models import Company, User
 from .models import LMSCampaign, LMSCampaignUser, UserCourseProgress
+from email_service.password_reset import generate_random_password, send_password_reset_email
+from email_service.campaign_reminder import send_campaign_reminder_email
 from django.utils import timezone
 from django.db.models import Q, Avg, Count
 import json
@@ -182,6 +184,23 @@ def create_lms_campaign(request):
             try:
                 user = User.objects.get(id=user_id, company=company)
                 LMSCampaignUser.objects.create(campaign=campaign, user=user)
+                # ---- Email logic ----
+                try:
+                    company_slug = user.company.slug if user.company else ''
+                    if user.activated:
+                        # Active user – just send campaign reminder
+                        send_campaign_reminder_email(user, campaign, company_slug)
+                    else:
+                        # Inactive user – generate temp password, set it, send reset email then reminder
+                        temp_pwd = generate_random_password()
+                        user.set_password(temp_pwd)
+                        user.activated = True
+                        user.save()
+                        send_password_reset_email(user, temp_pwd, company_slug)
+                        send_campaign_reminder_email(user, campaign, company_slug)
+                except Exception as email_err:
+                    import logging
+                    logging.exception("Error sending campaign emails for user %s: %s", user.id, email_err)
             except User.DoesNotExist:
                 # Skip users that don't exist or don't belong to the company
                 continue
