@@ -968,7 +968,6 @@ const Sender = () => {
           />
         )}
       </main>
-      <Footer />
     </div>
   );
 };

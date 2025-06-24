@@ -194,13 +194,13 @@ const Dashboard = () => {
     <div className="min-h-screen flex flex-col">
       <Navbar />
       
-      <div className="flex-grow bg-gray-50 py-8 px-6">
+      <div className="flex-grow bg-gray-0 py-8 px-6">
         <div className="max-w-7xl mx-auto">
           {/* Dashboard Header */}
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8">
             <div>
-              <h1 className="text-2xl font-bold mb-1">Dashboard</h1>
-              <p className="text-gray-600">Manage your security awareness training</p>
+            <h1 className="text-2xl font-bold mb-1 text-gray-200">Dashboard</h1>
+            <p className="text-gray-400">Manage your security awareness training</p>
             </div>
           </div>
 
@@ -428,7 +428,6 @@ const Dashboard = () => {
         </div>
       </div>
       
-      <Footer />
     </div>
   );
 };

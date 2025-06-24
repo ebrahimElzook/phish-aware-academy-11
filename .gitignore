@@ -7,6 +7,7 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
+cyber-aware-platform-shield-07-main
 node_modules
 dist
 dist-ssr

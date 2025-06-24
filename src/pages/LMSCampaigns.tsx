@@ -61,12 +61,12 @@ const LMSCampaigns = () => {
     <div className="min-h-screen flex flex-col">
       <Navbar />
       
-      <div className="flex-grow bg-gray-50 py-8 px-6">
+      <div className="flex-grow bg-gray-0 py-8 px-6">
         <div className="max-w-7xl mx-auto space-y-6">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b pb-4 mb-6">
             <div className="flex items-center gap-2">
               <Video className="h-6 w-6 text-[#907527]" />
-              <h1 className="text-2xl font-bold">LMS Management</h1>
+              <h1 className="text-2xl font-bold text-gray-200">LMS Management</h1>
             </div>
             
             <div className="flex flex-wrap gap-2">
@@ -79,7 +79,7 @@ const LMSCampaigns = () => {
             </div>
           </div>
 
-          <Tabs defaultValue="videos" className="w-full">
+          <Tabs defaultValue="campaigns" className="w-full">
             <TabsList className="grid w-full max-w-md mx-auto mb-6 grid-cols-3">
               <TabsTrigger value="campaigns" className="flex items-center gap-1">
                 <FileText className="h-4 w-4" />
@@ -138,7 +138,6 @@ const LMSCampaigns = () => {
         </div>
       </div>
       
-      <Footer />
     </div>
   );
 };

@@ -1,5 +1,4 @@
-
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useLocation, useParams } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
 import { Menu, Book, BookOpen, FileText, BarChart, Users, Mail, LogOut, User, Send } from 'lucide-react';
@@ -31,6 +30,13 @@ const Navbar = () => {
     return path;
   };
   
+  // Helper function to return sidebar link classes (matches design in shield-07)
+  const getLinkClasses = (path: string) =>
+    `flex items-center space-x-3 px-4 py-3 rounded-lg transition-all duration-200 ` +
+    (isActive(path)
+      ? 'bg-[#b89532] text-secondary font-medium' // active: gold background, navy text
+      : 'text-gray-300 hover:bg-gray-700 hover:text-white');
+  
   // Check if a path is active, considering company context and sub-routes
   const isActive = (path: string) => {
     if (companySlug) {
@@ -46,124 +52,66 @@ const Navbar = () => {
     return location.pathname === path;
   };
   
-  // No need for useEffect here as the AuthContext handles authentication state
+  // Apply body offset when sidebar is visible (desktop) and remove on smaller screens
+  useEffect(() => {
+    const applyOffset = () => {
+      if (window.innerWidth >= 768) {
+        document.body.style.marginLeft = '16rem'; // 64 * 4px = 16rem
+      } else {
+        document.body.style.marginLeft = '0';
+      }
+      // Ensure page background matches sidebar color
+      document.body.classList.add('bg-secondary');
+    };
+    applyOffset();
+    window.addEventListener('resize', applyOffset);
+    return () => {
+      window.removeEventListener('resize', applyOffset);
+      document.body.classList.remove('bg-secondary');
+    };
+  }, []);
+
+  // No need for additional auth-related effects as the AuthContext handles authentication state
   
   const handleLogout = () => {
     logout(); // Use the logout function from AuthContext
   };
   
   return (
-    <nav className="bg-white border-b border-gray-100 py-4 px-6 w-full">
-      <div className="max-w-7xl mx-auto flex justify-between items-center">
-        <Link to="/" className="flex items-center gap-2">
-          <img src="/lovable-uploads/876a553e-d478-4016-a8f0-1580f492ca19.png" alt="CSWORD Logo" className="h-10" />
-        </Link>
-
-        {/* Desktop menu */}
-        <div className="hidden md:flex items-center gap-6">
-          {/* Only show Home link when not in a company context and has admin privileges */}
-          {!companySlug && hasAdminPrivileges && (
-            <Link to="/" className={`transition-colors ${isActive("/") ? "text-[#907527]" : "text-gray-700 hover:text-[#907527]"}`}>
-              Home
-            </Link>
-          )}
-          
-          {/* Only show these links for users with admin privileges */}
-          {hasAdminPrivileges && (
-            <>
-              <Link to={getLink("/dashboard")} className={`transition-colors ${isActive("/dashboard") ? "text-[#907527]" : "text-gray-700 hover:text-[#907527]"}`}>
-                Dashboard
-              </Link>
-              <Link to={getLink("/template-editor")} className={`transition-colors ${isActive("/template-editor") ? "text-[#907527]" : "text-gray-700 hover:text-[#907527]"}`}>
-                <div className="flex items-center gap-1">
-                  <FileText className="h-4 w-4" />
-                  <span>Templates</span>
-                </div>
-              </Link>
-              <Link to={getLink("/campaigns")} className={`transition-colors ${isActive("/campaigns") ? "text-[#907527]" : "text-gray-700 hover:text-[#907527]"}`}>
-                <div className="flex items-center gap-1">
-                  <Mail className="h-4 w-4" />
-                  <span>Phishing Simulation</span>
-                </div>
-              </Link>
-              <Link to={getLink("/analytics")} className={`transition-colors ${isActive("/analytics") ? "text-[#907527]" : "text-gray-700 hover:text-[#907527]"}`}>
-                <div className="flex items-center gap-1">
-                  <BarChart className="h-4 w-4" />
-                  <span>Analytics</span>
-                </div>
-              </Link>
-              <Link to={getLink("/user-management")} className={`transition-colors ${isActive("/user-management") ? "text-[#907527]" : "text-gray-700 hover:text-[#907527]"}`}>
-                <div className="flex items-center gap-1">
-                  <Users className="h-4 w-4" />
-                  <span>Users</span>
-                </div>
-              </Link>
-              {/* Sender tab has been removed */}
-            </>
-          )}
-          
-          {/* Training link is shown only to admin users */}
-          {hasAdminPrivileges && (
-            <Link to={getLink("/lms-campaigns")} className={`transition-colors ${isActive("/lms-campaigns") ? "text-[#907527]" : "text-gray-700 hover:text-[#907527]"}`}>
-              <div className="flex items-center gap-1">
-                <BookOpen className="h-4 w-4" />
-                <span>Training</span>
-              </div>
-            </Link>
-          )}
-          
-          {/* Employee Courses link is shown to all users */}
-          <Link to={getLink("/employee-courses")} className={`transition-colors ${isActive("/employee-courses") ? "text-[#907527]" : "text-gray-700 hover:text-[#907527]"}`}>
-            <div className="flex items-center gap-1">
-              <Book className="h-4 w-4" />
-              <span>My Courses</span>
+    <>
+      {/* Top-right welcome (desktop only) */}
+      {isAuthenticated && (
+        <div className="hidden md:flex items-center space-x-2 justify-end md:ml-64 px-6 py-4 text-gray-200 text-sm">
+          <span>Welcome back,</span>
+          <span className="font-medium">{userName}</span>
+          <Avatar className="h-6 w-6">
+            <AvatarFallback>{userName.charAt(0)}</AvatarFallback>
+          </Avatar>
+        </div>
+      )}
+      <nav className="bg-secondary text-white md:h-screen md:w-64 md:fixed md:top-0 md:left-0 md:flex md:flex-col md:overflow-y-auto z-40 border-b md:border-b-0 md:border-r border-gray-700 py-4 px-6 w-full">
+        <div className="max-w-7xl mx-auto flex justify-between items-center md:flex-col md:items-start">
+          {/* Logo box */}
+          <div
+            // className="w-full p-6 border-b border-gray-700 flex items-center space-x-3 transition-colors"
+            className="w-full p-6 border-b border-gray-700 flex items-center space-x-3 transition-colors"
+          >
+            <img
+              src="/lovable-uploads/876a553e-d478-4016-a8f0-1580f492ca19.png"
+              alt="CSWORD Logo"
+              className="h-8 w-8"
+            />
+            <div>
+              <h2 className="text-white font-bold text-lg leading-none">CSWORD</h2>
+              <p className="text-gray-400 text-xs">Security Platform</p>
             </div>
-          </Link>
-          
-          {isAuthenticated ? (
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="relative h-8 w-8 rounded-full">
-                  <Avatar className="h-8 w-8">
-                    <AvatarFallback>{userName.charAt(0)}</AvatarFallback>
-                  </Avatar>
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <Link to={getLink("/profile-settings")}>
-                  <DropdownMenuItem>
-                    <User className="mr-2 h-4 w-4" />
-                    <span>Profile</span>
-                  </DropdownMenuItem>
-                </Link>
-                <DropdownMenuItem onClick={handleLogout}>
-                  <LogOut className="mr-2 h-4 w-4" />
-                  <span>Logout</span>
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          ) : (
-            <Link to={companySlug ? `/${companySlug}/login` : "/"}>
-              <Button variant="default" className="bg-[#907527] hover:bg-[#705b1e]">Login</Button>
-            </Link>
-          )}
-        </div>
+          </div>
 
-        {/* Mobile menu button */}
-        <div className="md:hidden">
-          <Button variant="ghost" size="icon" onClick={() => setIsMenuOpen(!isMenuOpen)}>
-            <Menu className="h-6 w-6" />
-          </Button>
-        </div>
-      </div>
-
-      {/* Mobile menu */}
-      {isMenuOpen && (
-        <div className="md:hidden mt-2 py-2 px-4 animate-in">
-          <div className="flex flex-col gap-4">
+          {/* Desktop menu */}
+          <div className="hidden md:flex md:flex-col md:items-start gap-4 mt-6">
             {/* Only show Home link when not in a company context and has admin privileges */}
             {!companySlug && hasAdminPrivileges && (
-              <Link to="/" className={`transition-colors py-2 ${isActive("/") ? "text-[#907527]" : "text-gray-700 hover:text-[#907527]"}`}>
+              <Link to="/" className={getLinkClasses("/")}>
                 Home
               </Link>
             )}
@@ -171,45 +119,40 @@ const Navbar = () => {
             {/* Only show these links for users with admin privileges */}
             {hasAdminPrivileges && (
               <>
-                <Link to={getLink("/dashboard")} className={`transition-colors py-2 ${isActive("/dashboard") ? "text-[#907527]" : "text-gray-700 hover:text-[#907527]"}`}>
+                <Link to={getLink("/dashboard")} className={getLinkClasses("/dashboard")}>
                   Dashboard
                 </Link>
-                <Link to={getLink("/template-editor")} className={`transition-colors py-2 ${isActive("/template-editor") ? "text-[#907527]" : "text-gray-700 hover:text-[#907527]"}`}>
+                <Link to={getLink("/template-editor")} className={getLinkClasses("/template-editor")}>
                   <div className="flex items-center gap-1">
                     <FileText className="h-4 w-4" />
                     <span>Templates</span>
                   </div>
                 </Link>
-                <Link to={getLink("/campaigns")} className={`transition-colors py-2 ${isActive("/campaigns") ? "text-[#907527]" : "text-gray-700 hover:text-[#907527]"}`}>
+                <Link to={getLink("/campaigns")} className={getLinkClasses("/campaigns")}>
                   <div className="flex items-center gap-1">
                     <Mail className="h-4 w-4" />
                     <span>Campaigns</span>
                   </div>
                 </Link>
-                <Link to={getLink("/analytics")} className={`transition-colors py-2 ${isActive("/analytics") ? "text-[#907527]" : "text-gray-700 hover:text-[#907527]"}`}>
+                <Link to={getLink("/analytics")} className={getLinkClasses("/analytics")}>
                   <div className="flex items-center gap-1">
                     <BarChart className="h-4 w-4" />
                     <span>Analytics</span>
                   </div>
                 </Link>
-                <Link to={getLink("/user-management")} className={`transition-colors py-2 ${isActive("/user-management") ? "text-[#907527]" : "text-gray-700 hover:text-[#907527]"}`}>
+                <Link to={getLink("/user-management")} className={getLinkClasses("/user-management")}>
                   <div className="flex items-center gap-1">
                     <Users className="h-4 w-4" />
                     <span>Users</span>
                   </div>
                 </Link>
-                <Link to={getLink("/sender")} className={`transition-colors py-2 ${isActive("/sender") ? "text-[#907527]" : "text-gray-700 hover:text-[#907527]"}`}>
-                  <div className="flex items-center gap-1">
-                    <Send className="h-4 w-4" />
-                    <span>Sender</span>
-                  </div>
-                </Link>
+                {/* Sender tab has been removed */}
               </>
             )}
             
             {/* Training link is shown only to admin users */}
             {hasAdminPrivileges && (
-              <Link to={getLink("/lms-campaigns")} className={`transition-colors py-2 ${isActive("/lms-campaigns") ? "text-[#907527]" : "text-gray-700 hover:text-[#907527]"}`}>
+              <Link to={getLink("/lms-campaigns")} className={getLinkClasses("/lms-campaigns")}>
                 <div className="flex items-center gap-1">
                   <BookOpen className="h-4 w-4" />
                   <span>Training</span>
@@ -218,7 +161,7 @@ const Navbar = () => {
             )}
             
             {/* Employee Courses link is shown to all users */}
-            <Link to={getLink("/employee-courses")} className={`transition-colors py-2 ${isActive("/employee-courses") ? "text-[#907527]" : "text-gray-700 hover:text-[#907527]"}`}>
+            <Link to={getLink("/employee-courses")} className={getLinkClasses("/employee-courses")}>
               <div className="flex items-center gap-1">
                 <Book className="h-4 w-4" />
                 <span>My Courses</span>
@@ -226,29 +169,135 @@ const Navbar = () => {
             </Link>
             
             {isAuthenticated ? (
-              <div className="space-y-2">
-                <Link to={getLink("/profile-settings")} className="flex items-center gap-1 text-gray-700 hover:text-[#907527] py-2">
-                  <User className="h-4 w-4" />
-                  <span>Profile</span>
-                </Link>
-                <Button 
-                  variant="default" 
-                  className="bg-[#907527] hover:bg-[#705b1e] w-full flex items-center gap-2"
-                  onClick={handleLogout}
-                >
-                  <LogOut className="h-4 w-4" />
-                  <span>Logout</span>
-                </Button>
-              </div>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" className="relative h-8 w-8 rounded-full">
+                    <Avatar className="h-8 w-8">
+                      <AvatarFallback>{userName.charAt(0)}</AvatarFallback>
+                    </Avatar>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <Link to={getLink("/profile-settings")}>
+                    <DropdownMenuItem>
+                      <User className="mr-2 h-4 w-4" />
+                      <span>Profile</span>
+                    </DropdownMenuItem>
+                  </Link>
+                  <DropdownMenuItem onClick={handleLogout}>
+                    <LogOut className="mr-2 h-4 w-4" />
+                    <span>Logout</span>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             ) : (
               <Link to={companySlug ? `/${companySlug}/login` : "/"}>
-                <Button variant="default" className="bg-[#907527] hover:bg-[#705b1e] w-full">Login</Button>
+                <Button variant="default" className="bg-[#907527] hover:bg-[#705b1e]">Login</Button>
               </Link>
             )}
           </div>
+
+          {/* Mobile menu button */}
+          <div className="md:hidden">
+            <Button variant="ghost" size="icon" onClick={() => setIsMenuOpen(!isMenuOpen)}>
+              <Menu className="h-6 w-6" />
+            </Button>
+          </div>
         </div>
-      )}
-    </nav>
+
+        {/* Mobile menu */}
+        {isMenuOpen && (
+          <div className="md:hidden mt-2 py-2 px-4 animate-in">
+            <div className="flex flex-col gap-4">
+              {/* Only show Home link when not in a company context and has admin privileges */}
+              {!companySlug && hasAdminPrivileges && (
+                <Link to="/" className={getLinkClasses("/")}>
+                  Home
+                </Link>
+              )}
+              
+              {/* Only show these links for users with admin privileges */}
+              {hasAdminPrivileges && (
+                <>
+                  <Link to={getLink("/dashboard")} className={getLinkClasses("/dashboard")}>
+                    Dashboard
+                  </Link>
+                  <Link to={getLink("/template-editor")} className={getLinkClasses("/template-editor")}>
+                    <div className="flex items-center gap-1">
+                      <FileText className="h-4 w-4" />
+                      <span>Templates</span>
+                    </div>
+                  </Link>
+                  <Link to={getLink("/campaigns")} className={getLinkClasses("/campaigns")}>
+                    <div className="flex items-center gap-1">
+                      <Mail className="h-4 w-4" />
+                      <span>Campaigns</span>
+                    </div>
+                  </Link>
+                  <Link to={getLink("/analytics")} className={getLinkClasses("/analytics")}>
+                    <div className="flex items-center gap-1">
+                      <BarChart className="h-4 w-4" />
+                      <span>Analytics</span>
+                    </div>
+                  </Link>
+                  <Link to={getLink("/user-management")} className={getLinkClasses("/user-management")}>
+                    <div className="flex items-center gap-1">
+                      <Users className="h-4 w-4" />
+                      <span>Users</span>
+                    </div>
+                  </Link>
+                  <Link to={getLink("/sender")} className={getLinkClasses("/sender")}>
+                    <div className="flex items-center gap-1">
+                      <Send className="h-4 w-4" />
+                      <span>Sender</span>
+                    </div>
+                  </Link>
+                </>
+              )}
+              
+              {/* Training link is shown only to admin users */}
+              {hasAdminPrivileges && (
+                <Link to={getLink("/lms-campaigns")} className={getLinkClasses("/lms-campaigns")}>
+                  <div className="flex items-center gap-1">
+                    <BookOpen className="h-4 w-4" />
+                    <span>Training</span>
+                  </div>
+                </Link>
+              )}
+              
+              {/* Employee Courses link is shown to all users */}
+              <Link to={getLink("/employee-courses")} className={getLinkClasses("/employee-courses")}>
+                <div className="flex items-center gap-1">
+                  <Book className="h-4 w-4" />
+                  <span>My Courses</span>
+                </div>
+              </Link>
+              
+              {isAuthenticated ? (
+                <div className="space-y-2">
+                  <Link to={getLink("/profile-settings")} className="flex items-center gap-1 text-gray-700 hover:text-[#907527] py-2">
+                    <User className="h-4 w-4" />
+                    <span>Profile</span>
+                  </Link>
+                  <Button 
+                    variant="default" 
+                    className="bg-[#907527] hover:bg-[#705b1e] w-full flex items-center gap-2"
+                    onClick={handleLogout}
+                  >
+                    <LogOut className="h-4 w-4" />
+                    <span>Logout</span>
+                  </Button>
+                </div>
+              ) : (
+                <Link to={companySlug ? `/${companySlug}/login` : "/"}>
+                  <Button variant="default" className="bg-[#907527] hover:bg-[#705b1e] w-full">Login</Button>
+                </Link>
+              )}
+            </div>
+          </div>
+        )}
+      </nav>
+    </>
   );
 };
 

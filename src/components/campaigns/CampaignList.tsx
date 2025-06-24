@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Button } from "@/components/ui/button";
 import { BarChart, Calendar, Mail, Plus, Users, CheckCircle, Clock } from 'lucide-react';
@@ -96,7 +95,7 @@ const CampaignList: React.FC<CampaignListProps> = ({ campaigns, onSelectCampaign
   }
 
   return (
-    <div className="rounded-md border">
+    <div className="rounded-md border bg-white text-gray-900">
       <Table>
         <TableHeader>
           <TableRow>

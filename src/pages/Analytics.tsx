@@ -251,12 +251,12 @@ const Analytics = () => {
     <div className="min-h-screen flex flex-col">
       <Navbar />
       
-      <div className="flex-grow bg-gray-50 py-8 px-6">
+      <div className="flex-grow bg-gray-0 py-8 px-6">
         <div className="max-w-7xl mx-auto">
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8">
             <div>
-              <h1 className="text-2xl font-bold mb-1">Analytics & Reports</h1>
-              <p className="text-gray-600">Gain insights into your organization's security awareness</p>
+              <h1 className="text-2xl font-bold mb-1 text-gray-200">Analytics & Reports</h1>
+              <p className="text-gray-400">Gain insights into your organization's security awareness</p>
             </div>
             <div className="mt-4 md:mt-0 flex items-center space-x-3">
               <div className="flex items-center space-x-1 bg-white rounded-md border border-gray-200 px-3 py-1">
@@ -505,7 +505,6 @@ const Analytics = () => {
         </div>
       </div>
       
-      <Footer />
     </div>
   );
 };

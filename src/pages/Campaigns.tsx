@@ -261,12 +261,12 @@ const Campaigns = () => {
     <div className="min-h-screen flex flex-col">
       <Navbar />
       
-      <div className="flex-grow bg-gray-50 py-8 px-6">
+      <div className="flex-grow bg-gray-0 py-8 px-6">
         <div className="max-w-7xl mx-auto space-y-6">
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center">
             <div>
-              <h1 className="text-3xl font-bold">Phishing Campaigns</h1>
-              <p className="text-gray-600">Create and manage security awareness campaigns</p>
+              <h1 className="text-3xl font-bold text-gray-200">Phishing Campaigns</h1>
+              <p className="text-gray-400">Create and manage security awareness campaigns</p>
             </div>
             
             <Dialog>
@@ -347,7 +347,6 @@ const Campaigns = () => {
         </Dialog>
       )}
       
-      <Footer />
     </div>
   );
 };

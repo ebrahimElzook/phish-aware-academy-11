@@ -17,9 +17,9 @@ const UserManagement = () => {
     <div className="min-h-screen flex flex-col">
       <Navbar />
       
-      <div className="flex-grow bg-gray-50 py-8 px-6">
+      <div className="flex-grow bg-gray-0 py-8 px-6">
         <div className="max-w-7xl mx-auto space-y-6">
-          <h1 className="text-3xl font-bold">User Management</h1>
+          <h1 className="text-3xl font-bold text-gray-200">User Management</h1>
           
           <Tabs defaultValue={activeTab} onValueChange={setActiveTab} className="w-full">
             <TabsList className="grid w-full grid-cols-3">
@@ -52,7 +52,6 @@ const UserManagement = () => {
         </div>
       </div>
       
-      <Footer />
       <Toaster />
     </div>
   );
