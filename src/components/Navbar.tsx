@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation, useParams } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
-import { Menu, Book, BookOpen, FileText, BarChart, Users, Mail, LogOut, User, Send } from 'lucide-react';
+import { Menu, Book, BookOpen, FileText, BarChart, BarChart3, Users, Mail, LogOut, User, Send } from 'lucide-react';
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useAuth } from '@/contexts/AuthContext';
@@ -32,7 +32,7 @@ const Navbar = () => {
   
   // Helper function to return sidebar link classes (matches design in shield-07)
   const getLinkClasses = (path: string) =>
-    `flex items-center space-x-3 px-4 py-3 rounded-lg transition-all duration-200 ` +
+    `flex items-center space-x-3 px-4 py-3 rounded-lg transition-all duration-200 w-full ` +
     (isActive(path)
       ? 'bg-[#b89532] text-secondary font-medium' // active: gold background, navy text
       : 'text-gray-300 hover:bg-gray-700 hover:text-white');
@@ -102,7 +102,7 @@ const Navbar = () => {
       </div>
       )}
       <nav className="bg-secondary text-white md:h-screen md:w-64 md:fixed md:top-0 md:left-0 md:flex md:flex-col md:overflow-y-auto z-40 border-b md:border-b-0 md:border-r border-gray-700 py-4 md:px-0 px-6 w-full">
-        <div className="max-w-7xl md:mx-0 mx-auto flex justify-between items-center md:flex-col md:items-start">
+        <div className="max-w-7xl md:mx-0 mx-auto flex justify-between items-center md:flex-col">
           {/* Logo box */}
           <div
             // className="w-full p-6 border-b border-gray-700 flex items-center space-x-3 transition-colors"
@@ -120,7 +120,7 @@ const Navbar = () => {
           </div>
 
           {/* Desktop menu */}
-          <div className="hidden md:flex md:flex-col md:items-start gap-4 mt-6">
+          <div className="hidden md:flex md:flex-col gap-4 mt-6 w-full px-4">
             {/* Only show Home link when not in a company context and has admin privileges */}
             {!companySlug && hasAdminPrivileges && (
               <Link to="/" className={getLinkClasses("/")}>
@@ -132,7 +132,10 @@ const Navbar = () => {
             {hasAdminPrivileges && (
               <>
                 <Link to={getLink("/dashboard")} className={getLinkClasses("/dashboard")}>
-                  Dashboard
+                  <div className="flex items-center gap-1">
+                    <BarChart3 className="h-4 w-4" />
+                    <span>Dashboard</span>
+                  </div>
                 </Link>
                 <Link to={getLink("/template-editor")} className={getLinkClasses("/template-editor")}>
                   <div className="flex items-center gap-1">
@@ -232,7 +235,10 @@ const Navbar = () => {
               {hasAdminPrivileges && (
                 <>
                   <Link to={getLink("/dashboard")} className={getLinkClasses("/dashboard")}>
-                    Dashboard
+                    <div className="flex items-center gap-1">
+                      <BarChart3 className="h-4 w-4" />
+                      <span>Dashboard</span>
+                    </div>
                   </Link>
                   <Link to={getLink("/template-editor")} className={getLinkClasses("/template-editor")}>
                     <div className="flex items-center gap-1">

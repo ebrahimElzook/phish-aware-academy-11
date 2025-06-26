@@ -474,7 +474,7 @@ const TemplateEditor = () => {
   );
 
   return (
-    <div className="min-h-screen bg-gray-0 px-4 md:px-6">
+    <div className="min-h-screen bg-gray-0 ">
       <Navbar />
       <div className="max-w-7xl mx-auto">
         <div className="flex items-center justify-between py-8 mb-6">
