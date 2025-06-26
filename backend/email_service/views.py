@@ -625,40 +625,88 @@ def department_performance_analytics(request):
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def phishing_temporal_trend_analytics(request):
+    """Return click/read rates aggregated either weekly or monthly based on the
+    query-string parameter `range`.
+
+    Accepted values for `range`:
+    • `weekly`   – group by week (TruncWeek) for the last 6 months.
+    • `monthly`  – group by month (TruncMonth) for the last 6 months.
+    • `3months`, `6months`, `1year` – keep the old behaviour (group by month and
+      use the specified time window).
+
+    NOTE: the aggregation now uses the **end_date of the Phishing Campaign**
+    instead of the individual e-mail `sent_at` timestamp so that completed
+    campaigns appear in the correct period regardless of when each e-mail was
+    sent.
+    """
     company = request.user.company
     if not company:
         # Return empty array instead of error
         return JsonResponseWithCors([])
 
-    time_range_param = request.GET.get('range', '6months') # e.g., 3months, 6months, 1year
+    range_param = request.GET.get('range', 'monthly').lower().strip()
     end_date = datetime.now()
-    if time_range_param == '3months':
-        start_date = end_date - timedelta(days=3*30)
-    elif time_range_param == '1year':
-        start_date = end_date - timedelta(days=365)
-    else: # Default to 6 months
-        start_date = end_date - timedelta(days=6*30)
 
-    emails_qs = Email.objects.filter(
-        phishing_campaign__company=company,
-        sent=True,
-        sent_at__gte=start_date,
-        sent_at__lte=end_date
-    ).annotate(month=TruncMonth('sent_at')).values('month').annotate(
-        total_sent=Count('id'),
-        total_clicked=Count(Case(When(clicked=True, then=1))),
-        total_read=Count(Case(When(read=True, then=1)))
-    ).order_by('month')
+    # Determine grouping and timeframe
+    if range_param in ['weekly', 'monthly']:
+        grouping = range_param  # control the Trunc function later
+        # default window for new mode → last 6 months
+        start_date = end_date - timedelta(days=6 * 30)
+    else:
+        grouping = 'monthly'  # legacy endpoints always grouped monthly
+        if range_param == '3months':
+            start_date = end_date - timedelta(days=3 * 30)
+        elif range_param == '1year':
+            start_date = end_date - timedelta(days=365)
+        else:  # "6months" or anything else → 6 months
+            start_date = end_date - timedelta(days=6 * 30)
+
+    # Choose truncation function based on grouping
+    from django.db.models.functions import TruncMonth, TruncWeek
+    if grouping == 'weekly':
+        trunc_fn = TruncWeek('phishing_campaign__end_date')
+    else:
+        trunc_fn = TruncMonth('phishing_campaign__end_date')
+
+    emails_qs = (
+        Email.objects.filter(
+            phishing_campaign__company=company,
+            sent=True,
+            phishing_campaign__end_date__gte=start_date,
+            phishing_campaign__end_date__lte=end_date,
+        )
+        .annotate(period=trunc_fn)
+        .values('period')
+        .annotate(
+            total_sent=Count('id'),
+            total_clicked=Count(Case(When(clicked=True, then=1))),
+            total_read=Count(Case(When(read=True, then=1))),
+        )
+        .order_by('period')
+    )
 
     trend_data = []
-    for monthly_stat in emails_qs:
-        click_rate = (monthly_stat['total_clicked'] / monthly_stat['total_sent'] * 100) if monthly_stat['total_sent'] > 0 else 0
-        read_rate = (monthly_stat['total_read'] / monthly_stat['total_sent'] * 100) if monthly_stat['total_sent'] > 0 else 0
-        trend_data.append({
-            'period': monthly_stat['month'].strftime('%Y-%m'),
-            'click_rate': round(click_rate, 2),
-            'read_rate': round(read_rate, 2),
-        })
+    for stat in emails_qs:
+        click_rate = (
+            stat['total_clicked'] / stat['total_sent'] * 100 if stat['total_sent'] > 0 else 0
+        )
+        read_rate = (
+            stat['total_read'] / stat['total_sent'] * 100 if stat['total_sent'] > 0 else 0
+        )
+
+        if grouping == 'weekly':
+            # TruncWeek returns the Monday of the week; represent as ISO week string
+            period_label = stat['period'].strftime('%Y-W%V')  # e.g., 2025-W24
+        else:
+            period_label = stat['period'].strftime('%Y-%m')
+
+        trend_data.append(
+            {
+                'period': period_label,
+                'click_rate': round(click_rate, 2),
+                'read_rate': round(read_rate, 2),
+            }
+        )
 
     serializer = TemporalTrendPointSerializer(trend_data, many=True)
     return JsonResponseWithCors(serializer.data)

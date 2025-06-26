@@ -81,16 +81,28 @@ const Navbar = () => {
     <>
       {/* Top-right welcome (desktop only) */}
       {isAuthenticated && (
-        <div className="hidden md:flex items-center space-x-2 justify-end md:ml-64 px-6 py-4 text-gray-200 text-sm">
+        <div className="hidden md:flex items-center justify-end md:pl-64 md:px-0 px-6 py-4 text-gray-200 text-sm border-b border-gray-700 space-x-2">
+        <div className="flex flex-col items-center leading-snug text-center">
           <span>Welcome back,</span>
           <span className="font-medium">{userName}</span>
-          <Avatar className="h-6 w-6">
-            <AvatarFallback>{userName.charAt(0)}</AvatarFallback>
-          </Avatar>
         </div>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Avatar className="h-6 w-6 ml-1 cursor-pointer">
+              <AvatarFallback>{userName.charAt(0)}</AvatarFallback>
+            </Avatar>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-40">
+            <DropdownMenuItem onClick={handleLogout}>
+              <LogOut className="mr-2 h-4 w-4" />
+              Sign out
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
       )}
-      <nav className="bg-secondary text-white md:h-screen md:w-64 md:fixed md:top-0 md:left-0 md:flex md:flex-col md:overflow-y-auto z-40 border-b md:border-b-0 md:border-r border-gray-700 py-4 px-6 w-full">
-        <div className="max-w-7xl mx-auto flex justify-between items-center md:flex-col md:items-start">
+      <nav className="bg-secondary text-white md:h-screen md:w-64 md:fixed md:top-0 md:left-0 md:flex md:flex-col md:overflow-y-auto z-40 border-b md:border-b-0 md:border-r border-gray-700 py-4 md:px-0 px-6 w-full">
+        <div className="max-w-7xl md:mx-0 mx-auto flex justify-between items-center md:flex-col md:items-start">
           {/* Logo box */}
           <div
             // className="w-full p-6 border-b border-gray-700 flex items-center space-x-3 transition-colors"

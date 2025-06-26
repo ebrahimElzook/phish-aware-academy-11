@@ -70,6 +70,10 @@ interface TemporalTrendPoint {
 
 const Analytics = () => {
   const [timeRange, setTimeRange] = useState('6months');
+  // Separate range filter specifically for the Phishing Awareness Trend chart
+  const [trendRange, setTrendRange] = useState<'monthly' | 'weekly'>(
+    'monthly'
+  );
   const [summaryStats, setSummaryStats] = useState<SummaryStats | null>(null);
   const [departmentPerformance, setDepartmentPerformance] = useState<DepartmentPerformance[]>([]);
   const [temporalTrend, setTemporalTrend] = useState<TemporalTrendPoint[]>([]);
@@ -155,6 +159,17 @@ const Analytics = () => {
 
   useEffect(() => {
     const fetchTemporalData = async (range: string) => {
+      // helper to ensure unique labels when weekly data shares same month label
+      const transformTrendData = (raw: any[], rng: string) => {
+        if (rng !== 'weekly') return raw;
+        const counter: Record<string, number> = {};
+        return raw.map((row: any) => {
+          const base = row.period; // e.g., "2025-06"
+          counter[base] = (counter[base] ?? 0) + 1;
+          return { ...row, period_display: `${base}` };
+        });
+      };
+
       setLoadingTemporal(true);
       setErrorTemporal(null);
       try {
@@ -170,7 +185,8 @@ const Analytics = () => {
         }
 
         const data = await response.json();
-        setTemporalTrend(data);
+        const transformed = transformTrendData(data, range);
+        setTemporalTrend(transformed);
       } catch (error) {
         console.error('Failed to fetch temporal trend data', error);
         setErrorTemporal('Failed to fetch temporal trend data');
@@ -179,8 +195,8 @@ const Analytics = () => {
       }
     };
 
-    fetchTemporalData(timeRange);
-  }, [timeRange, API_ENDPOINTS.ANALYTICS_TREND]);
+    fetchTemporalData(trendRange);
+  }, [trendRange]);
 
   useEffect(() => {
     if (departmentPerformance && departmentPerformance.length > 0) {
@@ -385,8 +401,24 @@ const Analytics = () => {
               
               <div className="space-y-8">
                 <Card className="border-gray-100">
-                  <CardHeader>
+                  <CardHeader className="flex flex-row items-center justify-between">
                     <CardTitle>Phishing Awareness Trend</CardTitle>
+                    <div className="space-x-2">
+                      <Button
+                        size="sm"
+                        variant={trendRange === 'monthly' ? 'default' : 'outline'}
+                        onClick={() => setTrendRange('monthly')}
+                      >
+                        Monthly
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant={trendRange === 'weekly' ? 'default' : 'outline'}
+                        onClick={() => setTrendRange('weekly')}
+                      >
+                        Weekly
+                      </Button>
+                    </div>
                   </CardHeader>
                   <CardContent>
                     <div className="h-80">
@@ -394,7 +426,7 @@ const Analytics = () => {
                         <ResponsiveContainer width="100%" height="100%">
                           <LineChart data={temporalTrend} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
                             <CartesianGrid strokeDasharray="3 3" />
-                            <XAxis dataKey="period" />
+                            <XAxis dataKey={trendRange === 'weekly' ? 'period_display' : 'period'} />
                             <YAxis unit="%" domain={[0, 100]} />
                             <Tooltip formatter={(value: number, name: string) => {
                               // 'name' is directly from the <Line name="..."/> prop (e.g., "Click Rate" or "Read Rate").
