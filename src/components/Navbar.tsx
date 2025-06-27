@@ -86,7 +86,7 @@ const Navbar = () => {
           <span>Welcome back,</span>
           <span className="font-medium">{userName}</span>
         </div>
-        <DropdownMenu>
+        <DropdownMenu modal={false}>
           <DropdownMenuTrigger asChild>
             <Avatar className="h-6 w-6 ml-1 cursor-pointer">
               <AvatarFallback>{userName.charAt(0)}</AvatarFallback>
@@ -184,9 +184,9 @@ const Navbar = () => {
             </Link>
             
             {isAuthenticated ? (
-              <DropdownMenu>
+              <DropdownMenu modal={false}>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" className="relative h-8 w-8 rounded-full">
+                  <Button variant="ghost" className="relative h-8 w-8 rounded-full ml-2">
                     <Avatar className="h-8 w-8">
                       <AvatarFallback>{userName.charAt(0)}</AvatarFallback>
                     </Avatar>
