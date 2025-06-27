@@ -13,6 +13,7 @@ from email_service.campaign_reminder import send_campaign_reminder_email
 from django.utils import timezone
 from django.db.models import Q, Avg, Count
 import json
+from collections import defaultdict
 
 # PDF generation using lightweight fpdf2
 try:
@@ -502,7 +503,41 @@ def lms_analytics_overview(request):
         return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
-# New endpoint to fetch completed LMS campaign certificates for a company
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def lms_training_results(request):
+    """API endpoint to get aggregated training results by campaign."""
+    user = request.user
+    company = user.company
+    if not company:
+        return Response({"error": "User does not belong to any company"}, status=status.HTTP_400_BAD_REQUEST)
+
+    # Get all campaigns for the company
+    campaigns = LMSCampaign.objects.filter(company=company)
+
+    chart_data = []
+    for campaign in campaigns:
+        # Get all users for this campaign
+        campaign_users = LMSCampaignUser.objects.filter(campaign=campaign)
+        
+        total_users = campaign_users.count()
+        if total_users == 0:
+            continue
+
+        completed_count = campaign_users.filter(completed=True).count()
+        in_progress_count = campaign_users.filter(started=True, completed=False).count()
+        not_started_count = total_users - completed_count - in_progress_count
+
+        chart_data.append({
+            "campaign": campaign.name,
+            "completed": completed_count,
+            "inProgress": in_progress_count,
+            "notStarted": not_started_count,
+        })
+
+    return Response(chart_data)
+
+
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def company_certificates(request):

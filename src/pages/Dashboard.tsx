@@ -19,6 +19,7 @@ import { PlusCircle, Mail, AlertCircle, CheckCircle, TrendingUp, Users } from 'l
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import Video from '@/components/Video';
+import LmsTrainingResultsChart from '@/components/charts/LmsTrainingResultsChart';
 import { API_ENDPOINTS, getAuthHeaders } from '@/config/api';
 
 // Interfaces for fetched analytics data
@@ -102,10 +103,15 @@ const Dashboard = () => {
   const [loadingTrend, setLoadingTrend] = useState(true);
   const [errorTrend, setErrorTrend] = useState<string | null>(null);
 
+  const [trendRange, setTrendRange] = useState<'monthly' | 'weekly'>('monthly');
+
   // --- Department performance state ---
   const [departmentPerformance, setDepartmentPerformance] = useState<DepartmentPerformance[]>([]);
   const [loadingDept, setLoadingDept] = useState(true);
   const [errorDept, setErrorDept] = useState<string | null>(null);
+
+  const [mostVulnerableDept, setMostVulnerableDept] = useState<DepartmentPerformance | null>(null);
+  const [mostEffectiveDept, setMostEffectiveDept] = useState<DepartmentPerformance | null>(null);
 
   useEffect(() => {
     const fetchLmsStats = async () => {
@@ -156,7 +162,7 @@ const Dashboard = () => {
     const fetchTrend = async () => {
       setLoadingTrend(true);
       try {
-        const res = await fetch(`${API_ENDPOINTS.ANALYTICS_TREND}?range=6months`, {
+        const res = await fetch(`${API_ENDPOINTS.ANALYTICS_TREND}?range=${trendRange}`, {
           headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
         });
         if (!res.ok) throw new Error(`HTTP error ${res.status}`);
@@ -188,7 +194,34 @@ const Dashboard = () => {
     fetchSummary();
     fetchTrend();
     fetchDeptPerf();
-  }, []);
+  }, [trendRange]);
+
+  useEffect(() => {
+    if (departmentPerformance && departmentPerformance.length > 0) {
+      const actualDepartments = departmentPerformance.filter(
+        (dept) => dept.department_id !== null
+      );
+
+      if (actualDepartments.length > 0) {
+        setMostVulnerableDept(
+          actualDepartments.reduce((prev, current) => 
+            (prev.click_rate > current.click_rate) ? prev : current
+          )
+        );
+        setMostEffectiveDept(
+          actualDepartments.reduce((prev, current) => 
+            (prev.click_rate < current.click_rate) ? prev : current
+          )
+        );
+      } else {
+        setMostVulnerableDept(null);
+        setMostEffectiveDept(null);
+      }
+    } else {
+      setMostVulnerableDept(null);
+      setMostEffectiveDept(null);
+    }
+  }, [departmentPerformance]);
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -212,7 +245,7 @@ const Dashboard = () => {
 
             <TabsContent value="phishing" className="space-y-4">
               {/* Stats Overview */}
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
                 <Card className="border-gray-100">
                   <CardContent className="p-6">
                     <div className="flex items-center justify-between">
@@ -292,13 +325,63 @@ const Dashboard = () => {
                     </div>
                   </CardContent>
                 </Card>
+
+                <Card className="border-gray-100">
+                  <CardContent className="p-6">
+                    <div className="flex items-center justify-between mb-2">
+                      <p className="text-sm font-medium text-gray-500">Most Vulnerable Dept.</p>
+                    </div>
+                    {loadingDept ? <p>Loading...</p> : errorDept ? <p className="text-red-500 text-xs">Error: {errorDept}</p> : mostVulnerableDept ? (
+                      <>
+                        <h2 className="text-2xl font-bold text-red-600">{mostVulnerableDept.department_name}</h2>
+                        <p className="text-xs text-gray-500">
+                          {mostVulnerableDept.click_rate.toFixed(2)}% Click Rate
+                        </p>
+                      </>
+                    ) : <p className="text-sm text-gray-500">N/A</p>}
+                  </CardContent>
+                </Card>
+
+                <Card className="border-gray-100">
+                  <CardContent className="p-6">
+                    <div className="flex items-center justify-between mb-2">
+                      <p className="text-sm font-medium text-gray-500">Most Effective Dept.</p>
+                    </div>
+                    {loadingDept ? <p>Loading...</p> : errorDept ? <p className="text-red-500 text-xs">Error: {errorDept}</p> : mostEffectiveDept ? (
+                      <>
+                        <h2 className="text-2xl font-bold text-green-600">{mostEffectiveDept.department_name}</h2>
+                        <p className="text-xs text-gray-500">
+                          {mostEffectiveDept.click_rate.toFixed(2)}% Click Rate
+                        </p>
+                      </>
+                    ) : <p className="text-sm text-gray-500">N/A</p>}
+                  </CardContent>
+                </Card>
               </div>
               
               {/* Charts */}
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                 <Card className="border-gray-100">
                   <CardHeader>
-                    <CardTitle>Phishing Awareness Trend</CardTitle>
+                    <div className="flex justify-between items-center">
+                      <CardTitle>Phishing Awareness Trend</CardTitle>
+                      <div className="flex items-center rounded-lg bg-gray-100 p-1">
+                        <Button
+                            variant={trendRange === 'monthly' ? 'secondary' : 'ghost'}
+                            size="sm"
+                            onClick={() => setTrendRange('monthly')}
+                            className={`px-3 py-1 text-xs h-auto ${trendRange === 'monthly' ? 'bg-white shadow' : ''}`}>
+                            Monthly
+                        </Button>
+                        <Button
+                            variant={trendRange === 'weekly' ? 'secondary' : 'ghost'}
+                            size="sm"
+                            onClick={() => setTrendRange('weekly')}
+                            className={`px-3 py-1 text-xs h-auto ${trendRange === 'weekly' ? 'bg-white shadow' : ''}`}>
+                            Weekly
+                        </Button>
+                      </div>
+                    </div>
                   </CardHeader>
                   <CardContent>
                     <div className="h-80">
@@ -423,6 +506,15 @@ const Dashboard = () => {
                   </Link>
                 </Button>
               </div>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle>LMS Training Results</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <LmsTrainingResultsChart />
+                </CardContent>
+              </Card>
             </TabsContent>
           </Tabs>
         </div>

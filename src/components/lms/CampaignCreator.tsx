@@ -214,9 +214,9 @@ export const CampaignCreator: React.FC<CampaignCreatorProps> = ({ onCreate }) =>
       const errorMessage = err instanceof Error ? err.message : 'Failed to load users';
       setError(errorMessage);
       toast({
-        title: 'Error',
+        title: "Error",
         description: errorMessage,
-        variant: 'destructive'
+        variant: "destructive",
       });
     } finally {
       setLoadingUsers(false);
@@ -372,364 +372,373 @@ export const CampaignCreator: React.FC<CampaignCreatorProps> = ({ onCreate }) =>
   };
   
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button className="w-full">
-          <Plus className="mr-2 h-4 w-4" />
-          Create New Campaign
-        </Button>
-      </DialogTrigger>
-      <DialogContent className="sm:max-w-[600px]">
-        <DialogHeader>
-          <DialogTitle>Create Training Campaign</DialogTitle>
-          <DialogDescription>
-            Set up a new training campaign for your organization.
-          </DialogDescription>
-        </DialogHeader>
+    <>
+      <Dialog open={open} onOpenChange={setOpen} modal={false}>
+        <DialogTrigger asChild>
+          <Button className="w-full">
+            <Plus className="mr-2 h-4 w-4" />
+            Create New Campaign
+          </Button>
+        </DialogTrigger>
+        <DialogContent className="sm:max-w-[600px]">
+          <DialogHeader>
+            <DialogTitle>Create Training Campaign</DialogTitle>
+            <DialogDescription>
+              Set up a new training campaign for your organization.
+            </DialogDescription>
+          </DialogHeader>
 
-        <div className="mb-4">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-sm text-muted-foreground">Step {currentStep} of 3</span>
-            <div className="flex items-center gap-1">
-              {[1, 2, 3].map((step) => (
-                <div 
-                  key={step} 
-                  className={cn(
-                    "h-2 w-6 rounded-full", 
-                    currentStep >= step ? "bg-blue-500" : "bg-gray-200"
-                  )}
-                />
-              ))}
+          <div className="mb-4">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-sm text-muted-foreground">Step {currentStep} of 3</span>
+              <div className="flex items-center gap-1">
+                {[1, 2, 3].map((step) => (
+                  <div 
+                    key={step} 
+                    className={cn(
+                      "h-2 w-6 rounded-full", 
+                      currentStep >= step ? "bg-blue-500" : "bg-gray-200"
+                    )}
+                  />
+                ))}
+              </div>
             </div>
           </div>
-        </div>
 
-        {currentStep === 1 && (
-          <div className="grid gap-4 py-4">
-            <div className="grid gap-2">
-              <Label htmlFor="name">Campaign Name</Label>
-              <Input 
-                id="name" 
-                placeholder="Enter campaign name" 
-                value={campaignName}
-                onChange={(e) => setCampaignName(e.target.value)}
-              />
-            </div>
-            
-            <div className="grid gap-2">
-              <Label>Courses</Label>
-              {loadingCourses ? (
-                <div className="flex items-center justify-center py-2">
-                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                  <span className="text-sm">Loading courses...</span>
-                </div>
-              ) : (
-                <div className="border rounded-md p-2 max-h-60 overflow-y-auto">
-                  {courses.length === 0 ? (
-                    <div className="p-2 text-center text-sm text-gray-500">No courses available</div>
+          {currentStep === 1 && (
+            <div className="grid gap-4 py-4">
+              <div className="grid gap-2">
+                <Label htmlFor="name">Campaign Name</Label>
+                <Input 
+                  id="name" 
+                  placeholder="Enter campaign name" 
+                  value={campaignName}
+                  onChange={(e) => setCampaignName(e.target.value)}
+                />
+              </div>
+              
+              <div className="grid gap-2">
+                <Label>Courses</Label>
+                {loadingCourses ? (
+                  <div className="flex items-center justify-center py-2">
+                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                    <span className="text-sm">Loading courses...</span>
+                  </div>
+                ) : (
+                  <div className="border rounded-md p-2 max-h-60 overflow-y-auto">
+                    {courses.length === 0 ? (
+                      <div className="p-2 text-center text-sm text-gray-500">No courses available</div>
+                    ) : (
+                      <div className="space-y-2">
+                        {courses.map((course) => (
+                          <div key={course.id} className="flex items-center space-x-2">
+                            <Checkbox
+                              id={`course-${course.id}`}
+                              checked={selectedCourses.includes(course.id.toString())}
+                              onCheckedChange={(checked) => {
+                                if (checked) {
+                                  setSelectedCourses([...selectedCourses, course.id.toString()]);
+                                } else {
+                                  setSelectedCourses(selectedCourses.filter((id) => id !== course.id.toString()));
+                                }
+                              }}
+                            />
+                            <Label htmlFor={`course-${course.id}`} className="text-sm font-normal">
+                              {course.name}
+                            </Label>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+              
+              <div className="grid gap-2">
+                <Label>Target Audience</Label>
+                <Select 
+                  value={selectedTargetType} 
+                  onValueChange={handleTargetTypeChange}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select audience" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Users</SelectItem>
+                    <SelectItem value="department">By Department</SelectItem>
+                    <SelectItem value="custom">Custom User Selection</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              {selectedTargetType === "department" && (
+                <div className="grid gap-2">
+                  <Label>Select Departments</Label>
+                  {loadingDepartments ? (
+                    <div className="flex items-center justify-center py-2">
+                      <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                      <span className="text-sm">Loading departments...</span>
+                    </div>
                   ) : (
-                    <div className="space-y-2">
-                      {courses.map((course) => (
-                        <div key={course.id} className="flex items-center space-x-2">
-                          <Checkbox
-                            id={`course-${course.id}`}
-                            checked={selectedCourses.includes(course.id.toString())}
-                            onCheckedChange={(checked) => {
-                              if (checked) {
-                                setSelectedCourses([...selectedCourses, course.id.toString()]);
-                              } else {
-                                setSelectedCourses(selectedCourses.filter((id) => id !== course.id.toString()));
-                              }
-                            }}
-                          />
-                          <Label htmlFor={`course-${course.id}`} className="text-sm font-normal">
-                            {course.name}
-                          </Label>
+                    <div className="border rounded-md p-3 space-y-2 max-h-60 overflow-y-auto">
+                      {departments.length === 0 ? (
+                        <div className="text-center text-sm text-gray-500 py-2">
+                          No departments available
                         </div>
-                      ))}
+                      ) : (
+                        departments.map((dept) => (
+                          <div key={dept.id} className="flex items-center space-x-2">
+                            <Checkbox 
+                              id={`dept-${dept.id}`} 
+                              checked={selectedDepartments.includes(dept.id.toString())}
+                              onCheckedChange={() => {
+                                setSelectedDepartments(prev => 
+                                  prev.includes(dept.id.toString())
+                                    ? prev.filter(id => id !== dept.id.toString())
+                                    : [...prev, dept.id.toString()]
+                                );
+                              }}
+                            />
+                            <Label htmlFor={`dept-${dept.id}`} className="text-sm font-normal">
+                              {dept.name}
+                            </Label>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {selectedTargetType === "custom" && (
+                <div className="grid gap-2">
+                  <Label>Select Users</Label>
+                  {loadingUsers ? (
+                    <div className="flex items-center justify-center py-2">
+                      <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                      <span className="text-sm">Loading users...</span>
+                    </div>
+                  ) : (
+                    <div className="border rounded-md p-3 space-y-2 max-h-60 overflow-y-auto">
+                      {users.length === 0 ? (
+                        <div className="text-center text-sm text-gray-500 py-2">
+                          No users available
+                        </div>
+                      ) : (
+                        users.map((user) => (
+                          <div key={user.id} className="flex items-center space-x-2">
+                            <Checkbox 
+                              id={`user-${user.id}`} 
+                              checked={selectedUsers.includes(user.id.toString())}
+                              onCheckedChange={() => toggleUser(user.id.toString())}
+                            />
+                            <Label htmlFor={`user-${user.id}`} className="text-sm font-normal">
+                              {user.name} {user.department ? `(${user.department})` : ''}
+                            </Label>
+                          </div>
+                        ))
+                      )}
                     </div>
                   )}
                 </div>
               )}
             </div>
-            
-            <div className="grid gap-2">
-              <Label>Target Audience</Label>
-              <Select 
-                value={selectedTargetType} 
-                onValueChange={handleTargetTypeChange}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select audience" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Users</SelectItem>
-                  <SelectItem value="department">By Department</SelectItem>
-                  <SelectItem value="custom">Custom User Selection</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            
-            {selectedTargetType === "department" && (
-              <div className="grid gap-2">
-                <Label>Select Departments</Label>
-                {loadingDepartments ? (
-                  <div className="flex items-center justify-center py-2">
-                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                    <span className="text-sm">Loading departments...</span>
-                  </div>
-                ) : (
-                  <div className="border rounded-md p-3 space-y-2 max-h-60 overflow-y-auto">
-                    {departments.length === 0 ? (
-                      <div className="text-center text-sm text-gray-500 py-2">
-                        No departments available
-                      </div>
-                    ) : (
-                      departments.map((dept) => (
-                        <div key={dept.id} className="flex items-center space-x-2">
-                          <Checkbox 
-                            id={`dept-${dept.id}`} 
-                            checked={selectedDepartments.includes(dept.id.toString())}
-                            onCheckedChange={() => {
-                              setSelectedDepartments(prev => 
-                                prev.includes(dept.id.toString())
-                                  ? prev.filter(id => id !== dept.id.toString())
-                                  : [...prev, dept.id.toString()]
-                              );
-                            }}
-                          />
-                          <Label htmlFor={`dept-${dept.id}`} className="text-sm font-normal">
-                            {dept.name}
-                          </Label>
-                        </div>
-                      ))
-                    )}
-                  </div>
-                )}
-              </div>
-            )}
+          )}
 
-            {selectedTargetType === "custom" && (
+          {currentStep === 2 && (
+            <div className="grid gap-4 py-4">
               <div className="grid gap-2">
-                <Label>Select Users</Label>
-                {loadingUsers ? (
-                  <div className="flex items-center justify-center py-2">
-                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                    <span className="text-sm">Loading users...</span>
-                  </div>
-                ) : (
-                  <div className="border rounded-md p-3 space-y-2 max-h-60 overflow-y-auto">
-                    {users.length === 0 ? (
-                      <div className="text-center text-sm text-gray-500 py-2">
-                        No users available
-                      </div>
-                    ) : (
-                      users.map((user) => (
-                        <div key={user.id} className="flex items-center space-x-2">
-                          <Checkbox 
-                            id={`user-${user.id}`} 
-                            checked={selectedUsers.includes(user.id.toString())}
-                            onCheckedChange={() => toggleUser(user.id.toString())}
-                          />
-                          <Label htmlFor={`user-${user.id}`} className="text-sm font-normal">
-                            {user.name} {user.department ? `(${user.department})` : ''}
-                          </Label>
-                        </div>
-                      ))
-                    )}
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-        )}
-
-        {currentStep === 2 && (
-          <div className="grid gap-4 py-4">
-            <div className="grid gap-2">
-              <Label>Start Date</Label>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    className={cn(
-                      "w-full justify-start text-left font-normal",
-                      !startDate && "text-muted-foreground"
-                    )}
-                  >
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {startDate ? format(startDate, "PPP") : <span>Pick a date</span>}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                  <CalendarComponent
-                    mode="single"
-                    selected={startDate}
-                    onSelect={(date) => {
-                      if (date) {
-                        // Don't allow selecting past dates
-                        const selectedDate = new Date(date);
-                        if (isBefore(selectedDate, today)) {
-                          toast({
-                            title: "Invalid Date",
-                            description: "Start date cannot be before today.",
-                            variant: "destructive",
-                          });
-                          return;
+                <Label>Start Date</Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className={cn(
+                        "w-full justify-start text-left font-normal",
+                        !startDate && "text-muted-foreground"
+                      )}
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {startDate ? format(startDate, "PPP") : <span>Pick a date</span>}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <CalendarComponent
+                      mode="single"
+                      selected={startDate}
+                      onSelect={(date) => {
+                        if (date) {
+                          // Don't allow selecting past dates
+                          const selectedDate = new Date(date);
+                          if (isBefore(selectedDate, today)) {
+                            toast({
+                              title: "Invalid Date",
+                              description: "Start date cannot be before today.",
+                              variant: "destructive",
+                            });
+                            return;
+                          }
+                          setStartDate(selectedDate);
                         }
-                        setStartDate(selectedDate);
-                      }
-                    }}
-                    disabled={(date) => isBefore(date, today)}
-                    initialFocus
-                    className="rounded-md border"
-                  />
-                </PopoverContent>
-              </Popover>
-            </div>
-            <div className="grid gap-2">
-              <Label>End Date</Label>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    className={cn(
-                      "w-full justify-start text-left font-normal",
-                      !endDate && "text-muted-foreground"
-                    )}
-                  >
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {endDate ? format(endDate, "PPP") : <span>Pick a date</span>}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                  <CalendarComponent
-                    mode="single"
-                    selected={endDate}
-                    onSelect={(date) => {
-                      if (date) {
-                        // Don't allow selecting dates before start date or today
-                        const selectedDate = new Date(date);
+                      }}
+                      disabled={(date) => isBefore(date, today)}
+                      initialFocus
+                      className="rounded-md border"
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
+              <div className="grid gap-2">
+                <Label>End Date</Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className={cn(
+                        "w-full justify-start text-left font-normal",
+                        !endDate && "text-muted-foreground"
+                      )}
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {endDate ? format(endDate, "PPP") : <span>Pick a date</span>}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <CalendarComponent
+                      mode="single"
+                      selected={endDate}
+                      onSelect={(date) => {
+                        if (date) {
+                          // Don't allow selecting dates before start date or today
+                          const selectedDate = new Date(date);
+                          const minDate = startDate || today;
+                          
+                          if (isBefore(selectedDate, minDate)) {
+                            toast({
+                              title: "Invalid Date",
+                              description: `End date cannot be before ${format(minDate, 'MMM d, yyyy')}.`,
+                              variant: "destructive",
+                            });
+                            return;
+                          }
+                          setEndDate(selectedDate);
+                        }
+                      }}
+                      disabled={(date) => {
+                        // Disable dates before today or before start date if set
                         const minDate = startDate || today;
-                        
-                        if (isBefore(selectedDate, minDate)) {
-                          toast({
-                            title: "Invalid Date",
-                            description: `End date cannot be before ${format(minDate, 'MMM d, yyyy')}.`,
-                            variant: "destructive",
-                          });
-                          return;
-                        }
-                        setEndDate(selectedDate);
-                      }
-                    }}
-                    disabled={(date) => {
-                      // Disable dates before today or before start date if set
-                      const minDate = startDate || today;
-                      return isBefore(date, minDate);
-                    }}
-                    initialFocus
-                    className="rounded-md border"
+                        return isBefore(date, minDate);
+                      }}
+                      initialFocus
+                      className="rounded-md border"
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
+              
+              <div className="grid gap-2">
+                <Label>Certificate Settings</Label>
+                <div className="flex items-center space-x-2">
+                  <Checkbox 
+                    id="enable-certificate" 
+                    checked={enableCertificate}
+                    onCheckedChange={(checked) => setEnableCertificate(!!checked)}
                   />
-                </PopoverContent>
-              </Popover>
-            </div>
-            
-            <div className="grid gap-2">
-              <Label>Certificate Settings</Label>
-              <div className="flex items-center space-x-2">
-                <Checkbox 
-                  id="enable-certificate" 
-                  checked={enableCertificate}
-                  onCheckedChange={(checked) => setEnableCertificate(!!checked)}
-                />
-                <Label htmlFor="enable-certificate" className="text-sm font-normal">
-                  Enable completion certificate
-                </Label>
+                  <Label htmlFor="enable-certificate" className="text-sm font-normal">
+                    Enable completion certificate
+                  </Label>
+                </div>
               </div>
             </div>
-          </div>
-        )}
-        
-        {currentStep === 3 && (
-          <div className="grid gap-4 py-4">
-            <div className="grid gap-2">
-              <Label>Campaign Summary</Label>
-              <div className="space-y-2 text-sm border p-4 rounded-md">
-                <div className="grid grid-cols-2 gap-1">
-                  <div className="text-muted-foreground">Campaign Name:</div>
-                  <div>{campaignName || "Not specified"}</div>
-                </div>
-                <div className="grid grid-cols-2 gap-1">
-                  <div className="text-muted-foreground">Courses:</div>
-                  <div>
-                    {selectedCourses.length > 0
-                      ? selectedCourses
-                          .map((id) => courses.find((c) => c.id.toString() === id)?.name)
-                          .filter(Boolean)
-                          .join(", ")
-                      : "Not selected"}
-                  </div>
-                </div>
-                <div className="grid grid-cols-2 gap-1">
-                  <div className="text-muted-foreground">Start Date:</div>
-                  <div>{startDate ? format(startDate, "PPP") : "Not specified"}</div>
-                </div>
-                <div className="grid grid-cols-2 gap-1">
-                  <div className="text-muted-foreground">End Date:</div>
-                  <div>{endDate ? format(endDate, "PPP") : "Not specified"}</div>
-                </div>
-                <div className="grid grid-cols-2 gap-1">
-                  <div className="text-muted-foreground">Target Audience:</div>
-                  <div>{selectedTargetType === "all" ? "All Users" : "Custom Selection"}</div>
-                </div>
-                {selectedTargetType === "custom" && (
+          )}
+          
+          {currentStep === 3 && (
+            <div className="grid gap-4 py-4">
+              <div className="grid gap-2">
+                <Label>Campaign Summary</Label>
+                <div className="space-y-2 text-sm border p-4 rounded-md">
                   <div className="grid grid-cols-2 gap-1">
-                    <div className="text-muted-foreground">Selected Users:</div>
-                    <div>{selectedUsers.length} users</div>
+                    <div className="text-muted-foreground">Campaign Name:</div>
+                    <div>{campaignName || "Not specified"}</div>
                   </div>
-                )}
-                <div className="grid grid-cols-2 gap-1">
-                  <div className="text-muted-foreground">Certificate:</div>
-                  <div>{enableCertificate ? "Enabled" : "Disabled"}</div>
+                  <div className="grid grid-cols-2 gap-1">
+                    <div className="text-muted-foreground">Courses:</div>
+                    <div>
+                      {selectedCourses.length > 0
+                        ? selectedCourses
+                            .map((id) => courses.find((c) => c.id.toString() === id)?.name)
+                            .filter(Boolean)
+                            .join(", ")
+                        : "Not selected"}
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-1">
+                    <div className="text-muted-foreground">Start Date:</div>
+                    <div>{startDate ? format(startDate, "PPP") : "Not specified"}</div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-1">
+                    <div className="text-muted-foreground">End Date:</div>
+                    <div>{endDate ? format(endDate, "PPP") : "Not specified"}</div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-1">
+                    <div className="text-muted-foreground">Target Audience:</div>
+                    <div>{selectedTargetType === "all" ? "All Users" : "Custom Selection"}</div>
+                  </div>
+                  {selectedTargetType === "custom" && (
+                    <div className="grid grid-cols-2 gap-1">
+                      <div className="text-muted-foreground">Selected Users:</div>
+                      <div>{selectedUsers.length} users</div>
+                    </div>
+                  )}
+                  <div className="grid grid-cols-2 gap-1">
+                    <div className="text-muted-foreground">Certificate:</div>
+                    <div>{enableCertificate ? "Enabled" : "Disabled"}</div>
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
-        )}
+          )}
 
-        <DialogFooter className="flex items-center justify-between">
-          {currentStep > 1 && (
-            <Button type="button" variant="outline" onClick={prevStep}>
-              Back
-            </Button>
-          )}
-          <div className="flex-1"></div>
-          {currentStep < 3 ? (
-            <Button type="button" onClick={nextStep}>
-              Next
-              <ArrowRight className="ml-2 h-4 w-4" />
-            </Button>
-          ) : (
-            <Button 
-              type="button" 
-              onClick={handleSubmit} 
-              disabled={isSubmitting}
-              className="bg-[#907527] hover:bg-[#7a6421]"
-            >
-              {isSubmitting ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Creating...
-                </>
-              ) : (
-                "Create Campaign"
-              )}
-            </Button>
-          )}
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+          <DialogFooter className="flex items-center justify-between">
+            {currentStep > 1 && (
+              <Button type="button" variant="outline" onClick={prevStep}>
+                Back
+              </Button>
+            )}
+            <div className="flex-1"></div>
+            {currentStep < 3 ? (
+              <Button type="button" onClick={nextStep}>
+                Next
+                <ArrowRight className="ml-2 h-4 w-4" />
+              </Button>
+            ) : (
+              <Button 
+                type="button" 
+                onClick={handleSubmit} 
+                disabled={isSubmitting}
+                className="bg-[#907527] hover:bg-[#7a6421]"
+              >
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Creating...
+                  </>
+                ) : (
+                  "Create Campaign"
+                )}
+              </Button>
+            )}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {open && (
+        <div 
+          className="fixed inset-0 z-40 bg-black/80"
+          onClick={() => setOpen(false)}
+        />
+      )}
+    </>
   );
 };
 

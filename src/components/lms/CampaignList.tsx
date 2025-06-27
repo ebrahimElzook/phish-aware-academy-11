@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -132,14 +131,14 @@ export const CampaignList = () => {
         )}
       </CardContent>
 
-      <Dialog open={!!selectedCampaign} onOpenChange={() => setSelectedCampaign(null)}>
-        <DialogContent className="sm:max-w-[600px]">
+      <Dialog open={!!selectedCampaign} onOpenChange={() => setSelectedCampaign(null)} modal={false}>
+        <DialogContent className="w-full sm:max-w-[600px]">
           <DialogHeader>
             <DialogTitle>Campaign Report: {selectedCampaign?.title}</DialogTitle>
           </DialogHeader>
           {selectedCampaign && (
             <div className="mt-4 space-y-6">
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
                 <Card className="p-4">
                   <p className="text-sm text-gray-500">Total Enrolled</p>
                   <p className="text-2xl font-bold">{selectedCampaign.stats.totalEnrolled}</p>
@@ -158,36 +157,46 @@ export const CampaignList = () => {
                 </Card>
               </div>
 
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Metric</TableHead>
-                    <TableHead>Value</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  <TableRow>
-                    <TableCell>Start Date</TableCell>
-                    <TableCell>{selectedCampaign.startDate}</TableCell>
-                  </TableRow>
-                  <TableRow>
-                    <TableCell>End Date</TableCell>
-                    <TableCell>{selectedCampaign.endDate}</TableCell>
-                  </TableRow>
-                  <TableRow>
-                    <TableCell>Average Completion Rate</TableCell>
-                    <TableCell>{selectedCampaign.stats.averageCompletion}</TableCell>
-                  </TableRow>
-                  <TableRow>
-                    <TableCell>Target Audience</TableCell>
-                    <TableCell>{selectedCampaign.audience}</TableCell>
-                  </TableRow>
-                </TableBody>
-              </Table>
+              <div className="relative w-full overflow-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Metric</TableHead>
+                      <TableHead>Value</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    <TableRow>
+                      <TableCell>Start Date</TableCell>
+                      <TableCell>{selectedCampaign.startDate}</TableCell>
+                    </TableRow>
+                    <TableRow>
+                      <TableCell>End Date</TableCell>
+                      <TableCell>{selectedCampaign.endDate}</TableCell>
+                    </TableRow>
+                    <TableRow>
+                      <TableCell>Average Completion Rate</TableCell>
+                      <TableCell>{selectedCampaign.stats.averageCompletion}</TableCell>
+                    </TableRow>
+                    <TableRow>
+                      <TableCell>Target Audience</TableCell>
+                      <TableCell>{selectedCampaign.audience}</TableCell>
+                    </TableRow>
+                  </TableBody>
+                </Table>
+              </div>
             </div>
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Custom overlay to restore the background dimming effect without causing layout shifts */}
+      {!!selectedCampaign && (
+        <div 
+          className="fixed inset-0 z-40 bg-black/80"
+          onClick={() => setSelectedCampaign(null)}
+        />
+      )}
     </Card>
   );
 };

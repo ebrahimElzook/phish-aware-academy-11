@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
@@ -79,6 +78,7 @@ const Campaigns = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
+  const [isCreateDialogOpen, setCreateDialogOpen] = useState(false);
 
   // Function to fetch detailed campaign data
   const fetchCampaignDetails = async (campaignId: number) => {
@@ -269,7 +269,7 @@ const Campaigns = () => {
               <p className="text-gray-400">Create and manage security awareness campaigns</p>
             </div>
             
-            <Dialog>
+            <Dialog open={isCreateDialogOpen} onOpenChange={setCreateDialogOpen} modal={false}>
               <DialogTrigger asChild>
                 <Button className="bg-[#907527] hover:bg-[#705b1e] mt-4 md:mt-0">
                   <Plus className="h-4 w-4 mr-2" />
@@ -336,17 +336,34 @@ const Campaigns = () => {
         </div>
       </div>
 
-      {selectedCampaign && (
-        <Dialog open={!!selectedCampaign} onOpenChange={() => setSelectedCampaign(null)}>
-          <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>Campaign Report: {selectedCampaign.name}</DialogTitle>
-            </DialogHeader>
-            <CampaignDetails campaign={selectedCampaign} />
-          </DialogContent>
-        </Dialog>
+      {/* Campaign Details Modal */}
+      <Dialog open={!!selectedCampaign} onOpenChange={() => setSelectedCampaign(null)} modal={false}>
+        <DialogContent className="max-w-4xl w-full p-0">
+          {isLoading ? (
+            <div className="flex items-center justify-center h-64">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#907527]"></div>
+            </div>
+          ) : selectedCampaign && (
+            <div className="relative w-full overflow-auto">
+              <CampaignDetails campaign={selectedCampaign} />
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Custom overlay to restore the background dimming effect */}
+      {!!selectedCampaign && (
+        <div 
+          className="fixed inset-0 z-40 bg-black/80"
+          onClick={() => setSelectedCampaign(null)}
+        />
       )}
-      
+      {isCreateDialogOpen && (
+        <div 
+          className="fixed inset-0 z-40 bg-black/80"
+          onClick={() => setCreateDialogOpen(false)}
+        />
+      )}
     </div>
   );
 };

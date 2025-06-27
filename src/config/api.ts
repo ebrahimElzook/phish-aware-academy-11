@@ -25,6 +25,7 @@ export const API_ENDPOINTS = {
   
   // LMS Analytics endpoints
   LMS_ANALYTICS_OVERVIEW: `${API_BASE_URL}/api/lms/analytics/overview/`,
+  LMS_ANALYTICS_TRAINING_RESULTS: `${API_BASE_URL}/api/lms/analytics/training-results/`,
   // Certificates endpoint
   LMS_CERTIFICATES: `${API_BASE_URL}/api/lms/certificates/`,
   
