@@ -78,6 +78,8 @@ class TemporalTrendPointSerializer(serializers.Serializer):
     period = serializers.CharField() # e.g., 'YYYY-MM'
     click_rate = serializers.FloatField()
     read_rate = serializers.FloatField()
+    top_click_rate_department = serializers.DictField(child=serializers.CharField(), allow_null=True)
+    top_read_rate_department = serializers.DictField(child=serializers.CharField(), allow_null=True)
 
     class Meta:
-        fields = ['period', 'click_rate', 'read_rate']
+        fields = ['period', 'click_rate', 'read_rate', 'top_click_rate_department', 'top_read_rate_department']

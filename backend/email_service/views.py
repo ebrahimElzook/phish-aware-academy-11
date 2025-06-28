@@ -525,8 +525,9 @@ def phishing_analytics_summary(request):
     )
 
     emails_qs = Email.objects.filter(
-        phishing_campaign__in=campaigns,
+        phishing_campaign__company=company,
         sent=True,
+        phishing_campaign__start_date__gte=start_date,
     )
     total_campaigns = campaigns.count()
     total_emails_sent = emails_qs.count()
@@ -685,8 +686,41 @@ def phishing_temporal_trend_analytics(request):
         .order_by('period')
     )
 
+    # Get all departments for the company to iterate over them later
+    departments = Department.objects.filter(company=company)
+
     trend_data = []
     for stat in emails_qs:
+        period_label = stat['period'].strftime('%Y-%m') if grouping != 'weekly' else stat['period'].strftime('%Y-W%V')
+
+        top_click_dept = {'name': 'N/A', 'rate': 0}
+        top_read_dept = {'name': 'N/A', 'rate': 0}
+
+        # For each period, find the best-performing department
+        for dept in departments:
+            dept_emails = Email.objects.filter(
+                phishing_campaign__company=company,
+                sent=True,
+                recipient__isnull=False,  # Skip emails with no recipient
+                phishing_campaign__end_date__gte=stat['period'],
+                phishing_campaign__end_date__lt=stat['period'] + timedelta(days=31 if grouping == 'monthly' else 7),
+                recipient__department=dept
+            )
+            
+            total_sent_dept = dept_emails.count()
+            if total_sent_dept > 0:
+                # Click Rate
+                total_clicked_dept = dept_emails.filter(clicked=True).count()
+                click_rate_dept = (total_clicked_dept / total_sent_dept) * 100
+                if click_rate_dept > top_click_dept['rate']:
+                    top_click_dept = {'name': dept.name, 'rate': click_rate_dept}
+
+                # Read Rate
+                total_read_dept = dept_emails.filter(read=True).count()
+                read_rate_dept = (total_read_dept / total_sent_dept) * 100
+                if read_rate_dept > top_read_dept['rate']:
+                    top_read_dept = {'name': dept.name, 'rate': read_rate_dept}
+
         click_rate = (
             stat['total_clicked'] / stat['total_sent'] * 100 if stat['total_sent'] > 0 else 0
         )
@@ -694,19 +728,14 @@ def phishing_temporal_trend_analytics(request):
             stat['total_read'] / stat['total_sent'] * 100 if stat['total_sent'] > 0 else 0
         )
 
-        if grouping == 'weekly':
-            # TruncWeek returns the Monday of the week; represent as ISO week string
-            period_label = stat['period'].strftime('%Y-W%V')  # e.g., 2025-W24
-        else:
-            period_label = stat['period'].strftime('%Y-%m')
-
         trend_data.append(
             {
                 'period': period_label,
                 'click_rate': round(click_rate, 2),
                 'read_rate': round(read_rate, 2),
+                'top_click_rate_department': { 'name': top_click_dept['name'], 'rate': round(top_click_dept['rate'], 2) },
+                'top_read_rate_department': { 'name': top_read_dept['name'], 'rate': round(top_read_dept['rate'], 2) },
             }
         )
 
-    serializer = TemporalTrendPointSerializer(trend_data, many=True)
-    return JsonResponseWithCors(serializer.data)
+    return JsonResponseWithCors(trend_data)

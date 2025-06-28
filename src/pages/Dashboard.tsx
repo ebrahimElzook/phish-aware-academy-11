@@ -35,6 +35,8 @@ interface TemporalTrendPoint {
   period: string;
   click_rate: number;
   read_rate: number;
+  top_click_rate_department: { name: string; rate: number };
+  top_read_rate_department: { name: string; rate: number };
 }
 
 interface LMSOverviewDashboard {
@@ -419,31 +421,39 @@ const Dashboard = () => {
                   </CardHeader>
                   <CardContent>
                     <div className="h-80">
-                      {loadingDept ? (
-                        <p>Loading department data...</p>
-                      ) : errorDept ? (
-                        <p className="text-red-500 text-xs">Error: {errorDept}</p>
-                      ) : filteredDepartmentPerformance.length === 0 ? (
+                      {loadingTrend ? (
+                        <p>Loading group data...</p>
+                      ) : errorTrend ? (
+                        <p className="text-red-500 text-xs">Error: {errorTrend}</p>
+                      ) : temporalTrend.length === 0 ? (
                         <p>No group data available.</p>
                       ) : (
                         <ResponsiveContainer width="100%" height={300}>
                           <BarChart
-                            data={filteredDepartmentPerformance}
+                            data={temporalTrend}
                             margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
                           >
                             <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#374151" />
                             <XAxis 
-                              dataKey="department_name" 
+                              dataKey="period" 
                               angle={-15} 
                               textAnchor="end" 
                               height={50} 
                               interval={0} 
                             />
                             <YAxis unit="%" domain={[0, 100]} />
-                            <Tooltip formatter={(value:number) => `${value}%`} />
+                            <Tooltip formatter={(value: number, name: string, props: any) => {
+                              if (name === 'Highest Click Rate') {
+                                return [`${value}% - ${props.payload.top_click_rate_department.name}`, "Highest Click Rate"];
+                              }
+                              if (name === 'Highest Report Rate') {
+                                return [`${value}% - ${props.payload.top_read_rate_department.name}`, "Highest report Rate"];
+                              }
+                              return [value, name];
+                            }} />
                             <Legend />
-                            <Bar dataKey="click_rate" name="Click Rate (%)" fill="#ef4444" />
-                            <Bar dataKey="read_rate" name="Reporting Rate (%)" fill="#22C55E" />
+                            <Bar dataKey="top_click_rate_department.rate" name="Highest Click Rate" fill="#ef4444" />
+                            <Bar dataKey="top_read_rate_department.rate" name="Highest Report Rate" fill="#22C55E" />
                           </BarChart>
                         </ResponsiveContainer>
                       )}
