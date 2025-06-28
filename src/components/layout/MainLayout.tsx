@@ -1,29 +1,21 @@
 import React from 'react';
-import { Outlet } from 'react-router-dom';
-import { MainNav } from './MainNav';
-import { UserNav } from './UserNav';
-import { useAuth } from '@/contexts/AuthContext';
+import Navbar from '@/components/Navbar';
+import Footer from '@/components/Footer';
 
-export const MainLayout = () => {
-  const { user, logout } = useAuth();
+interface MainLayoutProps {
+  children: React.ReactNode;
+}
 
+const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
   return (
-    <div className="min-h-screen bg-background">
-      <div className="border-b">
-        <div className="flex h-16 items-center px-4">
-          <div className="font-bold text-xl mr-6">Phish Aware</div>
-          <MainNav />
-          <div className="ml-auto flex items-center space-x-4">
-            {user && (
-              <UserNav user={user} onLogout={logout} />
-            )}
-          </div>
-        </div>
+    <>
+      <Navbar />
+      <div className="md:ml-64 flex flex-col min-h-screen">
+        <main className="flex-grow bg-gray-900 p-6 md:p-8">
+          {children}
+        </main>
       </div>
-      <div className="p-8">
-        <Outlet />
-      </div>
-    </div>
+    </>
   );
 };
 

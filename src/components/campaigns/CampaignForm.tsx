@@ -314,8 +314,8 @@ const CampaignForm: React.FC<CampaignFormProps> = ({ companySlug, onClose, onCre
       // Get users from selected departments
       if (selectedDepartments.length === 0) {
         toast({
-          title: "No Departments Selected",
-          description: "Please select at least one department",
+          title: "No Groups Selected",
+          description: "Please select at least one Group",
           variant: "destructive"
         });
         return;
@@ -557,7 +557,7 @@ const CampaignForm: React.FC<CampaignFormProps> = ({ companySlug, onClose, onCre
         <Tabs value={targetType} onValueChange={setTargetType} className="w-full">
           <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="all">All Users</TabsTrigger>
-            <TabsTrigger value="department">By Department</TabsTrigger>
+            <TabsTrigger value="department">By Group</TabsTrigger>
             <TabsTrigger value="individual">Individual</TabsTrigger>
           </TabsList>
           
@@ -566,7 +566,7 @@ const CampaignForm: React.FC<CampaignFormProps> = ({ companySlug, onClose, onCre
               <div className="relative">
                 <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
                 <Input
-                  placeholder="Search departments..."
+                  placeholder="Search Groups..."
                   className="pl-8"
                   value={departmentSearchTerm}
                   onChange={(e) => setDepartmentSearchTerm(e.target.value)}
@@ -575,7 +575,7 @@ const CampaignForm: React.FC<CampaignFormProps> = ({ companySlug, onClose, onCre
               <div className="space-y-2 max-h-40 overflow-y-auto p-2 border rounded">
                 {loadingDepartments ? (
                   <p className="text-sm text-muted-foreground text-center py-2">
-                    Loading departments...
+                    Loading Groups...
                   </p>
                 ) : departments.filter(dept => 
                   dept.name.toLowerCase().includes(departmentSearchTerm.toLowerCase())
@@ -596,7 +596,7 @@ const CampaignForm: React.FC<CampaignFormProps> = ({ companySlug, onClose, onCre
                     ))
                 ) : (
                   <p className="text-sm text-muted-foreground text-center py-2">
-                    No departments found
+                    No Groups found
                   </p>
                 )}
               </div>

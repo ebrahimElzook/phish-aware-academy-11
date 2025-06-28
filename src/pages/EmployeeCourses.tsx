@@ -6,8 +6,7 @@ import { lmsService, authService } from '@/services/api';
 import { CourseCard } from "@/components/CourseCard";
 import { VideoPlayer } from "@/components/VideoPlayer";
 import { Quiz } from "@/components/Quiz";
-import Navbar from '@/components/Navbar';
-import Footer from '@/components/Footer';
+import MainLayout from '@/components/layout/MainLayout';
 import { 
   Card, 
   CardContent, 
@@ -420,223 +419,267 @@ const EmployeeCourses = () => {
   };
 
   return (
-    <div className="min-h-screen flex flex-col">
-      <Navbar />
-      
-      <div className="flex-grow bg-gray-0 py-8 px-6">
-        <div className="max-w-7xl mx-auto">
+    <MainLayout>
+      <div className="max-w-7xl mx-auto">
           <h1 className="text-2xl font-bold mb-6 text-gray-200">My Training Courses</h1>
-          
-          <Tabs defaultValue="active">
-            <TabsList className="mb-6">
-              <TabsTrigger value="active">Active Courses</TabsTrigger>
-              <TabsTrigger value="completed">Completed</TabsTrigger>
-              <TabsTrigger value="certificates">My Certificates</TabsTrigger>
-            </TabsList>
-            
-            <TabsContent value="active">
-              <div className="space-y-6">
-                {campaigns.filter(campaign => !campaign.completed).map(campaign => (
-                  <Card key={campaign.id} className="overflow-hidden">
-                    <CardHeader>
-                      <CardTitle>{campaign.title}</CardTitle>
-                      <CardDescription>{campaign.description}</CardDescription>
-                      <div className="pt-4">
-                        <div className="flex justify-between items-center mb-1">
-                          <span className="text-sm font-medium text-gray-600">Progress</span>
-                          <span className="text-sm font-bold text-primary">{campaign.progress}%</span>
-                        </div>
-                        <Progress value={campaign.progress} />
-                        <div className="flex justify-between items-center mt-2 text-xs text-muted-foreground">
-                          <span>{campaign.completedCourses} of {campaign.totalCourses} courses completed</span>
-                          <span>Due: {campaign.dueDate === 'No due date' ? 'N/A' : new Date(campaign.dueDate).toLocaleDateString()}</span>
-                        </div>
-                      </div>
-                    </CardHeader>
-                    <CardContent>
-                      <h3 className="text-md font-semibold mb-3">Courses</h3>
-                      <ul className="space-y-3">
-                        {campaign.courses.map(course => (
-                          <li key={course.id} className="flex items-center justify-between p-3 rounded-lg border bg-gray-50/50">
-                            <div className="flex items-center">
-                              {course.completed ? (
-                                <Check className="h-5 w-5 text-green-500 mr-3 flex-shrink-0" />
-                              ) : (
-                                <Video className="h-5 w-5 text-gray-400 mr-3 flex-shrink-0" />
-                              )}
-                              <span className={`text-sm ${course.completed ? 'line-through text-muted-foreground' : ''}`}>{course.title}</span>
-                            </div>
-                            {!course.completed && (
-                              <Button variant="outline" size="sm" onClick={() => handleStartVideo(campaign, course)}>
-                                Start
-                              </Button>
-                            )}
-                          </li>
-                        ))}
-                      </ul>
-                    </CardContent>
-                  </Card>
-                ))}
-                {campaigns.filter(campaign => !campaign.completed).length === 0 && (
-                  <div className="text-center p-8 border-2 border-dashed rounded-lg">
-                    <BookOpen className="h-12 w-12 mx-auto text-gray-300 mb-2" />
-                    <h3 className="text-lg font-medium text-gray-200">No Active Courses</h3>
-                    <p className="text-muted-foreground">You don't have any active courses at the moment.</p>
-                  </div>
-                )}
-              </div>
-            </TabsContent>
-            
-            <TabsContent value="completed">
-              <div className="space-y-6">
-                {campaigns.filter(campaign => campaign.completed).map(campaign => (
-                  <Card key={campaign.id} className="overflow-hidden">
-                    <CardHeader className="bg-green-50/50">
-                      <CardTitle>{campaign.title}</CardTitle>
-                      <CardDescription>{campaign.description}</CardDescription>
-                      <div className="pt-4">
-                        <div className="flex justify-between items-center mb-1">
-                          <span className="text-sm font-medium text-gray-600">Progress</span>
-                          <span className="text-sm font-bold text-green-600">
-                            {campaign.progress}%
-                          </span>
-                        </div>
-                        <Progress
-                          value={campaign.progress}
-                          className={campaign.progress === 100 ? "[&>div]:bg-green-500" : ""}
-                        />
-                      </div>
-                    </CardHeader>
-                    <CardContent>
-                      <h3 className="text-md font-semibold mb-3">Courses</h3>
-                      <ul className="space-y-3">
-                        {campaign.courses.map(course => (
-                          <li
-                            key={course.id}
-                            className="flex items-center justify-between p-3 rounded-lg border bg-gray-50/50"
-                          >
-                            <div className="flex items-center">
-                              {course.completed ? (
-                                <Check className="h-5 w-5 text-green-500 mr-3 flex-shrink-0" />
-                              ) : (
-                                <Video className="h-5 w-5 text-gray-400 mr-3 flex-shrink-0" />
-                              )}
-                              <span
-                                className={`text-sm ${course.completed ? "line-through text-muted-foreground" : ""}`}
-                              >
-                                {course.title}
-                              </span>
-                            </div>
-                          </li>
-                        ))}
-                      </ul>
-                    </CardContent>
-                  </Card>
-                ))}
-                {campaigns.filter(campaign => campaign.completed).length === 0 && (
-                  <div className="text-center p-8 border-2 border-dashed rounded-lg">
-                    <Check className="h-12 w-12 mx-auto text-gray-300 mb-2" />
-                    <h3 className="text-lg font-medium">No Completed Courses</h3>
-                    <p className="text-muted-foreground">You haven't completed any courses yet.</p>
-                  </div>
-                )}
-              </div>
-            </TabsContent>
-            <TabsContent value="certificates">
-              <div className="space-y-6">
-                <div className="flex items-center gap-2">
-                  <Award className="h-5 w-5 text-yellow-500" />
-                  <h2 className="text-xl font-semibold text-gray-200">My Certificates</h2>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {loadingCertificates ? (
-                    <p>Loading certificates...</p>
-                  ) : certificates.filter(cert => cert.userName === currentUserName).length === 0 ? (
-                    <p>No certificates found.</p>
-                  ) : (
-                    certificates
-                      .filter(cert => cert.userName === currentUserName)
-                      .map(cert => (
-                        <CertificateCard
-                          key={cert.id}
-                          id={cert.id}
-                          title={cert.title}
-                          userName={cert.userName}
-                          completionDate={cert.completionDate}
-                        />
-                      ))
-                  )}
-                </div>
-              </div>
-            </TabsContent>
-          </Tabs>
-        </div>
-      </div>
-    
-    {/* Video Player Dialog */}
-    <Dialog open={!!activeVideo && !showQuiz} onOpenChange={(open) => {
-      if (!open) {
-        setActiveVideo(null);
-        setVideoPlaying(false);
-      }
-    }}>
-      <DialogContent className="sm:max-w-[700px]">
-        <DialogHeader>
-          <DialogTitle>{activeVideo?.title}</DialogTitle>
-        </DialogHeader>
         
-        {activeVideo && (
-          <div>
-            {!videoPlaying ? (
-              <div className="relative cursor-pointer group aspect-video" onClick={() => setVideoPlaying(true)}>
-                <img src={activeVideo.thumbnail} alt={activeVideo.title} className="w-full h-full object-cover rounded-md" />
-                <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-40 group-hover:bg-opacity-60 transition-all duration-300">
-                  <PlayCircle className="w-20 h-20 text-white opacity-80 group-hover:opacity-100 transform group-hover:scale-110 transition-transform duration-300" />
+        <Tabs defaultValue="active">
+          <TabsList className="mb-6">
+            <TabsTrigger value="active">Active Courses</TabsTrigger>
+            <TabsTrigger value="completed">Completed</TabsTrigger>
+            <TabsTrigger value="certificates">My Certificates</TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value="active">
+            <div className="space-y-6">
+              {campaigns.filter(campaign => !campaign.completed).map(campaign => (
+                <Card key={campaign.id} className="overflow-hidden">
+                  <CardHeader>
+                    <CardTitle>{campaign.title}</CardTitle>
+                    <CardDescription>{campaign.description}</CardDescription>
+                    <div className="pt-4">
+                      <div className="flex justify-between items-center mb-1">
+                        <span className="text-sm font-medium text-gray-600">Progress</span>
+                        <span className="text-sm font-bold text-primary">{campaign.progress}%</span>
+                      </div>
+                      <Progress value={campaign.progress} />
+                      <div className="flex justify-between items-center mt-2 text-xs text-muted-foreground">
+                        <span>{campaign.completedCourses} of {campaign.totalCourses} courses completed</span>
+                        <span>Due: {campaign.dueDate === 'No due date' ? 'N/A' : new Date(campaign.dueDate).toLocaleDateString()}</span>
+                      </div>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <h3 className="text-md font-semibold mb-3">Courses</h3>
+                    <ul className="space-y-3">
+                      {campaign.courses.map(course => (
+                        <li key={course.id} className="flex items-center justify-between p-3 rounded-lg border bg-gray-50/50">
+                          <div className="flex items-center">
+                            {course.completed ? (
+                              <Check className="h-5 w-5 text-green-500 mr-3 flex-shrink-0" />
+                            ) : (
+                              <Video className="h-5 w-5 text-gray-400 mr-3 flex-shrink-0" />
+                            )}
+                            <span className={`text-sm ${course.completed ? 'line-through text-muted-foreground' : ''}`}>{course.title}</span>
+                          </div>
+                          {!course.completed && (
+                            <Button variant="outline" size="sm" onClick={() => handleStartVideo(campaign, course)}>
+                              Start
+                            </Button>
+                          )}
+                        </li>
+                      ))}
+                    </ul>
+                  </CardContent>
+                </Card>
+              ))}
+              {campaigns.filter(campaign => !campaign.completed).length === 0 && (
+                <div className="text-center p-8 border-2 border-dashed rounded-lg">
+                  <BookOpen className="h-12 w-12 mx-auto text-gray-300 mb-2" />
+                  <h3 className="text-lg font-medium text-gray-800">No Active Courses</h3>
+                  <p className="text-muted-foreground">You don't have any active courses at the moment.</p>
                 </div>
+              )}
+            </div>
+          </TabsContent>
+          
+          <TabsContent value="completed">
+            <div className="space-y-6">
+              {campaigns.filter(campaign => campaign.completed).map(campaign => (
+                <Card key={campaign.id} className="overflow-hidden">
+                  <CardHeader className="bg-green-50/50">
+                    <CardTitle>{campaign.title}</CardTitle>
+                    <CardDescription>{campaign.description}</CardDescription>
+                    <div className="pt-4">
+                      <div className="flex justify-between items-center mb-1">
+                        <span className="text-sm font-medium text-gray-600">Progress</span>
+                        <span className="text-sm font-bold text-green-600">
+                          {campaign.progress}%
+                        </span>
+                      </div>
+                      <Progress
+                        value={campaign.progress}
+                        className={campaign.progress === 100 ? "[&>div]:bg-green-500" : ""}
+                      />
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <h3 className="text-md font-semibold mb-3">Courses</h3>
+                    <ul className="space-y-3">
+                      {campaign.courses.map(course => (
+                        <li
+                          key={course.id}
+                          className="flex items-center justify-between p-3 rounded-lg border bg-gray-50/50"
+                        >
+                          <div className="flex items-center">
+                            {course.completed ? (
+                              <Check className="h-5 w-5 text-green-500 mr-3 flex-shrink-0" />
+                            ) : (
+                              <Video className="h-5 w-5 text-gray-400 mr-3 flex-shrink-0" />
+                            )}
+                            <span
+                              className={`text-sm ${course.completed ? "line-through text-muted-foreground" : ""}`}
+                            >
+                              {course.title}
+                            </span>
+                          </div>
+                        </li>
+                      ))}
+                    </ul>
+                  </CardContent>
+                </Card>
+              ))}
+              {campaigns.filter(campaign => campaign.completed).length === 0 && (
+                <div className="text-center p-8 border-2 border-dashed rounded-lg">
+                  <Check className="h-12 w-12 mx-auto text-gray-300 mb-2" />
+                  <h3 className="text-lg font-medium">No Completed Courses</h3>
+                  <p className="text-muted-foreground">You haven't completed any courses yet.</p>
+                </div>
+              )}
+            </div>
+          </TabsContent>
+          <TabsContent value="certificates">
+            <div className="space-y-6">
+              <div className="flex items-center gap-2">
+                <Award className="h-5 w-5 text-yellow-500" />
+                <h2 className="text-xl font-semibold text-gray-800">My Certificates</h2>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {loadingCertificates ? (
+                  <p>Loading certificates...</p>
+                ) : certificates.filter(cert => cert.userName === currentUserName).length === 0 ? (
+                  <p>No certificates found.</p>
+                ) : (
+                  certificates
+                    .filter(cert => cert.userName === currentUserName)
+                    .map(cert => (
+                      <CertificateCard
+                        key={cert.id}
+                        id={cert.id}
+                        title={cert.title}
+                        userName={cert.userName}
+                        completionDate={cert.completionDate}
+                      />
+                    ))
+                )}
+              </div>
+            </div>
+          </TabsContent>
+        </Tabs>
+      </div>
+      
+      {/* Video Player Dialog */}
+      <Dialog open={!!activeVideo && !showQuiz} onOpenChange={(open) => {
+        if (!open) {
+          setActiveVideo(null);
+          setVideoPlaying(false);
+        }
+      }}>
+        <DialogContent className="sm:max-w-[700px]">
+          <DialogHeader>
+            <DialogTitle>{activeVideo?.title}</DialogTitle>
+          </DialogHeader>
+          
+          {activeVideo && (
+            <div>
+              {!videoPlaying ? (
+                <div className="relative cursor-pointer group aspect-video" onClick={() => setVideoPlaying(true)}>
+                  <img src={activeVideo.thumbnail} alt={activeVideo.title} className="w-full h-full object-cover rounded-md" />
+                  <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-40 group-hover:bg-opacity-60 transition-all duration-300">
+                    <PlayCircle className="w-20 h-20 text-white opacity-80 group-hover:opacity-100 transform group-hover:scale-110 transition-transform duration-300" />
+                  </div>
+                </div>
+              ) : (
+                <VideoPlayer 
+                  title={activeVideo.title}
+                  thumbnail={activeVideo.thumbnail}
+                  onComplete={handleMarkCourseAsCompleted}
+                  videoUrl={activeVideo.videoUrl}
+                  autoplay
+                />
+              )}
+            </div>
+          )}
+          <DialogFooter className="sm:justify-between">
+              <Button onClick={handleMarkCourseAsCompleted}>
+                <Check className="mr-2 h-4 w-4" />
+                Mark as Completed
+              </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Quiz Dialog */}
+      {activeVideo && showQuiz && (
+        <Dialog open={showQuiz} onOpenChange={(open) => {
+          if (!open) {
+            setShowQuiz(false);
+            setQuizCompleted(false);
+          }
+        }}>
+          <DialogContent className="sm:max-w-2xl">
+            <DialogHeader>
+              <DialogTitle>Quiz for {activeVideo.title}</DialogTitle>
+            </DialogHeader>
+            
+            {!quizCompleted ? (
+              <div>
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Question {currentQuestionIndex + 1} of {activeVideo.questions.length}</CardTitle>
+                    <CardDescription>{activeVideo.questions[currentQuestionIndex].text}</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <RadioGroup 
+                      value={selectedAnswers[activeVideo.questions[currentQuestionIndex].id]} 
+                      onValueChange={(value) => handleAnswerSelect(activeVideo.questions[currentQuestionIndex].id, value)}
+                    >
+                      {activeVideo.questions[currentQuestionIndex].options.map(option => (
+                        <div key={option.id} className="flex items-center space-x-2">
+                          <RadioGroupItem value={option.id} id={option.id} />
+                          <Label htmlFor={option.id}>{option.text}</Label>
+                        </div>
+                      ))}
+                    </RadioGroup>
+                  </CardContent>
+                </Card>
+                <DialogFooter className="mt-4">
+                  <Button onClick={handleNextQuestion}>
+                    {currentQuestionIndex < activeVideo.questions.length - 1 ? 'Next Question' : 'Submit Quiz'}
+                  </Button>
+                </DialogFooter>
               </div>
             ) : (
-              <VideoPlayer 
-                title={activeVideo.title}
-                thumbnail={activeVideo.thumbnail}
-                onComplete={handleMarkCourseAsCompleted}
-                videoUrl={activeVideo.videoUrl}
-                autoplay
-              />
+              <div className="text-center">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Quiz Results</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-lg mb-2">You scored: {score}%</p>
+                    {score >= 70 ? (
+                      <p className="text-green-600">Congratulations, you passed!</p>
+                    ) : (
+                      <p className="text-red-600">Unfortunately, you did not pass. Please try again.</p>
+                    )}
+                  </CardContent>
+                  <CardFooter className="justify-center">
+                    {score < 70 && (
+                      <Button onClick={restartQuiz}>Restart Quiz</Button>
+                    )}
+                    <Button variant="secondary" onClick={() => {
+                      setShowQuiz(false);
+                      setQuizCompleted(false);
+                    }}>Close</Button>
+                  </CardFooter>
+                </Card>
+              </div>
             )}
-          </div>
-        )}
-        <DialogFooter className="sm:justify-between">
-            <Button onClick={handleMarkCourseAsCompleted}>
-              <Check className="mr-2 h-4 w-4" />
-              Mark as Completed
-            </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
-    
-    {/* Quiz Dialog */}
-    <Dialog 
-      open={!!activeVideo && showQuiz} 
-      onOpenChange={(open) => !open && setShowQuiz(false)}
-    >
-      <DialogContent className="sm:max-w-[600px]">
-        {activeVideo && activeVideo.questions.length > 0 && (
-          <Quiz 
-            questions={activeVideo.questions}
-            onComplete={(quizScore) => {
-              setScore(quizScore);
-              if (quizScore >= 70) {
-                // Pass threshold
-                markVideoAsCompleted();
-              }
-            }}
-          />
-        )}
-      </DialogContent>
-    </Dialog>
-    
-  </div>
+          </DialogContent>
+        </Dialog>
+      )}
+    </MainLayout>
   );
 };
 

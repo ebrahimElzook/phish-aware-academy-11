@@ -103,7 +103,7 @@ const CampaignDetails: React.FC<CampaignDetailsProps> = ({ campaign }) => {
                 <TableCell>{Math.round((campaign.clicks / campaign.targets) * 100)}%</TableCell>
               </TableRow>
               <TableRow>
-                <TableCell>Email Open Rate</TableCell>
+                <TableCell>Email Reporting Rate</TableCell>
                 <TableCell>{Math.round((campaign.opens / campaign.targets) * 100)}%</TableCell>
               </TableRow>
               <TableRow>

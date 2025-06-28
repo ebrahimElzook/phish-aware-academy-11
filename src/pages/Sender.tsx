@@ -7,8 +7,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/components/ui/use-toast';
 import { EMAIL_API_ENDPOINT, EMAIL_SAVE_API_ENDPOINT, EMAIL_CONFIGS_API_ENDPOINT, EMAIL_TEMPLATES_API_ENDPOINT, PHISHING_CAMPAIGN_CREATE_API_ENDPOINT } from '@/config';
-import Navbar from '@/components/Navbar';
-import Footer from '@/components/Footer';
+import MainLayout from '@/components/layout/MainLayout';
 import { Checkbox } from '@/components/ui/checkbox';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -618,20 +617,18 @@ const Sender = () => {
   };
 
   return (
-    <div className="min-h-screen flex flex-col">
-      <Navbar />
-      <main className="flex-1 container mx-auto py-8 px-4">
-        <Card className="max-w-3xl mx-auto">
-        <CardHeader>
-          <CardTitle>Send Email</CardTitle>
-          <CardDescription>Compose and send a new email message</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-6">
-            <div className="grid grid-cols-1 gap-6">
-              <div className="space-y-2">
-                <Label htmlFor="recipients">Recipients</Label>
-                <Tabs defaultValue="individuals" className="w-full" onValueChange={(value) => {
+    <MainLayout>
+      <Card className="max-w-3xl mx-auto">
+      <CardHeader>
+        <CardTitle>Send Email</CardTitle>
+        <CardDescription>Compose and send a new email message</CardDescription>
+      </CardHeader>
+      <CardContent>
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <div className="grid grid-cols-1 gap-6">
+            <div className="space-y-2">
+              <Label htmlFor="recipients">Recipients</Label>
+              <Tabs defaultValue="individuals" className="w-full" onValueChange={(value) => {
                     // Clear other tabs when switching
                     if (value === 'individuals') {
                       setSelectedDepartments([]);
@@ -644,331 +641,330 @@ const Sender = () => {
                       setSelectedDepartments([]);
                     }
                   }}>
-                  <TabsList className="grid w-full grid-cols-3">
-                    <TabsTrigger value="individuals">Individual Recipients</TabsTrigger>
-                    <TabsTrigger value="departments">Departments</TabsTrigger>
-                    <TabsTrigger value="all-users">All Users</TabsTrigger>
-                  </TabsList>
-                  
-                  <TabsContent value="individuals" className="border rounded-md p-2">
-                    <div className="mb-2">
-                      <Input
-                        id="search-recipients"
-                        type="text"
-                        placeholder="Search users..."
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                        className="mb-2"
-                      />
-                    </div>
-                    
-                    {userLoadError && <p className="text-red-500 text-sm mb-2">{userLoadError}</p>}
-                    
-                    {loadingUsers ? (
-                      <p className="text-sm text-gray-500 p-2">Loading users...</p>
-                    ) : filteredUsers.length === 0 ? (
-                      <p className="text-sm text-gray-500 p-2">
-                        {searchTerm ? 'No users found matching your search.' : 'No users found in this company.'}
-                      </p>
-                    ) : (
-                      <ScrollArea className="h-60 pr-4">
-                        <div className="space-y-2">
-                          {filteredUsers.map((user) => (
-                            <div key={user.id} className="flex items-center space-x-2">
-                              <Checkbox 
-                                id={`user-${user.id}`}
-                                checked={selectedRecipients.includes(user.email)}
-                                onCheckedChange={(checked) => handleRecipientChange(user.email, checked === true)}
-                              />
-                              <Label 
-                                htmlFor={`user-${user.id}`}
-                                className="flex-1 cursor-pointer flex justify-between"
-                              >
-                                <span>{user.first_name} {user.last_name}</span>
-                                <span className="text-gray-500 text-sm">{user.email}</span>
-                              </Label>
-                            </div>
-                          ))}
-                        </div>
-                      </ScrollArea>
-                    )}
-                    
-                    <div className="mt-2 text-sm text-gray-500">
-                      {selectedRecipients.length} individual recipient(s) selected
-                    </div>
-                  </TabsContent>
-                  
-                  <TabsContent value="departments" className="border rounded-md p-2">
-                    <div className="mb-2">
-                      <Input
-                        id="search-departments"
-                        type="text"
-                        placeholder="Search departments..."
-                        value={departmentSearchTerm}
-                        onChange={(e) => setDepartmentSearchTerm(e.target.value)}
-                        className="mb-2"
-                      />
-                    </div>
-                    
-                    {departmentLoadError && <p className="text-red-500 text-sm mb-2">{departmentLoadError}</p>}
-                    
-                    {loadingDepartments ? (
-                      <p className="text-sm text-gray-500 p-2">Loading departments...</p>
-                    ) : filteredDepartments.length === 0 ? (
-                      <p className="text-sm text-gray-500 p-2">
-                        {departmentSearchTerm ? 'No departments found matching your search.' : 'No departments found in this company.'}
-                      </p>
-                    ) : (
-                      <ScrollArea className="h-60 pr-4">
-                        <div className="space-y-2">
-                          {filteredDepartments.map((department) => (
-                            <div key={department.id} className="flex items-center space-x-2">
-                              <Checkbox 
-                                id={`department-${department.id}`}
-                                checked={selectedDepartments.includes(department.id)}
-                                onCheckedChange={(checked) => handleDepartmentChange(department.id, checked === true)}
-                              />
-                              <Label 
-                                htmlFor={`department-${department.id}`}
-                                className="flex-1 cursor-pointer flex justify-between"
-                              >
-                                <span>{department.name}</span>
-                                <span className="text-gray-500 text-sm">{department.user_count} users</span>
-                              </Label>
-                            </div>
-                          ))}
-                        </div>
-                      </ScrollArea>
-                    )}
-                    
-                    <div className="mt-2 text-sm text-gray-500">
-                      {selectedDepartments.length} department(s) selected
-                      {selectedDepartments.length > 0 && (
-                        <span> (approx. {getDepartmentUsers(selectedDepartments).length} users)</span>
-                      )}
-                    </div>
-                  </TabsContent>
-                  
-                  <TabsContent value="all-users" className="border rounded-md p-2">
-                    <div className="flex items-center space-x-2 p-4">
-                      <Checkbox 
-                        id="select-all-users"
-                        checked={selectAllUsers}
-                        onCheckedChange={(checked) => setSelectAllUsers(checked === true)}
-                      />
-                      <Label 
-                        htmlFor="select-all-users"
-                        className="flex-1 cursor-pointer"
-                      >
-                        Select all users in the company ({users.length} users)
-                      </Label>
-                    </div>
-                    
-                    <div className="mt-2 p-4 bg-yellow-50 border border-yellow-200 rounded-md">
-                      <p className="text-sm text-yellow-800">
-                        <strong>Warning:</strong> This will send the email to all {users.length} users in the company. 
-                        Please ensure your email content is appropriate for all recipients.
-                      </p>
-                    </div>
-                    
-                    <div className="mt-4 text-sm text-gray-500">
-                      {selectAllUsers ? (
-                        <p>All {users.length} users will receive this email.</p>
-                      ) : (
-                        <p>No users selected. Check the box above to select all users.</p>
-                      )}
-                    </div>
-                  </TabsContent>
-
-
-                </Tabs>
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="emailConfig">Email Configuration</Label>
-                <select
-                  id="emailConfig"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  value={selectedConfigId || ''}
-                  onChange={handleConfigChange}
-                  disabled={isLoading || emailConfigs.length === 0}
-                  required
-                >
-                  {isLoading ? (
-                    <option value="">Loading configurations...</option>
-                  ) : emailConfigs.length === 0 ? (
-                    <option value="">No configurations available</option>
-                  ) : (
-                    <>
-                      <option value="">Select email configuration</option>
-                      {emailConfigs.map(config => (
-                        <option key={config.id} value={config.id}>
-                          {config.host_user} ({config.host}:{config.port})
-                        </option>
-                      ))}
-                    </>
-                  )}
-                </select>
-                {loadError && <p className="text-red-500 text-sm mt-1">{loadError}</p>}
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="campaignName">Campaign Name</Label>
-                <Input
-                  id="campaignName"
-                  type="text"
-                  placeholder="e.g., Q3 Security Awareness Training"
-                  value={campaignName}
-                  onChange={(e) => setCampaignName(e.target.value)}
-                  required
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="startDate">Start Date</Label>
-                <Input
-                  id="startDate"
-                  type="date"
-                  value={startDate}
-                  onChange={(e) => setStartDate(e.target.value)}
-                  required
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="endDate">End Date</Label>
-                <Input
-                  id="endDate"
-                  type="date"
-                  value={endDate}
-                  onChange={(e) => setEndDate(e.target.value)}
-                  required
-                />
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="emailTemplate">Email Template</Label>
-                <select
-                  id="emailTemplate"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  value={selectedTemplateId || ''}
-                  onChange={handleTemplateChange}
-                  disabled={isLoadingTemplates || emailTemplates.length === 0}
-                >
-                  {isLoadingTemplates ? (
-                    <option value="">Loading templates...</option>
-                  ) : emailTemplates.length === 0 ? (
-                    <option value="">No templates available</option>
-                  ) : (
-                    <>
-                      <option value="">Select email template</option>
-                      {emailTemplates.map(template => (
-                        <option key={template.id} value={template.id}>
-                          {template.subject} {template.is_global ? '(Global)' : template.company_name ? `(${template.company_name})` : ''}
-                        </option>
-                      ))}
-                    </>
-                  )}
-                </select>
-                {templateLoadError && <p className="text-red-500 text-sm mt-1">{templateLoadError}</p>}
-              </div>
-              
-              {/*
-              <div className="space-y-2">
-                <Label htmlFor="from">From</Label>
-                <Input
-                  id="from"
-                  type="email"
-                  placeholder="sender@example.com"
-                  name="from" // Added name attribute for consistency
-                  value={formData.from}
-                  onChange={handleChange}
-                  disabled // This field is derived from config
-                  // required // Not required if disabled and auto-filled
-                />
-              </div>
-              */}
-              
-              <div className="space-y-2">
-                <Label htmlFor="subject">Subject</Label>
-                <Input
-                  id="subject"
-                  name="subject"
-                  type="text"
-                  placeholder="Email subject"
-                  value={formData.subject}
-                  onChange={handleChange}
-                  required
-                />
-              </div>
-              
-              <div className="space-y-2">
-                {/* New Textarea for HTML editing */}
-                <div className="space-y-1">
-                  <Label htmlFor="body-html">HTML Code</Label>
-                  <Textarea
-                    id="body-html"
-                    name="body" // Ensures handleChange updates formData.body
-                    placeholder="Write your HTML code here..."
-                    rows={8}
-                    value={formData.body}
-                    onChange={handleChange} // Assumes handleChange is defined to handle textarea
-                    className="min-h-[200px] font-mono text-sm"
-                  />
-                </div>
-
-                {/* Existing WYSIWYG editor, now acting more as a preview but still editable */}
-                <div className="space-y-1 mt-4">
-                  <div className="flex justify-between items-center mb-1">
-                    <Label htmlFor="body-editor">Message Preview (Editable)</Label>
-                    <Button 
-                      type="button"
-                      variant="outline" 
-                      size="sm" 
-                      onClick={() => imageFilePastedRef.current?.click()}
-                    >
-                      Insert Image
-                    </Button>
+                <TabsList className="grid w-full grid-cols-3">
+                  <TabsTrigger value="individuals">Individual Recipients</TabsTrigger>
+                  <TabsTrigger value="departments">Departments</TabsTrigger>
+                  <TabsTrigger value="all-users">All Users</TabsTrigger>
+                </TabsList>
+                
+                <TabsContent value="individuals" className="border rounded-md p-2">
+                  <div className="mb-2">
+                    <Input
+                      id="search-recipients"
+                      type="text"
+                      placeholder="Search users..."
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      className="mb-2"
+                    />
                   </div>
-                  <input
-                    type="file"
-                    ref={imageFilePastedRef}
-                    accept="image/*"
-                    className="hidden"
-                    onChange={handleImageUpload}
-                  />
-                  <div
-                    id="body-editor"
-                    ref={previewEditableRef}
-                    contentEditable={true}
-                    className="p-4 border rounded-md bg-white mt-1 min-h-[200px] overflow-auto focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-sm"
-                    onInput={(e: React.FormEvent<HTMLDivElement>) => {
-                      const newBody = e.currentTarget.innerHTML;
-                      if (formData.body !== newBody) {
-                        setFormData(prev => ({ ...prev, body: newBody }));
-                      }
-                    }}
-                  />
-                </div>
-              </div>
+                  
+                  {userLoadError && <p className="text-red-500 text-sm mb-2">{userLoadError}</p>}
+                  
+                  {loadingUsers ? (
+                    <p className="text-sm text-gray-500 p-2">Loading users...</p>
+                  ) : filteredUsers.length === 0 ? (
+                    <p className="text-sm text-gray-500 p-2">
+                      {searchTerm ? 'No users found matching your search.' : 'No users found in this company.'}
+                    </p>
+                  ) : (
+                    <ScrollArea className="h-60 pr-4">
+                      <div className="space-y-2">
+                        {filteredUsers.map((user) => (
+                          <div key={user.id} className="flex items-center space-x-2">
+                            <Checkbox 
+                              id={`user-${user.id}`}
+                              checked={selectedRecipients.includes(user.email)}
+                              onCheckedChange={(checked) => handleRecipientChange(user.email, checked === true)}
+                            />
+                            <Label 
+                              htmlFor={`user-${user.id}`}
+                              className="flex-1 cursor-pointer flex justify-between"
+                            >
+                              <span>{user.first_name} {user.last_name}</span>
+                              <span className="text-gray-500 text-sm">{user.email}</span>
+                            </Label>
+                          </div>
+                        ))}
+                      </div>
+                    </ScrollArea>
+                  )}
+                  
+                  <div className="mt-2 text-sm text-gray-500">
+                    {selectedRecipients.length} individual recipient(s) selected
+                  </div>
+                </TabsContent>
+                
+                <TabsContent value="departments" className="border rounded-md p-2">
+                  <div className="mb-2">
+                    <Input
+                      id="search-departments"
+                      type="text"
+                      placeholder="Search departments..."
+                      value={departmentSearchTerm}
+                      onChange={(e) => setDepartmentSearchTerm(e.target.value)}
+                      className="mb-2"
+                    />
+                  </div>
+                  
+                  {departmentLoadError && <p className="text-red-500 text-sm mb-2">{departmentLoadError}</p>}
+                  
+                  {loadingDepartments ? (
+                    <p className="text-sm text-gray-500 p-2">Loading departments...</p>
+                  ) : filteredDepartments.length === 0 ? (
+                    <p className="text-sm text-gray-500 p-2">
+                      {departmentSearchTerm ? 'No groups found matching your search.' : 'No groups found in this company.'}
+                    </p>
+                  ) : (
+                    <ScrollArea className="h-60 pr-4">
+                      <div className="space-y-2">
+                        {filteredDepartments.map((department) => (
+                          <div key={department.id} className="flex items-center space-x-2">
+                            <Checkbox 
+                              id={`department-${department.id}`}
+                              checked={selectedDepartments.includes(department.id)}
+                              onCheckedChange={(checked) => handleDepartmentChange(department.id, checked === true)}
+                            />
+                            <Label 
+                              htmlFor={`department-${department.id}`}
+                              className="flex-1 cursor-pointer flex justify-between"
+                            >
+                              <span>{department.name}</span>
+                              <span className="text-gray-500 text-sm">{department.user_count} users</span>
+                            </Label>
+                          </div>
+                        ))}
+                      </div>
+                    </ScrollArea>
+                  )}
+                  
+                  <div className="mt-2 text-sm text-gray-500">
+                    {selectedDepartments.length} department(s) selected
+                    {selectedDepartments.length > 0 && (
+                      <span> (approx. {getDepartmentUsers(selectedDepartments).length} users)</span>
+                    )}
+                  </div>
+                </TabsContent>
+                
+                <TabsContent value="all-users" className="border rounded-md p-2">
+                  <div className="flex items-center space-x-2 p-4">
+                    <Checkbox 
+                      id="select-all-users"
+                      checked={selectAllUsers}
+                      onCheckedChange={(checked) => setSelectAllUsers(checked === true)}
+                    />
+                    <Label 
+                      htmlFor="select-all-users"
+                      className="flex-1 cursor-pointer"
+                    >
+                      Select all users in the company ({users.length} users)
+                    </Label>
+                  </div>
+                  
+                  <div className="mt-2 p-4 bg-yellow-50 border border-yellow-200 rounded-md">
+                    <p className="text-sm text-yellow-800">
+                      <strong>Warning:</strong> This will send the email to all {users.length} users in the company. 
+                      Please ensure your email content is appropriate for all recipients.
+                    </p>
+                  </div>
+                  
+                  <div className="mt-4 text-sm text-gray-500">
+                    {selectAllUsers ? (
+                      <p>All {users.length} users will receive this email.</p>
+                    ) : (
+                      <p>No users selected. Check the box above to select all users.</p>
+                    )}
+                  </div>
+                </TabsContent>
+
+
+              </Tabs>
             </div>
             
-            <div className="flex justify-end">
-              <Button type="submit" disabled={isSending}>
-                {isSending ? 'Sending...' : 'Send Email'}
-              </Button>
+            <div className="space-y-2">
+              <Label htmlFor="emailConfig">Email Configuration</Label>
+              <select
+                id="emailConfig"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                value={selectedConfigId || ''}
+                onChange={handleConfigChange}
+                disabled={isLoading || emailConfigs.length === 0}
+                required
+              >
+                {isLoading ? (
+                  <option value="">Loading configurations...</option>
+                ) : emailConfigs.length === 0 ? (
+                  <option value="">No configurations available</option>
+                ) : (
+                  <>
+                    <option value="">Select email configuration</option>
+                    {emailConfigs.map(config => (
+                      <option key={config.id} value={config.id}>
+                        {config.host_user} ({config.host}:{config.port})
+                      </option>
+                    ))}
+                  </>
+                )}
+              </select>
+              {loadError && <p className="text-red-500 text-sm mt-1">{loadError}</p>}
             </div>
-          </form>
-        </CardContent>
-        </Card>
-        
-        {/* Add the SentEmailsList component to automatically check email read status */}
-        {currentUser && (
-          <SentEmailsList 
-            currentUser={currentUser}
-          />
-        )}
-      </main>
-    </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="campaignName">Campaign Name</Label>
+              <Input
+                id="campaignName"
+                type="text"
+                placeholder="e.g., Q3 Security Awareness Training"
+                value={campaignName}
+                onChange={(e) => setCampaignName(e.target.value)}
+                required
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="startDate">Start Date</Label>
+              <Input
+                id="startDate"
+                type="date"
+                value={startDate}
+                onChange={(e) => setStartDate(e.target.value)}
+                required
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="endDate">End Date</Label>
+              <Input
+                id="endDate"
+                type="date"
+                value={endDate}
+                onChange={(e) => setEndDate(e.target.value)}
+                required
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="emailTemplate">Email Template</Label>
+              <select
+                id="emailTemplate"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                value={selectedTemplateId || ''}
+                onChange={handleTemplateChange}
+                disabled={isLoadingTemplates || emailTemplates.length === 0}
+              >
+                {isLoadingTemplates ? (
+                  <option value="">Loading templates...</option>
+                ) : emailTemplates.length === 0 ? (
+                  <option value="">No templates available</option>
+                ) : (
+                  <>
+                    <option value="">Select email template</option>
+                    {emailTemplates.map(template => (
+                      <option key={template.id} value={template.id}>
+                        {template.subject} {template.is_global ? '(Global)' : template.company_name ? `(${template.company_name})` : ''}
+                      </option>
+                    ))}
+                  </>
+                )}
+              </select>
+              {templateLoadError && <p className="text-red-500 text-sm mt-1">{templateLoadError}</p>}
+            </div>
+            
+            {/*
+            <div className="space-y-2">
+              <Label htmlFor="from">From</Label>
+              <Input
+                id="from"
+                type="email"
+                placeholder="sender@example.com"
+                name="from" // Added name attribute for consistency
+                value={formData.from}
+                onChange={handleChange}
+                disabled // This field is derived from config
+                // required // Not required if disabled and auto-filled
+              />
+            </div>
+            */}
+            
+            <div className="space-y-2">
+              <Label htmlFor="subject">Subject</Label>
+              <Input
+                id="subject"
+                name="subject"
+                type="text"
+                placeholder="Email subject"
+                value={formData.subject}
+                onChange={handleChange}
+                required
+              />
+            </div>
+            
+            <div className="space-y-2">
+              {/* New Textarea for HTML editing */}
+              <div className="space-y-1">
+                <Label htmlFor="body-html">HTML Code</Label>
+                <Textarea
+                  id="body-html"
+                  name="body" // Ensures handleChange updates formData.body
+                  placeholder="Write your HTML code here..."
+                  rows={8}
+                  value={formData.body}
+                  onChange={handleChange} // Assumes handleChange is defined to handle textarea
+                  className="min-h-[200px] font-mono text-sm"
+                />
+              </div>
+
+              {/* Existing WYSIWYG editor, now acting more as a preview but still editable */}
+              <div className="space-y-1 mt-4">
+                <div className="flex justify-between items-center mb-1">
+                  <Label htmlFor="body-editor">Message Preview (Editable)</Label>
+                  <Button 
+                    type="button"
+                    variant="outline" 
+                    size="sm" 
+                    onClick={() => imageFilePastedRef.current?.click()}
+                  >
+                    Insert Image
+                  </Button>
+                </div>
+                <input
+                  type="file"
+                  ref={imageFilePastedRef}
+                  accept="image/*"
+                  className="hidden"
+                  onChange={handleImageUpload}
+                />
+                <div
+                  id="body-editor"
+                  ref={previewEditableRef}
+                  contentEditable={true}
+                  className="p-4 border rounded-md bg-white mt-1 min-h-[200px] overflow-auto focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-sm"
+                  onInput={(e: React.FormEvent<HTMLDivElement>) => {
+                    const newBody = e.currentTarget.innerHTML;
+                    if (formData.body !== newBody) {
+                      setFormData(prev => ({ ...prev, body: newBody }));
+                    }
+                  }}
+                />
+              </div>
+            </div>
+          </div>
+          
+          <div className="flex justify-end">
+            <Button type="submit" disabled={isSending}>
+              {isSending ? 'Sending...' : 'Send Email'}
+            </Button>
+          </div>
+        </form>
+      </CardContent>
+      </Card>
+      
+      {/* Add the SentEmailsList component to automatically check email read status */}
+      {currentUser && (
+        <SentEmailsList 
+          currentUser={currentUser}
+        />
+      )}
+    </MainLayout>
   );
 };
 

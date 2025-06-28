@@ -16,8 +16,7 @@ import {
   Bar
 } from 'recharts';
 import { PlusCircle, Mail, AlertCircle, CheckCircle, TrendingUp, Users } from 'lucide-react';
-import Navbar from '@/components/Navbar';
-import Footer from '@/components/Footer';
+import MainLayout from '@/components/layout/MainLayout';
 import Video from '@/components/Video';
 import LmsTrainingResultsChart from '@/components/charts/LmsTrainingResultsChart';
 import { API_ENDPOINTS, getAuthHeaders } from '@/config/api';
@@ -107,6 +106,7 @@ const Dashboard = () => {
 
   // --- Department performance state ---
   const [departmentPerformance, setDepartmentPerformance] = useState<DepartmentPerformance[]>([]);
+  const [filteredDepartmentPerformance, setFilteredDepartmentPerformance] = useState<DepartmentPerformance[]>([]);
   const [loadingDept, setLoadingDept] = useState(true);
   const [errorDept, setErrorDept] = useState<string | null>(null);
 
@@ -201,6 +201,7 @@ const Dashboard = () => {
       const actualDepartments = departmentPerformance.filter(
         (dept) => dept.department_id !== null
       );
+      setFilteredDepartmentPerformance(actualDepartments);
 
       if (actualDepartments.length > 0) {
         setMostVulnerableDept(
@@ -224,9 +225,7 @@ const Dashboard = () => {
   }, [departmentPerformance]);
 
   return (
-    <div className="min-h-screen flex flex-col">
-      <Navbar />
-      
+    <MainLayout>
       <div className="flex-grow bg-gray-0 py-8 px-6">
         <div className="max-w-7xl mx-auto">
           {/* Dashboard Header */}
@@ -290,7 +289,7 @@ const Dashboard = () => {
                   <CardContent className="p-6">
                     <div className="flex items-center justify-between">
                       <div>
-                        <p className="text-sm font-medium text-gray-500">Average Read Rate</p>
+                        <p className="text-sm font-medium text-gray-500">Average Reporting Rate</p>
                         <p className="text-3xl font-bold">
                           {loadingSummary ? '...' : summaryStats ? `${summaryStats.average_read_rate.toFixed(2)}%` : 'N/A'}
                         </p>
@@ -329,7 +328,7 @@ const Dashboard = () => {
                 <Card className="border-gray-100">
                   <CardContent className="p-6">
                     <div className="flex items-center justify-between mb-2">
-                      <p className="text-sm font-medium text-gray-500">Most Vulnerable Dept.</p>
+                      <p className="text-sm font-medium text-gray-500">Most Vulnerable Group.</p>
                     </div>
                     {loadingDept ? <p>Loading...</p> : errorDept ? <p className="text-red-500 text-xs">Error: {errorDept}</p> : mostVulnerableDept ? (
                       <>
@@ -345,7 +344,7 @@ const Dashboard = () => {
                 <Card className="border-gray-100">
                   <CardContent className="p-6">
                     <div className="flex items-center justify-between mb-2">
-                      <p className="text-sm font-medium text-gray-500">Most Effective Dept.</p>
+                      <p className="text-sm font-medium text-gray-500">Most Effective Group.</p>
                     </div>
                     {loadingDept ? <p>Loading...</p> : errorDept ? <p className="text-red-500 text-xs">Error: {errorDept}</p> : mostEffectiveDept ? (
                       <>
@@ -405,7 +404,7 @@ const Dashboard = () => {
                           <Line
                             type="monotone"
                             dataKey="read_rate"
-                            name="Read Rate (%)"
+                            name="Reporting Rate (%)"
                             stroke="#10b981"
                           />
                         </LineChart>
@@ -416,7 +415,7 @@ const Dashboard = () => {
                 
                 <Card className="border-gray-100">
                   <CardHeader>
-                    <CardTitle>Department Risk Assessment</CardTitle>
+                    <CardTitle>Group Risk Assessment</CardTitle>
                   </CardHeader>
                   <CardContent>
                     <div className="h-80">
@@ -424,21 +423,27 @@ const Dashboard = () => {
                         <p>Loading department data...</p>
                       ) : errorDept ? (
                         <p className="text-red-500 text-xs">Error: {errorDept}</p>
-                      ) : departmentPerformance.length === 0 ? (
-                        <p>No department data available.</p>
+                      ) : filteredDepartmentPerformance.length === 0 ? (
+                        <p>No group data available.</p>
                       ) : (
-                        <ResponsiveContainer width="100%" height="100%">
+                        <ResponsiveContainer width="100%" height={300}>
                           <BarChart
-                            data={departmentPerformance}
+                            data={filteredDepartmentPerformance}
                             margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
                           >
-                            <CartesianGrid strokeDasharray="3 3" />
-                            <XAxis dataKey="department_name" angle={-15} textAnchor="end" height={50} interval={0} />
+                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#374151" />
+                            <XAxis 
+                              dataKey="department_name" 
+                              angle={-15} 
+                              textAnchor="end" 
+                              height={50} 
+                              interval={0} 
+                            />
                             <YAxis unit="%" domain={[0, 100]} />
                             <Tooltip formatter={(value:number) => `${value}%`} />
                             <Legend />
                             <Bar dataKey="click_rate" name="Click Rate (%)" fill="#ef4444" />
-                            <Bar dataKey="read_rate" name="Read Rate (%)" fill="#22C55E" />
+                            <Bar dataKey="read_rate" name="Reporting Rate (%)" fill="#22C55E" />
                           </BarChart>
                         </ResponsiveContainer>
                       )}
@@ -519,8 +524,7 @@ const Dashboard = () => {
           </Tabs>
         </div>
       </div>
-      
-    </div>
+    </MainLayout>
   );
 };
 

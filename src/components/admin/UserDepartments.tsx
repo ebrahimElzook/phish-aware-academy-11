@@ -132,7 +132,7 @@ export const UserDepartments = () => {
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <FileText className="h-5 w-5 text-[#907527]" />
-          Department Management
+          Group Management
         </CardTitle>
       </CardHeader>
       <CardContent>
@@ -175,16 +175,16 @@ export const UserDepartments = () => {
           </div>
 
           <div className="space-y-4">
-            <h3 className="text-lg font-medium">Users by Department</h3>
+            <h3 className="text-lg font-medium">Users by Group</h3>
             
             <div className="flex items-center gap-2">
-              <Label htmlFor="filter-department">Filter by Department:</Label>
+              <Label htmlFor="filter-department">Filter by Group:</Label>
               <Select value={selectedDepartment} onValueChange={setSelectedDepartment}>
                 <SelectTrigger className="w-[240px]">
                   <SelectValue placeholder="All Departments" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Departments</SelectItem>
+                  <SelectItem value="all">All Groups</SelectItem>
                   {departments.map((dept) => (
                     <SelectItem key={dept} value={dept}>
                       {dept}
@@ -199,7 +199,7 @@ export const UserDepartments = () => {
                 <TableRow>
                   <TableHead>Name</TableHead>
                   <TableHead>Email</TableHead>
-                  <TableHead>Department</TableHead>
+                  <TableHead>Group</TableHead>
                   <TableHead>Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -222,17 +222,17 @@ export const UserDepartments = () => {
                         </DialogTrigger>
                         <DialogContent>
                           <DialogHeader>
-                            <DialogTitle>Move User to Another Department</DialogTitle>
+                            <DialogTitle>Move User to Another Group</DialogTitle>
                           </DialogHeader>
                           <div className="py-4">
                             <p className="mb-4">
-                              Moving <span className="font-bold">{movingUser?.name}</span> from <span className="font-bold">{movingUser?.department}</span> department
+                              Moving <span className="font-bold">{movingUser?.name}</span> from <span className="font-bold">{movingUser?.department}</span> Group
                             </p>
                             <div className="space-y-2">
-                              <Label htmlFor="target-department">New Department</Label>
+                              <Label htmlFor="target-department">New Group</Label>
                               <Select value={targetDepartment} onValueChange={setTargetDepartment}>
                                 <SelectTrigger id="target-department">
-                                  <SelectValue placeholder="Select department" />
+                                  <SelectValue placeholder="Select Group" />
                                 </SelectTrigger>
                                 <SelectContent>
                                   {departments.filter(d => d !== movingUser?.department).map((dept) => (

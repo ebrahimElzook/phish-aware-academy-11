@@ -52,25 +52,6 @@ const Navbar = () => {
     return location.pathname === path;
   };
   
-  // Apply body offset when sidebar is visible (desktop) and remove on smaller screens
-  useEffect(() => {
-    const applyOffset = () => {
-      if (window.innerWidth >= 768) {
-        document.body.style.marginLeft = '16rem'; // 64 * 4px = 16rem
-      } else {
-        document.body.style.marginLeft = '0';
-      }
-      // Ensure page background matches sidebar color
-      document.body.classList.add('bg-secondary');
-    };
-    applyOffset();
-    window.addEventListener('resize', applyOffset);
-    return () => {
-      window.removeEventListener('resize', applyOffset);
-      document.body.classList.remove('bg-secondary');
-    };
-  }, []);
-
   // No need for additional auth-related effects as the AuthContext handles authentication state
   
   const handleLogout = () => {
@@ -81,7 +62,7 @@ const Navbar = () => {
     <>
       {/* Top-right welcome (desktop only) */}
       {isAuthenticated && (
-        <div className="hidden md:flex items-center justify-end md:pl-64 md:px-0 px-6 py-4 text-gray-200 text-sm border-b border-gray-700 space-x-2">
+        <div className="hidden md:flex items-center justify-end md:pl-64 md:px-0 px-6 py-4 text-gray-200 text-sm border-b border-gray-700 space-x-2 bg-secondary">
         <div className="flex flex-col items-center leading-snug text-center">
           <span>Welcome back,</span>
           <span className="font-medium">{userName}</span>
@@ -92,7 +73,7 @@ const Navbar = () => {
               <AvatarFallback>{userName.charAt(0)}</AvatarFallback>
             </Avatar>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-40">
+          <DropdownMenuContent align="end" className="w-40 bg-gray-800 border-gray-700 text-gray-200">
             <DropdownMenuItem onClick={handleLogout}>
               <LogOut className="mr-2 h-4 w-4" />
               Sign out
@@ -149,12 +130,7 @@ const Navbar = () => {
                     <span>Campaigns</span>
                   </div>
                 </Link>
-                <Link to={getLink("/analytics")} className={getLinkClasses("/analytics")}>
-                  <div className="flex items-center gap-1">
-                    <BarChart className="h-4 w-4" />
-                    <span>Analytics</span>
-                  </div>
-                </Link>
+
                 <Link to={getLink("/user-management")} className={getLinkClasses("/user-management")}>
                   <div className="flex items-center gap-1">
                     <Users className="h-4 w-4" />
@@ -192,7 +168,7 @@ const Navbar = () => {
                     </Avatar>
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
+                <DropdownMenuContent align="end" className="bg-gray-800 border-gray-700 text-gray-200">
                   <Link to={getLink("/profile-settings")}>
                     <DropdownMenuItem>
                       <User className="mr-2 h-4 w-4" />

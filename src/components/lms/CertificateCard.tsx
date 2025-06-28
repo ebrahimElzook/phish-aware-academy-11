@@ -79,7 +79,7 @@ export const CertificateCard: React.FC<CertificateCardProps> = ({
             <span className="font-medium">{userName}</span>
           </div>
           <div className="flex justify-between text-sm">
-            <span className="text-muted-foreground">Department:</span>
+            <span className="text-muted-foreground">Group:</span>
             <span className="font-medium">{department}</span>
           </div>
           <div className="flex justify-between text-sm">

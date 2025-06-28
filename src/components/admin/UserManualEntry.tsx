@@ -53,7 +53,7 @@ export const UserManualEntry = () => {
     } catch (error) {
       toast({
         title: "Failed to load data",
-        description: "There was an error loading users and departments. Please try again.",
+        description: "There was an error loading users and Groups. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -249,10 +249,10 @@ export const UserManualEntry = () => {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="department">Department</Label>
+                <Label htmlFor="department">Group</Label>
                 <Select value={department} onValueChange={setDepartment}>
                   <SelectTrigger>
-                    <SelectValue placeholder="Select department" />
+                    <SelectValue placeholder="Select Group" />
                   </SelectTrigger>
                   <SelectContent>
                     {departments.length > 0 ? (
@@ -263,7 +263,7 @@ export const UserManualEntry = () => {
                       ))
                     ) : (
                       <SelectItem value="default" disabled>
-                        No departments available
+                        No Groups available
                       </SelectItem>
                     )}
                   </SelectContent>
@@ -327,7 +327,7 @@ export const UserManualEntry = () => {
                   </div>
                   <div className="flex items-center gap-2 bg-gray-50 p-2 rounded">
                     <Check className="h-4 w-4 text-green-500" />
-                    <span>Department</span>
+                    <span>Group</span>
                   </div>
                 </div>
               </div>
@@ -370,7 +370,7 @@ export const UserManualEntry = () => {
                 <TableRow>
                   <TableHead>Name</TableHead>
                   <TableHead>Email</TableHead>
-                  <TableHead>Department</TableHead>
+                  <TableHead>Group</TableHead>
                   <TableHead>Role</TableHead>
                 </TableRow>
               </TableHeader>

@@ -203,7 +203,7 @@ export const UserAccessControl: React.FC = () => {
                   <TableHead>Name</TableHead>
                   <TableHead>Email</TableHead>
                   <TableHead>Role</TableHead>
-                  <TableHead>Department</TableHead>
+                  <TableHead>Group</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Actions</TableHead>
                   <TableHead>Reset</TableHead>

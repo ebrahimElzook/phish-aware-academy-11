@@ -11,8 +11,7 @@ import { Calendar as CalendarComponent } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import Navbar from '@/components/Navbar';
-import Footer from '@/components/Footer';
+import MainLayout from '@/components/layout/MainLayout';
 import { useNavigate } from 'react-router-dom';
 import Video from '@/components/Video';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -178,9 +177,8 @@ const Templates = () => {
   const toggleDepartment = (deptId: string) => {
     setSelectedDepartments(prev => prev.includes(deptId) ? prev.filter(id => id !== deptId) : [...prev, deptId]);
   };
-  return <div className="min-h-screen flex flex-col">
-      <Navbar />
-      
+  return (
+    <MainLayout>
       <div className="flex-grow bg-gray-50 py-8 px-6">
         <div className="max-w-7xl mx-auto">
           <Tabs defaultValue="phishing" className="space-y-4">
@@ -289,7 +287,7 @@ const Templates = () => {
                     </div>
                     
                     {selectedTargetType === "departments" && <div className="border p-3 rounded-md">
-                        <Label className="block mb-2">Select Departments</Label>
+                        <Label className="block mb-2">Select Groups</Label>
                         <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
                           {departments.map(dept => <div key={dept.id} className="flex items-center space-x-2">
                               <Checkbox id={`template-${dept.id}`} checked={selectedDepartments.includes(dept.id)} onCheckedChange={() => toggleDepartment(dept.id)} />
@@ -355,8 +353,7 @@ const Templates = () => {
           </Tabs>
         </div>
       </div>
-      
-      <Footer />
-    </div>;
+    </MainLayout>
+  );
 };
 export default Templates;

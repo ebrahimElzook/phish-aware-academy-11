@@ -183,7 +183,7 @@ export const DepartmentManagement = () => {
       <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle className="flex items-center gap-2">
           <Building2 className="h-5 w-5 text-[#907527]" />
-          Department Management
+          Group Management
         </CardTitle>
         <div className="flex gap-2">
           {selectedTab === 'users' && Object.keys(userDepartmentChanges).length > 0 && (
@@ -213,7 +213,7 @@ export const DepartmentManagement = () => {
           <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="departments" className="flex items-center gap-2">
               <Building2 className="h-4 w-4" />
-              Departments
+              Groups
             </TabsTrigger>
             <TabsTrigger value="users" className="flex items-center gap-2">
               <UserCog className="h-4 w-4" />
@@ -225,12 +225,12 @@ export const DepartmentManagement = () => {
           {/* Add Department Form */}
           <div className="flex items-end gap-2">
             <div className="space-y-2 flex-1">
-              <Label htmlFor="department-name">Add New Department</Label>
+              <Label htmlFor="department-name">Add New Group</Label>
               <Input
                 id="department-name"
                 value={newDepartment}
                 onChange={(e) => setNewDepartment(e.target.value)}
-                placeholder="Enter department name"
+                placeholder="Enter group name"
               />
             </div>
             <Button 
@@ -247,7 +247,7 @@ export const DepartmentManagement = () => {
             <div className="relative flex-1">
               <Search className="absolute left-2 top-2.5 h-4 w-4 text-gray-500" />
               <Input
-                placeholder="Search departments..."
+                placeholder="Search Groups..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="pl-8"
@@ -266,7 +266,7 @@ export const DepartmentManagement = () => {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Department Name</TableHead>
+                  <TableHead>Group Name</TableHead>
                   <TableHead>Users</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
@@ -275,7 +275,7 @@ export const DepartmentManagement = () => {
                 {filteredDepartments.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={3} className="text-center py-8 text-gray-500">
-                      {searchTerm ? 'No departments found matching your search.' : 'No departments found.'}
+                      {searchTerm ? 'No groups found matching your search.' : 'No groups found.'}
                     </TableCell>
                   </TableRow>
                 ) : (
@@ -295,7 +295,7 @@ export const DepartmentManagement = () => {
                           onClick={() => handleDeleteDepartment(dept.id)}
                           className="text-red-500 hover:text-red-700 hover:bg-red-50"
                           disabled={dept.user_count > 0}
-                          title={dept.user_count > 0 ? "Cannot delete department with users" : "Delete department"}
+                          title={dept.user_count > 0 ? "Cannot delete Group with users" : "Delete Group"}
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>
@@ -335,7 +335,7 @@ export const DepartmentManagement = () => {
                   <TableRow>
                     <TableHead>Name</TableHead>
                     <TableHead>Email</TableHead>
-                    <TableHead>Department</TableHead>
+                    <TableHead>Group</TableHead>
                     <TableHead>Role</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -358,7 +358,7 @@ export const DepartmentManagement = () => {
                             onValueChange={(value) => handleDepartmentChange(user.id, value)}
                           >
                             <SelectTrigger className="w-full">
-                              <SelectValue placeholder="Select department" />
+                              <SelectValue placeholder="Select Group" />
                             </SelectTrigger>
                             <SelectContent>
                               {departments.map((dept) => (

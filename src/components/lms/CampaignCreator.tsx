@@ -465,7 +465,7 @@ export const CampaignCreator: React.FC<CampaignCreatorProps> = ({ onCreate }) =>
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">All Users</SelectItem>
-                    <SelectItem value="department">By Department</SelectItem>
+                    <SelectItem value="department">By Group</SelectItem>
                     <SelectItem value="custom">Custom User Selection</SelectItem>
                   </SelectContent>
                 </Select>
@@ -473,17 +473,17 @@ export const CampaignCreator: React.FC<CampaignCreatorProps> = ({ onCreate }) =>
               
               {selectedTargetType === "department" && (
                 <div className="grid gap-2">
-                  <Label>Select Departments</Label>
+                  <Label>Select Groups</Label>
                   {loadingDepartments ? (
                     <div className="flex items-center justify-center py-2">
                       <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                      <span className="text-sm">Loading departments...</span>
+                      <span className="text-sm">Loading groups...</span>
                     </div>
                   ) : (
                     <div className="border rounded-md p-3 space-y-2 max-h-60 overflow-y-auto">
                       {departments.length === 0 ? (
                         <div className="text-center text-sm text-gray-500 py-2">
-                          No departments available
+                          No Groups available
                         </div>
                       ) : (
                         departments.map((dept) => (

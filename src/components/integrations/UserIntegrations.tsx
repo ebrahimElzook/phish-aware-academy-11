@@ -171,10 +171,10 @@ export const UserIntegrations = () => {
                 </div>
                 
                 <div>
-                  <Label className="mb-2">Select Department</Label>
+                  <Label className="mb-2">Select Group</Label>
                   <Select>
                     <SelectTrigger>
-                      <SelectValue placeholder="Select department" />
+                      <SelectValue placeholder="Select Group" />
                     </SelectTrigger>
                     <SelectContent>
                       {departments.map((dept) => (
