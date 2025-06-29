@@ -241,8 +241,9 @@ class UserManagementView(APIView):
                 
                 # Process the CSV data
                 results = {
-                    'created': 0,
-                    'failed': 0,
+                    'created_users': [],
+                    'total_created': 0,
+                    'total_errors': 0,
                     'errors': []
                 }
                 
@@ -253,7 +254,7 @@ class UserManagementView(APIView):
                         missing_fields = [field for field in required_fields if field not in row or not row[field]]
                         
                         if missing_fields:
-                            results['failed'] += 1
+                            results['total_errors'] += 1
                             results['errors'].append(f"Row missing required fields: {', '.join(missing_fields)}")
                             continue
                             
@@ -271,7 +272,7 @@ class UserManagementView(APIView):
                                 
                         # Check if user with this email already exists in this company
                         if User.objects.filter(email=row['email'], company=company).exists():
-                            results['failed'] += 1
+                            results['total_errors'] += 1
                             results['errors'].append(f"User with email {row['email']} already exists in this company")
                             continue
                         
@@ -320,19 +321,17 @@ class UserManagementView(APIView):
                             user.set_password(password)
                             user.save()
                             
-                            # Skip sending password reset email
-                            response_data = UserSerializer(user).data
-                            response_data['email_sent'] = False
-                            response_data['email_skipped'] = "Welcome email sending is disabled"
+                            # Add created user to the results
+                            results['created_users'].append(UserSerializer(user).data)
+                            results['total_created'] += 1
                             
-                            results['created'] += 1
                         except Exception as e:
-                            results['failed'] += 1
+                            results['total_errors'] += 1
                             results['errors'].append(f"Error creating user {row['email']}: {str(e)}")
                             continue
                         
                     except Exception as e:
-                        results['failed'] += 1
+                        results['total_errors'] += 1
                         results['errors'].append(f"Error processing row: {str(e)}")
                 
                 return Response(results, status=status.HTTP_201_CREATED)
@@ -534,7 +533,6 @@ class UserDetailView(APIView):
             {"detail": "Company context is required."},
             status=status.HTTP_400_BAD_REQUEST
         )
-
 
 class UserDepartmentUpdateView(APIView):
     """
